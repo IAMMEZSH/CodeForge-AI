@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.0 · 2026-11-15**
+**Version 1.0.1 · 2026-11-16**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -956,9 +956,9 @@ completed in a few seconds.
   sanitizer locally.
 - Keep one logical problem per session. The loop replaces the entire file each
   iteration; unrelated edits may be lost.
-- For very large files, split the problem or use a model with a larger context.
-  The runtime is started with a 4096-token context; prompts beyond that are
-  truncated by llama.cpp.
+- For very large files, split the problem or raise the context window. The
+  runtime defaults to 16,384 tokens; prompts beyond the configured
+  `llm.context_size` are truncated by llama.cpp.
 - If the model keeps returning the same code, the loop stops with
   `AI returned the same content as the current source`; improve the prompt by
   including more diagnostics, or switch to a stronger model.
@@ -989,9 +989,10 @@ balanced for coding, reasoning and agentic work.
 | 11 | Gemma 3 27B IT | Global · Google | 27B | 128K | Gemma License | 16.6 GB | 22 GB |
 | 12 | Codestral 22B | Global · Mistral AI | 22B | 32K | Mistral Non-Production | 13.3 GB | 18 GB |
 
-The GGUF context window is much larger than the managed runtime's 4096-token
-window. The runtime is deliberately conservative to keep CPU memory bounded;
-change it only if you allocate more RAM.
+The GGUF context window is much larger than the managed runtime's default
+16,384-token window. The default keeps CPU memory bounded for 8 GB machines;
+raise `llm.context_size` (up to 262,144) and keep `llm.parallel` at 1 when you
+have RAM headroom.
 
 ### 7.2 Filters and cards
 
@@ -1053,7 +1054,8 @@ UI start a locally built binary on any ABI.
 
 ```text
 runtime/llama.cpp/llama-server[.exe]   (or llm.llama_server override)
-  -m <model.gguf> --host 127.0.0.1 --port 8080 -c 4096 \
+  -m <model.gguf> --host 127.0.0.1 --port 8080 \
+  -c <llm.context_size, default 16384> --parallel <llm.parallel, default 1> \
   -t max(2, logical_cores / 2) --no-webui
 ```
 
@@ -1064,6 +1066,9 @@ runtime/llama.cpp/llama-server[.exe]   (or llm.llama_server override)
 - Output is appended to `logs/llama-server.log`; the UI can show the tail.
 - **Stop** forcibly terminates the process tree. Shutting down the Java server
   also stops a managed llama-server.
+- The configured context applies to every model. Do not exceed the selected
+  model's architecture limit (for example Phi-4 is 16K); lower
+  `llm.context_size` when switching to a smaller-context model.
 - If port 8080 is already served by an external process, CodeForge reports
   *"Port 8080 is already used by an external inference service."* It will not
   kill an unmanaged process.
@@ -1080,7 +1085,7 @@ chat/debug become available.
 | Broad language coverage | Yi-Coder 9B, CodeGeeX4 9B |
 | Strong agentic repairs | GPT-OSS 20B, Devstral Small 24B |
 | Best overall on a workstation | Qwen3-Coder 30B-A3B |
-| Huge context | Seed-OSS 36B (512K architecture, 4096 runtime window) |
+| Huge context | Seed-OSS 36B (512K architecture; raise `llm.context_size` up to 262,144) |
 | Fill-in-the-middle completion | Codestral 22B (non-production license) |
 
 Only one model is served at a time. Stop inference, start another model, and
@@ -1253,6 +1258,8 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `llama_server` | empty | — | Path to a source-built or distro `llama-server`; takes priority over the managed runtime |
 | `temperature` | `0.2` | 0.0–2.0 | Sampling temperature |
 | `max_tokens` | `2048` | 64–32768 | Response budget |
+| `context_size` | `16384` | 2048–262144 | Managed llama-server context window (`-c`), in tokens |
+| `parallel` | `1` | 1–8 | Concurrent llama-server slots |
 | `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core |
 
 ### 10.2 `debug` section
@@ -1318,6 +1325,8 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `CODEFORGE_LLM_MODEL` | `llm.model` |
 | `CODEFORGE_LLM_TEMPERATURE` | `llm.temperature` |
 | `CODEFORGE_LLM_MAX_TOKENS` | `llm.max_tokens` |
+| `CODEFORGE_CONTEXT_SIZE` | `llm.context_size` |
+| `CODEFORGE_PARALLEL` | `llm.parallel` |
 | `CODEFORGE_REQUEST_TIMEOUT_MS` | `llm.request_timeout_ms` |
 | `CODEFORGE_LLAMA_SERVER` | `llm.llama_server` |
 | `CODEFORGE_DEBUG_ITERATIONS` | `debug.max_iterations` |
@@ -1440,11 +1449,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.0-source.zip`
-- `CodeForge-AI-1.0.0-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.0-docs.zip`
+- `CodeForge-AI-1.0.1-source.zip`
+- `CodeForge-AI-1.0.1-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.1-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.0.json`
+- `manifest-1.0.1.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -1578,8 +1587,9 @@ Never delete `models/installed.json` while a download is running.
 - **Threads.** llama-server uses `max(2, logical_cores / 2)`. On hybrid CPUs,
   fewer threads than logical cores often improves throughput; this requires
   starting llama-server manually and pointing `llm.openai_url` at it.
-- **Context.** The managed runtime uses 4096 tokens. Larger contexts consume
-  much more RAM and slow CPU decoding; keep it small unless needed.
+- **Context.** The managed runtime defaults to 16,384 tokens with one slot
+  (`llm.context_size`, `llm.parallel`). The 4B Q4 model needs about 40 GB of
+  RAM at 262,144 tokens, and CPU prefill is slow; raise it only with headroom.
 - **Model choice.** MoE models (Qwen3-Coder 30B-A3B, GPT-OSS 20B,
   DeepSeek-Coder V2 Lite) activate a fraction of parameters per token and are
   markedly faster on CPU than dense models of similar quality.

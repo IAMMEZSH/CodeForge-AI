@@ -8,6 +8,8 @@
     "llama_server": "",
     "temperature": 0.2,
     "max_tokens": 2048,
+    "context_size": 16384,
+    "parallel": 1,
     "request_timeout_ms": 600000,
     "online": {
       "enabled": true,

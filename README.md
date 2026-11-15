@@ -6,7 +6,7 @@
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
-**Version 1.0.0 · 2026-11-15**
+**Version 1.0.1 · 2026-11-16**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
 [![Core](https://img.shields.io/badge/core-C%2B%2B17%20%2F%20C17-7c5cff.svg)](#architecture)
@@ -18,18 +18,18 @@ C/C++ core · Java server · Python automation · Windows · Linux · macOS · A
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.0-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.0-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-windows-x64.zip).
+**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.1-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.1-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-windows-x64.zip).
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.0-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-windows-x64.zip) |
-| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.0-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-linux-source.tar.gz) |
-| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.0-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-macos-source.tar.gz) |
-| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.0-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-mobile-source.zip) |
-| All platforms, source only | `CodeForge-AI-1.0.0-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-source.zip) |
-| Documentation set | `CodeForge-AI-1.0.0-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.0/CodeForge-AI-1.0.0-docs.zip) |
+| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.1-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-windows-x64.zip) |
+| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.1-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-linux-source.tar.gz) |
+| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.1-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-macos-source.tar.gz) |
+| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.1-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-mobile-source.zip) |
+| All platforms, source only | `CodeForge-AI-1.0.1-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-source.zip) |
+| Documentation set | `CodeForge-AI-1.0.1-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.1/CodeForge-AI-1.0.1-docs.zip) |
 
-Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.0.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.0) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.0.0). Every archive contains the source, the English manual in `docs/MANUAL.md`, and the deployment checklists.
+Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.1.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.1) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.0.1). Every archive contains the source, the English manual in `docs/MANUAL.md`, and the deployment checklists.
 
 <div align="center">
 
@@ -57,7 +57,7 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **Any file, any path** — code blocks can be saved to the exact path you type (one path per file), missing folders are confirmed before creation, and nothing is silently renamed. The whole project can be copied to any folder, and a real launcher can be created anywhere (Windows `.lnk`, Linux `.desktop`, macOS `.command`).
 - **Current-law compliance layer** — 13 non-disableable baseline prohibitions, 14 jurisdiction packs, network geolocation, automatic refreshes from official legal portals, bilingual refusals, a hashed audit log, and a guardrail (not legal advice) injected into every model prompt.
 - **12 curated offline models** — a mix of Chinese and international models including Qwen3-Coder, DeepSeek, Seed-OSS, GPT-OSS, Devstral, Gemma, Phi and Codestral.
-- **Managed llama.cpp runtime** — the server downloads the correct CPU runtime for your OS and CPU (Windows x64/ARM64, macOS arm64/x64, Linux x64/ARM64/s390x, Android ARM64), verifies SHA-256, and controls `llama-server` for you.
+- **Managed llama.cpp runtime** — the server downloads the correct CPU runtime for your OS and CPU (Windows x64/ARM64, macOS arm64/x64, Linux x64/ARM64/s390x, Android ARM64), verifies SHA-256, and controls `llama-server` for you with a configurable 2K–256K context window (16K default).
 - **Native control center** — a Win32 C++ app that starts the server, shows live readiness, and opens the console in an Edge app window.
 - **One web console everywhere** — the same responsive futuristic UI works on desktop browsers, Android WebView, and iOS WKWebView.
 - **Interruptible chat with a live reasoning trace** — every turn shows stage-by-stage execution (compliance screen, memory recall, workspace scan, live research, context assembly, generation, output screen), a live token counter with the measured decoding rate on the local runtime, a remaining-time estimate, and a progress bar. The send key becomes **INTERJECT** while the model is working: press it to stop the answer and send your correction immediately, or **STOP** to cancel with an empty box. Cancellation kills the core process on the server, frees the model, and does not write the aborted turn to memory.
@@ -140,11 +140,11 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 
 | Platform | Release artifact | Route | Build and launch |
 |---|---|---|---|
-| Windows 10/11 x64 | `CodeForge-AI-1.0.0-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
-| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.0-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.0-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.0-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
-| iOS / iPadOS 15+ | `CodeForge-AI-1.0.0-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
+| Windows 10/11 x64 | `CodeForge-AI-1.0.1-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
+| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.1-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.1-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.1-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
+| iOS / iPadOS 15+ | `CodeForge-AI-1.0.1-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
 
 **Same-platform device coverage**
 
@@ -154,7 +154,7 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 - **Android** — ARM64 phones and tablets run the full stack in Termux and install the official `android-arm64` runtime. Other ABIs build llama.cpp locally, and every Android 8+ device can use the Kotlin APK as a client.
 - **iOS / iPadOS** — the Swift app and iSH console are clients/control hosts; inference can stay on a PC, Mac or phone over the LAN via `llm.openai_url`.
 
-Each platform bundle carries a `QUICKSTART.txt` written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.0.json` sit beside the archives.
+Each platform bundle carries a `QUICKSTART.txt` written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.1.json` sit beside the archives.
 
 ## Quick start
 

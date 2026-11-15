@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {
@@ -105,6 +105,8 @@ QUICKSTART_WINDOWS = """CodeForge AI {version} — Windows quick start
 3. In the Models tab:
    - click "Install runtime" to fetch the llama.cpp CPU runtime;
    - download a model that fits your RAM (Qwen3 4B needs about 6 GB);
+   - the default context is 16,384 tokens; 256K is available through
+     llm.context_size but needs about 40 GB of RAM with the 4B Q4 model;
    - click "Start inference";
    - chat, or paste failing code in Debug and press "Auto-debug".
 

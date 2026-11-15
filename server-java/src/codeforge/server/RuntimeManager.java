@@ -27,6 +27,7 @@ public final class RuntimeManager {
 
     private final Path root;
     private final ModelManager models;
+    private final AppSettings settings;
     private final HttpClient http;
     private Process process;
     private String activeModelId = "";
@@ -35,9 +36,10 @@ public final class RuntimeManager {
     private Path logFile;
     private String lastError = "";
 
-    public RuntimeManager(Path root, ModelManager models) {
+    public RuntimeManager(Path root, ModelManager models, AppSettings settings) {
         this.root = root;
         this.models = models;
+        this.settings = settings;
         this.http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(3))
                 .build();
@@ -137,7 +139,9 @@ public final class RuntimeManager {
             command.add("--port");
             command.add(Integer.toString(INFERENCE_PORT));
             command.add("-c");
-            command.add("4096");
+            command.add(Integer.toString(settings.contextSize()));
+            command.add("--parallel");
+            command.add(Integer.toString(settings.parallelSlots()));
             command.add("-t");
             command.add(Integer.toString(Math.max(2, Runtime.getRuntime().availableProcessors() / 2)));
             command.add("--no-webui");

@@ -36,6 +36,8 @@ public final class AppSettings {
     private String onlineLlmUrl = "https://api.deepseek.com";
     private String onlineLlmModel = "deepseek-chat";
     private String onlineLlmKey = "";
+    private int contextSize = 16384;
+    private int parallelSlots = 1;
 
     public AppSettings(Path root) {
         this.root = root;
@@ -76,6 +78,8 @@ public final class AppSettings {
                 maxResults = Json.integer(online, "max_results", maxResults);
             }
             Map<String, Object> llm = Json.asObject(doc.get("llm"));
+            contextSize = Json.integer(llm, "context_size", contextSize);
+            parallelSlots = Json.integer(llm, "parallel", parallelSlots);
             Map<String, Object> onlineLlm = Json.asObject(llm.get("online"));
             if (!onlineLlm.isEmpty()) {
                 onlineLlmEnabled = Json.bool(onlineLlm, "enabled", onlineLlmEnabled);
@@ -138,6 +142,20 @@ public final class AppSettings {
         if (value != null && !value.isBlank()) {
             autoToolchain = truthy(value);
         }
+        value = System.getenv("CODEFORGE_CONTEXT_SIZE");
+        if (value != null && !value.isBlank()) {
+            try {
+                contextSize = Integer.parseInt(value.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        value = System.getenv("CODEFORGE_PARALLEL");
+        if (value != null && !value.isBlank()) {
+            try {
+                parallelSlots = Integer.parseInt(value.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
     }
 
     private void clamp() {
@@ -146,6 +164,8 @@ public final class AppSettings {
         onlineTimeoutMs = Math.max(2000, Math.min(60000, onlineTimeoutMs));
         maxResults = Math.max(1, Math.min(6, maxResults));
         refreshHours = Math.max(1, Math.min(24 * 30, refreshHours));
+        contextSize = Math.max(2048, Math.min(262144, contextSize));
+        parallelSlots = Math.max(1, Math.min(8, parallelSlots));
         researchMode = researchMode.toLowerCase(Locale.ROOT);
         if (!researchMode.equals("off") && !researchMode.equals("auto")
                 && !researchMode.equals("always")) {
@@ -261,5 +281,15 @@ public final class AppSettings {
     public String onlineLlmModel() {
         ensure();
         return onlineLlmModel;
+    }
+
+    public int contextSize() {
+        ensure();
+        return contextSize;
+    }
+
+    public int parallelSlots() {
+        ensure();
+        return parallelSlots;
     }
 }

@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.0 · Java 17 HTTP server · C++ core bridge
+Version 1.0.1 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -122,7 +122,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -171,7 +171,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -687,7 +687,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -884,8 +884,10 @@ Failure cases (all `200` with `ok:false`):
 | Model missing on disk | `Model file does not exist: <id>` |
 | Startup timeout (180 s) | `... did not become ready within 180 seconds...` plus `log` and `tail` |
 
-The server is started with `--host 127.0.0.1 --port 8080 -c 4096 -t <half the
-cores> --no-webui`. Logs are appended to `logs/llama-server.log`.
+The server is started with `--host 127.0.0.1 --port 8080 -c <llm.context_size>
+--parallel <llm.parallel> -t <half the cores> --no-webui`. Defaults are 16,384
+tokens and one slot; the context is clamped to 2,048–262,144. Logs are appended
+to `logs/llama-server.log`.
 
 ### POST `/api/runtime/stop`
 
@@ -1097,7 +1099,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.0", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.1", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`

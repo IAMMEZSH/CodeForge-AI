@@ -168,7 +168,8 @@ models/
 
 ```text
 llama-server -m <model.gguf> --host 127.0.0.1 --port 8080 \
-  -c 4096 -t <max(2, cores/2)> --no-webui
+  -c <llm.context_size, default 16384> --parallel <llm.parallel, default 1> \
+  -t <max(2, cores/2)> --no-webui
 ```
 
 3. The server waits up to 180 seconds for `/health`.
@@ -211,7 +212,7 @@ Rules of thumb:
 
 - **MoE models** (Qwen3-Coder 30B-A3B, DeepSeek-Coder V2 Lite, GPT-OSS 20B) activate only a fraction of parameters per token, so they decode faster on CPU than their parameter count suggests — but they still need the full weights in RAM.
 - **Q4_K_M** is the default quantization: a good quality/size trade-off. MXFP4 is used for GPT-OSS because that is the published format.
-- **Context** affects KV-cache memory. The runtime starts with `-c 4096`; raise it only if you have RAM headroom.
+- **Context** affects KV-cache memory. The runtime defaults to `-c 16384 --parallel 1`; raise `llm.context_size` up to 262144 only if you have RAM headroom.
 - First tokens are slower while the model is paged in. Let the model warm up with a short prompt.
 
 ---

@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.0 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.0.1 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -320,7 +320,8 @@ POST /api/runtime/start {model_id}
   → refuse if 8080 is already healthy (prevents double-start)
   → ProcessBuilder:
        llama-server -m <model> --host 127.0.0.1 --port 8080
-                    -c 4096 -t <max(2, cores/2)> --no-webui
+                    -c <llm.context_size> --parallel <llm.parallel>
+                    -t <max(2, cores/2)> --no-webui
   → redirect stdout+stderr to logs/llama-server.log
   → poll GET /v1/models until healthy (180 s cap)
   → on timeout: kill, report tail of the log

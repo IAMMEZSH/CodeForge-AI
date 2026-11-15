@@ -3,6 +3,25 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## 1.0.1 — 2026-11-16
+
+### Fixed
+
+- **Context-window overflow.** The managed llama.cpp runtime now starts with a
+  configurable context window (`llm.context_size`, default 16384) and an
+  explicit slot count (`llm.parallel`, default 1). Requests above the old
+  4096-token limit no longer fail with HTTP 400
+  `exceed_context_size_error`; an 8,087-token request was verified end-to-end.
+  The value is clamped to 2,048–262,144 tokens. Qwen3 4B supports a 256K
+  context, but 262,144 tokens needs about 40 GB of RAM for the Q4 model and
+  long CPU prefill times, so raise it only on a machine with headroom.
+
+### Changed
+
+- Version, documentation and diagrams updated to 1.0.1.
+- `CODEFORGE_CONTEXT_SIZE` and `CODEFORGE_PARALLEL` environment overrides added.
+- The managed runtime now passes an explicit `--parallel` slot count.
+
 ## 1.0.0 — 2026-11-15
 
 First public release. A complete local-first programming workbench written in

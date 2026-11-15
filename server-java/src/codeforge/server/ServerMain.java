@@ -38,8 +38,8 @@ public final class ServerMain {
         NativeTools nativeTools = new NativeTools(root);
         core = new CoreBridge(root);
         ModelManager models = new ModelManager(root, nativeTools);
-        runtime = new RuntimeManager(root, models);
         AppSettings settings = new AppSettings(root);
+        runtime = new RuntimeManager(root, models, settings);
         MemoryStore memory = new MemoryStore(settings);
         ProjectIndex projectIndex = new ProjectIndex(settings);
         OnlineService online = new OnlineService(settings, memory);
