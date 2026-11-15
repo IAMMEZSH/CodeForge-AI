@@ -29,7 +29,7 @@ C/C++ core · Java server · Python automation · Windows · Linux · macOS · A
 | All platforms, source only | `CodeForge-AI-1.0.3-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-source.zip) |
 | Documentation set | `CodeForge-AI-1.0.3-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-docs.zip) |
 
-Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.3.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.3) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.0.3). Every archive contains the source, the English manual in `docs/MANUAL.md`, and the deployment checklists.
+Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.3.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.3) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.3). Every archive contains the source, the English manual in `docs/MANUAL.md`, and the deployment checklists.
 
 <div align="center">
 
