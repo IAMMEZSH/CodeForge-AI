@@ -1,0 +1,146 @@
+CodeForge AI 1.0.0 — Android and iOS quick start
+=================================================
+
+Two routes are supported on each mobile platform:
+
+Route A — host the full four-language stack in a terminal.
+Route B — build the native Kotlin or Swift thin client and connect it to a
+CodeForge server running on a phone, PC, Mac or LAN host.
+
+The source bundle includes mobile/android (Kotlin) and mobile/ios (SwiftUI).
+Android ARM64 devices resolve the official llama.cpp `android-arm64` runtime
+automatically; other Android ABIs and iSH use the source-build override below.
+
+================================================================
+A1. Android host — Termux
+================================================================
+
+Install Termux from F-Droid (the Play Store build is outdated):
+    https://f-droid.org/packages/com.termux/
+
+Prepare:
+
+    pkg update -y && pkg upgrade -y
+    pkg install -y python clang make cmake git curl libcurl openjdk-17 \
+        zip unzip
+    termux-setup-storage
+    cp -r ~/storage/downloads/CodeForge-AI-1.0.0 ~/
+    cd ~/CodeForge-AI-1.0.0
+    termux-wake-lock
+
+Build and test:
+
+    python aux-python/bootstrap.py --all
+
+Run:
+
+    python aux-python/bootstrap.py --run --port 8765
+    # open http://127.0.0.1:8765/console/ in the phone browser
+
+Inference on Termux:
+
+ARM64 phones and tablets use the published Android runtime:
+
+    curl -s -X POST http://127.0.0.1:8765/api/runtime/install \
+      -H "Content-Type: application/json" -d '{}'
+    # then press "Start inference" in the Models tab
+
+Other ABIs (ARMv7, x86_64 emulators) have no prebuilt asset. Build llama.cpp
+on the device and point the server at it:
+
+    pkg install -y git cmake
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp ~/llama.cpp
+    cd ~/llama.cpp
+    cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build build -j"$(nproc)" --target llama-server
+    export CODEFORGE_LLAMA_SERVER="$HOME/llama.cpp/build/bin/llama-server"
+    cd ~/CodeForge-AI-1.0.0
+    python aux-python/bootstrap.py --run --port 8765
+
+You can persist the same path as llm.llama_server in config.json instead of
+exporting the variable. Full details: docs/PLATFORMS.md section 7.5.
+
+================================================================
+A2. Android thin client — Kotlin
+================================================================
+
+Requirements: Android SDK 34, JDK 17. The bundled Gradle 8.7 wrapper
+(gradlew + gradle/wrapper/) downloads Gradle once on first build.
+The APK is pure Kotlin, so the same build runs on ARM64, ARMv7, x86 and
+x86_64 phones, tablets and emulators (minSdk 26).
+
+    cd mobile/android
+    chmod +x gradlew        # needed after unzipping on Linux/macOS
+    ./gradlew assembleDebug
+    adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+Connect over USB to a host server:
+
+    adb reverse tcp:8765 tcp:8765
+
+In the app, set the server URL (emulator preset: http://10.0.2.2:8765).
+
+================================================================
+B1. iOS host — iSH (experimental)
+================================================================
+
+Install iSH from the App Store.
+
+    apk update
+    apk add python3 curl openjdk17-jdk build-base curl-dev cmake git bash \
+        zip unzip
+
+Host role:
+
+    cd ~/CodeForge-AI-1.0.0
+    python3 aux-python/bootstrap.py --all
+    python3 aux-python/bootstrap.py --run --port 8765
+    curl -s http://127.0.0.1:8765/api/health
+
+iSH is a 32-bit x86 Alpine emulator: builds are slow, memory is limited, and
+there is no matching llama.cpp runtime. Install openjdk17-jdk before building;
+bootstrap intentionally refuses to download the glibc Temurin JDK on Alpine.
+The recommended role is a client. Keep the CodeForge server in iSH and point
+inference at a PC, Mac or phone on the LAN:
+
+    cd ~/CodeForge-AI-1.0.0
+    export CODEFORGE_LLM_BACKEND=openai
+    export CODEFORGE_OPENAI_URL=http://192.168.1.10:8080
+    python3 aux-python/bootstrap.py --run --port 8765
+    curl -s http://127.0.0.1:8765/api/health
+
+Do not start the managed inference service in this mode; Chat and Debug call
+the LAN server directly.
+
+Client role inside iSH — SSH tunnel to a host that runs CodeForge:
+
+    ssh -L 8765:127.0.0.1:8765 user@pc-lan-ip
+    curl -s http://127.0.0.1:8765/api/health
+
+================================================================
+B2. iOS thin client — SwiftUI / WKWebView
+================================================================
+
+Requirements: macOS with Xcode 15+, XcodeGen, signing team.
+
+    brew install xcodegen
+    cd mobile/ios
+    xcodegen generate
+    open CodeForge.xcodeproj
+    xcodebuild -project CodeForge.xcodeproj -scheme CodeForge \
+      -configuration Release -sdk iphoneos \
+      -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+
+In Xcode: select the CodeForge target, choose your signing team, then Run.
+Simulator reaches the Mac at http://127.0.0.1:8765. A physical device needs a
+LAN address or a tunnel; set it in the app settings.
+
+================================================================
+Notes
+================================================================
+
+- The server binds 127.0.0.1 by default. Do not expose 8765 directly.
+- Mobile inference is CPU-only; 4B Q4 models are the practical phone limit.
+- Full commands, service units and limitations: docs/PLATFORMS.md.
+- Documentation: docs/MANUAL.md, docs/API.md, docs/SECURITY.md
+- License: MIT (see LICENSE). Model weights keep their own licenses.

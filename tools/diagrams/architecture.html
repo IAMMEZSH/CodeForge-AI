@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CodeForge AI architecture</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .diagram { flex: 1; display: flex; flex-direction: column; }
+  .layer { display: grid; grid-template-columns: 116px 1fr; gap: 18px; align-items: stretch; }
+  .layer-label {
+    display: flex; flex-direction: column; justify-content: center; gap: 6px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--dim); text-transform: uppercase;
+  }
+  .layer-label b { color: var(--cyan); font-weight: 600; font-size: 11px; }
+  .layer-label i { width: 30px; height: 1px; background: rgba(56,242,255,0.35); }
+
+  .clients { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .clients .node { min-height: 88px; }
+  .clients .n-icon { font-size: 18px; color: var(--cyan); }
+
+  .server { padding: 16px 18px; display: grid; grid-template-columns: 1.25fr 1fr 1fr 0.8fr; gap: 14px; }
+  .server .mod {
+    border-left: 2px solid rgba(139,92,246,0.55);
+    padding-left: 12px;
+  }
+  .server .mod h4 { margin: 0 0 4px; font-size: 13.5px; letter-spacing: 0.02em; }
+  .server .mod p { margin: 0; font-size: 10.8px; line-height: 1.45; color: var(--muted); }
+  .server .mod span { font-family: var(--mono); font-size: 9.6px; color: var(--violet); letter-spacing: 0.08em; }
+
+  .flow { display: flex; align-items: center; justify-content: center; gap: 10px; height: 40px; }
+  .flow .arrow { width: 300px; }
+  .flow .note {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+    color: var(--dim); text-transform: uppercase;
+  }
+  .flow .note b { color: var(--cyan); font-weight: 500; }
+
+  .middle { display: grid; grid-template-columns: 1.45fr 62px 1fr; align-items: stretch; }
+  .core { padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .core-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .chip {
+    padding: 8px 10px; border: 1px solid rgba(56,242,255,0.16);
+    border-radius: 7px; background: rgba(5,14,27,0.72);
+    font-size: 11.2px; line-height: 1.35; color: #cfe6ff;
+  }
+  .chip b { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; margin-bottom: 3px; font-weight: 500; }
+  .core-foot { display: flex; gap: 8px; margin-top: auto; }
+  .core-foot .pill { font-size: 9.6px; padding: 4px 9px; }
+
+  .llama { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+  .llama .big { font-size: 19px; font-weight: 700; letter-spacing: 0.02em; }
+  .llama .file { font-family: var(--mono); font-size: 10.5px; color: var(--green); }
+  .llama .meta { font-size: 11px; color: var(--muted); line-height: 1.55; }
+  .vflow {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; color: var(--dim); font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.08em; text-transform: uppercase; writing-mode: vertical-rl;
+  }
+  .vline { flex: 1; width: 1px; background: linear-gradient(180deg, transparent, rgba(56,242,255,0.5), transparent); }
+
+  .bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .bottom .panel { padding: 13px 16px; }
+  .bottom h4 { margin: 0 0 6px; font-size: 12.5px; letter-spacing: 0.02em; }
+  .bottom h4 span { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 0.12em; margin-left: 6px; }
+  .bottom p { margin: 0; font-size: 10.8px; line-height: 1.5; color: var(--muted); }
+  .bottom code { font-family: var(--mono); font-size: 10px; color: var(--cyan); }
+
+  .paths { display: flex; gap: 10px; }
+  .path { flex: 1; border: 1px solid rgba(140,172,210,0.13); border-radius: 7px; padding: 7px 9px; }
+  .path b { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--green); margin-bottom: 3px; }
+  .path span { font-size: 10.2px; color: var(--muted); line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+<div class="frame-line"></div>
+
+<div class="sheet">
+  <div class="head-row">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> System blueprint <span class="line"></span></div>
+      <h1 class="title"><span class="grad">Four-language architecture</span></h1>
+      <p class="subtitle">A native execution core, a thin Java control plane, C safety primitives and Python automation. Each layer has one job and a narrow contract.</p>
+    </div>
+    <div class="head-meta">
+      <div><b>UI</b> HTML / CSS / JS</div>
+      <div><b>API</b> 127.0.0.1:8765</div>
+      <div><b>INFER</b> 127.0.0.1:8080</div>
+    </div>
+  </div>
+
+  <div class="diagram">
+    <div class="layer">
+      <div class="layer-label"><b>01 · CLIENTS</b><i></i>Any screen</div>
+      <div class="clients">
+        <div class="node"><div class="n-icon">▣</div><div class="n-title">Web console</div><div class="n-sub">Chat · Debug · Models · System</div></div>
+        <div class="node"><div class="n-icon">◈</div><div class="n-title">Win32 control center</div><div class="n-sub">C++17 native shell + tray</div></div>
+        <div class="node"><div class="n-icon">▤</div><div class="n-title">Android thin client</div><div class="n-sub">Kotlin · WebView</div></div>
+        <div class="node"><div class="n-icon">▥</div><div class="n-title">iOS thin client</div><div class="n-sub">SwiftUI · WKWebView</div></div>
+      </div>
+    </div>
+
+    <div class="flow"><div class="arrow"><span class="shaft"></span></div><span class="note">HTTP · <b>127.0.0.1:8765</b> · JSON + static assets</span><div class="arrow"><span class="shaft"></span></div></div>
+
+    <div class="layer">
+      <div class="layer-label"><b>02 · CONTROL</b><i></i>Java 17</div>
+      <div class="panel violet server">
+        <div class="mod"><span>REST API</span><h4>Local control plane</h4><p>8 MB body cap, JSON content-type and same-origin guards, request timeouts, static console.</p></div>
+        <div class="mod"><span>DOWNLOAD MANAGER</span><h4>Resume + verify</h4><p>Hugging Face resolve, Range resume, 12 retries, disk preflight, C17 SHA-256.</p></div>
+        <div class="mod"><span>RUNTIME</span><h4>llama.cpp lifecycle</h4><p>GitHub release resolution, safe extraction, health probe, process-tree stop.</p></div>
+        <div class="mod"><span>STATE</span><h4>Registries</h4><p>installed.json · runtime.json · download jobs.</p></div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="note">JSON OVER STDIN / STDOUT · SUBPROCESS PER REQUEST</div>
+      <div class="arrow" style="width:210px"><span class="shaft"></span></div>
+      <div class="note">SPAWN · HEALTH · LOG TAIL</div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-label"><b>03 · EXECUTION</b><i></i>Native</div>
+      <div class="middle">
+        <div class="panel cyan core">
+          <div class="panel-tag">C++17 main core</div>
+          <div class="core-grid">
+            <div class="chip"><b>Chat</b>History window + system prompt · Ollama / OpenAI-compatible</div>
+            <div class="chip"><b>Runners</b>Python · C · C++ · Java compile and execute in workspaces</div>
+            <div class="chip"><b>Debugger</b>Run → diagnose → patch → re-run, up to 8 iterations</div>
+            <div class="chip"><b>Supervisor</b>Windows Job Objects · POSIX process groups · kill trees</div>
+            <div class="chip"><b>Transport</b>WinHTTP on Windows · libcurl on POSIX · hand-written JSON</div>
+            <div class="chip"><b>Limits</b>200 KB source · 20 s run · 60 s compile · 8 KB output</div>
+          </div>
+          <div class="core-foot">
+            <span class="pill"><span class="dot"></span>static MinGW build</span>
+            <span class="pill violet"><span class="dot"></span>no runtime dependencies</span>
+          </div>
+        </div>
+        <div class="vflow"><div class="vline"></div><span>HTTP /v1</span><div class="vline"></div></div>
+        <div class="panel green llama">
+          <div class="panel-tag" style="border-color:rgba(56,249,165,.4);color:var(--green)">llama.cpp</div>
+          <div class="big">llama-server</div>
+          <div class="file">Qwen3-4B-Instruct-2507-Q4_K_M.gguf</div>
+          <div class="meta">CPU inference · context 4096 · threads = max(2, cores/2)<br>Bound to 127.0.0.1:8080 · SHA-256 verified runtime</div>
+          <div style="display:flex;gap:6px;margin-top:2px">
+            <span class="pill green" style="font-size:9px"><span class="dot"></span>READY</span>
+            <span class="pill" style="font-size:9px"><span class="dot"></span>LOCAL</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow"><div class="arrow" style="width:340px"><span class="shaft"></span></div><span class="note">BUILD · TEST · PACKAGE · HASH · TELEMETRY</span><div class="arrow" style="width:340px"><span class="shaft"></span></div></div>
+
+    <div class="layer">
+      <div class="layer-label"><b>04 · SUPPORT</b><i></i>Native + Python</div>
+      <div class="bottom">
+        <div class="panel">
+          <h4>C17 helper <span>SHA-256 · SYSINFO</span></h4>
+          <p><code>cforge_native hash|verify|sysinfo</code><br>Unicode-safe file hashing, CPU/RAM/disk telemetry.</p>
+        </div>
+        <div class="panel">
+          <h4>Python automation <span>BUILD LAYER</span></h4>
+          <p><code>bootstrap.py --all</code> provisions JDK, builds everything, self-tests. <code>package_release.py</code> produces signed checksums.</p>
+        </div>
+        <div class="panel">
+          <h4>Data plane <span>DISK</span></h4>
+          <div class="paths">
+            <div class="path"><b>MODELS</b><span>GGUF + installed.json</span></div>
+            <div class="path"><b>RUNTIME</b><span>llama.cpp + metadata</span></div>
+            <div class="path"><b>WORKSPACE</b><span>source + reports</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span><b>Static typing at the core</b> · process isolation at the edges</span>
+    <span class="sep"></span>
+    <span>C17 · C++17 · Java 17 · Python 3</span>
+    <span class="sep"></span>
+    <span>CodeForge AI v1.0.0</span>
+  </div>
+</div>
+</body>
+</html>

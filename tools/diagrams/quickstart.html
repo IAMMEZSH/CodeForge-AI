@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CodeForge AI quick start</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .body-grid { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 22px; flex: 1; min-height: 0; }
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step {
+    position: relative; display: grid; grid-template-columns: 52px 1fr; gap: 16px;
+    padding: 14px 16px; border-radius: 10px;
+    background: linear-gradient(160deg, rgba(13,26,48,.88), rgba(6,13,26,.7));
+    border: 1px solid var(--line-soft);
+  }
+  .step .num {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; color: var(--cyan);
+    border: 1px solid rgba(56,242,255,0.45); background: rgba(4,12,24,0.9);
+    box-shadow: 0 0 18px rgba(56,242,255,0.12);
+  }
+  .step h3 { margin: 0 0 4px; font-size: 14.5px; }
+  .step p { margin: 0 0 7px; font-size: 10.8px; line-height: 1.5; color: var(--muted); }
+  .step .code { font-size: 10px; padding: 6px 9px; }
+  .step .hint { margin-top: 5px; font-family: var(--mono); font-size: 8.8px; color: var(--dim); letter-spacing: 0.05em; }
+  .step .hint b { color: var(--green); font-weight: 500; }
+  .step::after {
+    content: ""; position: absolute; left: 36px; bottom: -12px; width: 1px; height: 12px;
+    background: linear-gradient(180deg, rgba(56,242,255,0.5), transparent);
+  }
+  .step:last-child::after { display: none; }
+
+  .right { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .shot {
+    position: relative; padding: 9px; border-radius: 12px;
+    border: 1px solid rgba(56,242,255,0.28);
+    background: linear-gradient(160deg, rgba(13,26,48,.9), rgba(6,13,26,.7));
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  }
+  .shot img { display: block; width: 100%; border-radius: 6px; border: 1px solid rgba(140,172,210,0.16); }
+  .shot .cap {
+    display: flex; align-items: center; gap: 8px; padding: 7px 3px 1px;
+    font-family: var(--mono); font-size: 8.6px; letter-spacing: 0.08em; color: var(--dim);
+  }
+  .shot .cap .live { color: var(--green); }
+  .checklist { padding: 14px 16px; }
+  .checklist h4 { margin: 0 0 9px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); }
+  .check { display: flex; gap: 9px; align-items: baseline; margin-bottom: 7px; font-size: 10.4px; color: var(--muted); }
+  .check b { color: var(--green); font-family: var(--mono); font-size: 10px; }
+  .check code { font-family: var(--mono); font-size: 9.2px; color: #bfe9ff; }
+  .offline {
+    margin-top: auto; display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 9px;
+    border: 1px solid rgba(56,249,165,0.35); background: rgba(6,24,22,0.48);
+  }
+  .offline .icon { color: var(--green); font-size: 16px; }
+  .offline b { display: block; font-size: 11.3px; }
+  .offline span { font-size: 9.8px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+<div class="glow-c"></div>
+<div class="frame-line"></div>
+
+<div class="sheet">
+  <div class="head-row">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> From zero to a local copilot <span class="line"></span></div>
+      <h1 class="title"><span class="grad">Quick start</span></h1>
+      <p class="subtitle">Five steps: build the stack, launch the console, install the runtime, download a model, start inference. After this, unplug the network.</p>
+    </div>
+    <div class="head-meta">
+      <div><b>FIRST RUN</b> ~15–30 min incl. downloads</div>
+      <div><b>CONSOLE</b> 127.0.0.1:8765/console/</div>
+      <div><b>MODEL</b> Qwen3 4B · 2.5 GB</div>
+    </div>
+  </div>
+
+  <div class="body-grid">
+    <div class="steps">
+      <div class="step">
+        <div class="num">01</div>
+        <div>
+          <h3>Build the four-language stack</h3>
+          <p>Provision JDK 17 if needed, compile the C helper and C++ core, build the Win32 client, package the Java server and run the self-test.</p>
+          <div class="code"><span class="p">python</span> aux-python/bootstrap.py --all</div>
+          <div class="hint"><b>Expect</b> native/bin/* · server-java/build/CodeForgeServer.jar · selftest ok:true</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">02</div>
+        <div>
+          <h3>Launch the local server and console</h3>
+          <p>Windows: the native control center. Linux / macOS: the bootstrap runner. Both bind only to 127.0.0.1.</p>
+          <div class="code"><span class="p">native\bin\CodeForge.exe</span>
+<span class="c">or</span> python3 aux-python/bootstrap.py --run --port 8765</div>
+          <div class="hint"><b>Open</b> http://127.0.0.1:8765/console/</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">03</div>
+        <div>
+          <h3>Install the llama.cpp runtime</h3>
+          <p>One click in Models. The server resolves the right CPU asset for your platform, verifies its hash and extracts it safely.</p>
+          <div class="code">Models → <span class="p">Install runtime</span>   <span class="c">// ~25–80 MB</span></div>
+          <div class="hint"><b>Check</b> runtime/llama.cpp + runtime/runtime.json + RUNNING chip</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">04</div>
+        <div>
+          <h3>Download a model</h3>
+          <p>Start with Qwen3 4B on 8 GB machines. Downloads resume after interruptions and are SHA-256 verified.</p>
+          <div class="code">Models → Qwen3 4B Instruct → <span class="p">Download</span>   <span class="c">// 2.5 GB</span></div>
+          <div class="hint"><b>Disk</b> preflight requires file size + 512 MB free</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">05</div>
+        <div>
+          <h3>Start inference, then chat or auto-debug</h3>
+          <p>The LLM chip turns green. Ask a question, or paste failing code and let the repair loop compile, diagnose and patch it.</p>
+          <div class="code">Models → <span class="p">Start inference</span>   →   Chat  ·  Debug → Auto-debug</div>
+          <div class="hint"><b>Local</b> llama-server on 127.0.0.1:8080 · context 4096</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="shot">
+        <img src="../../docs/images/console-chat-live.png" alt="CodeForge console answering with a local model">
+        <div class="cap"><span class="live">● LIVE</span><span>REAL QWEN3 4B REPLY · MARKDOWN TABLES · ALL LOCAL</span></div>
+      </div>
+      <div class="panel checklist">
+        <h4>Readiness checklist</h4>
+        <div class="check"><b>OK</b><span>Top chips: <code>Core</code> <code>LLM</code> <code>Runtime</code> all green</span></div>
+        <div class="check"><b>OK</b><span>System → toolchains list Python, C, C++, Java</span></div>
+        <div class="check"><b>OK</b><span>Models → installed badge on one GGUF model</span></div>
+        <div class="check"><b>OK</b><span>Debug → Run prints stdout without a model call</span></div>
+      </div>
+      <div class="offline">
+        <div class="icon">⌁</div>
+        <div><b>Offline after setup</b><span>No account, no cloud, no telemetry. Only explicit downloads use the network.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span><b>Build → launch → runtime → model → inference</b></span>
+    <span class="sep"></span>
+    <span>Windows · Linux · macOS · Android · iOS</span>
+    <span class="sep"></span>
+    <span>CodeForge AI v1.0.0</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CodeForge AI platforms</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .route-bar { display: flex; gap: 10px; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 16px; flex: 1; }
+  .plat {
+    position: relative; display: flex; flex-direction: column;
+    padding: 16px 18px; border-radius: 12px;
+    background: linear-gradient(160deg, rgba(13,26,48,.9), rgba(6,13,26,.74));
+    border: 1px solid var(--line-soft); overflow: hidden;
+  }
+  .plat::before {
+    content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px;
+    background: linear-gradient(180deg, var(--cyan), transparent);
+  }
+  .plat.win::before { background: linear-gradient(180deg, #38f2ff, transparent); }
+  .plat.linux::before { background: linear-gradient(180deg, #ffd166, transparent); }
+  .plat.mac::before { background: linear-gradient(180deg, #d7e3f5, transparent); }
+  .plat.android::before { background: linear-gradient(180deg, #38f9a5, transparent); }
+  .plat.ios::before { background: linear-gradient(180deg, #8b5cf6, transparent); }
+  .plat.ops::before { background: linear-gradient(180deg, #ff5c8a, transparent); }
+
+  .plat-head { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .plat-head h3 { margin: 0; font-size: 18px; letter-spacing: 0.02em; }
+  .plat-head .role {
+    margin-left: auto; font-family: var(--mono); font-size: 8.8px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px;
+    border: 1px solid rgba(56,242,255,0.25); color: var(--cyan);
+  }
+  .plat-head .role.alt { border-color: rgba(139,92,246,0.35); color: #b79cff; }
+  .plat-head .glyph { font-family: var(--mono); color: var(--muted); font-size: 15px; }
+  .plat p.lead { margin: 0 0 8px; font-size: 10.8px; line-height: 1.5; color: var(--muted); }
+  .plat .code { padding: 7px 9px; font-size: 10.1px; line-height: 1.55; border-radius: 6px; }
+  .plat .note {
+    margin-top: auto; padding-top: 8px; display: flex; align-items: flex-start; gap: 7px;
+    font-size: 9.7px; line-height: 1.45; color: var(--dim);
+  }
+  .plat .note b { color: var(--green); font-weight: 500; }
+  .plat .note i { color: var(--pink); font-style: normal; }
+  .plat .mini-tags { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+  .mini-tags span {
+    font-family: var(--mono); font-size: 8.4px; letter-spacing: 0.08em;
+    padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(140,172,210,0.16);
+    color: var(--dim);
+  }
+  .ops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 4px; }
+  .ops-cell { border: 1px solid rgba(140,172,210,0.13); border-radius: 6px; padding: 7px 9px; }
+  .ops-cell b { display: block; font-family: var(--mono); font-size: 8.6px; letter-spacing: 0.12em; color: var(--pink); margin-bottom: 3px; }
+  .ops-cell span { font-size: 9.8px; line-height: 1.45; color: var(--muted); }
+  .ops-cell code { font-family: var(--mono); font-size: 9px; color: var(--cyan); }
+</style>
+</head>
+<body>
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+<div class="frame-line"></div>
+
+<div class="sheet">
+  <div class="head-row">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> Five platforms · two mobile routes <span class="line"></span></div>
+      <h1 class="title"><span class="grad">Run it everywhere</span></h1>
+      <p class="subtitle">Host the complete stack in a terminal, or connect a native thin client to a server you already run. The console and API are identical.</p>
+    </div>
+    <div class="head-meta">
+      <div><b>HOST</b> Windows · Linux · macOS</div>
+      <div><b>MOBILE</b> Termux · iSH · Kotlin · Swift</div>
+      <div><b>RUNTIME</b> CPU llama.cpp</div>
+    </div>
+  </div>
+
+  <div class="route-bar">
+    <span class="pill"><span class="dot"></span>ROUTE A · TERMINAL HOST</span>
+    <span class="pill violet"><span class="dot"></span>ROUTE B · NATIVE THIN CLIENT</span>
+    <span class="pill green"><span class="dot"></span>ONE CONSOLE · ONE API</span>
+    <span class="pill amber"><span class="dot"></span>LOOPBACK BY DEFAULT</span>
+  </div>
+
+  <div class="grid">
+    <div class="plat win">
+      <div class="plat-head"><span class="glyph">▣</span><h3>Windows 10 / 11</h3><span class="role">FULL HOST</span></div>
+      <p class="lead">MinGW-w64 + Python + JDK 17. The native control center starts the server and opens an Edge app window.</p>
+      <div class="code"><span class="c">:: toolchain</span>
+winget install Python.Python.3.12
+winget install MSYS2.MSYS2
+pacman -S mingw-w64-ucrt-x86_64-gcc make
+
+<span class="c">:: build + launch</span>
+python aux-python\bootstrap.py --all
+native\bin\CodeForge.exe
+
+<span class="c">:: server only + health</span>
+java --add-modules jdk.httpserver ^
+  -jar server-java\build\CodeForgeServer.jar
+curl http://127.0.0.1:8765/api/health</div>
+      <div class="mini-tags"><span>WinHTTP</span><span>Job Objects</span><span>static exe</span></div>
+      <div class="note"><b>Output</b> native\bin\CodeForgeCore.exe · server-java\build\CodeForgeServer.jar</div>
+    </div>
+
+    <div class="plat linux">
+      <div class="plat-head"><span class="glyph">◈</span><h3>Linux</h3><span class="role">FULL HOST</span></div>
+      <p class="lead">Debian, Ubuntu, Fedora, Arch and openSUSE. libcurl and pthreads power the core; systemd can keep it alive.</p>
+      <div class="code"><span class="c"># Debian / Ubuntu</span>
+sudo apt install -y build-essential cmake \
+  libcurl4-openssl-dev python3 openjdk-17-jdk
+
+<span class="c"># build + launch</span>
+python3 aux-python/bootstrap.py --all
+python3 aux-python/bootstrap.py --run
+xdg-open http://127.0.0.1:8765/console/
+
+<span class="c"># verify + inspect listener</span>
+curl -s http://127.0.0.1:8765/api/health
+ss -ltnp | grep 8765</div>
+      <div class="mini-tags"><span>libcurl</span><span>process groups</span><span>systemd</span></div>
+      <div class="note"><b>Also:</b> ./build.sh → native/bin (CMake route, same layout)</div>
+    </div>
+
+    <div class="plat mac">
+      <div class="plat-head"><span class="glyph">▤</span><h3>macOS</h3><span class="role">FULL HOST</span></div>
+      <p class="lead">Apple Silicon and Intel. Homebrew supplies CMake and JDK 17; the runtime resolver picks arm64 or x64.</p>
+      <div class="code"><span class="c"># Xcode CLT + Homebrew</span>
+xcode-select --install
+brew install cmake python@3.12 openjdk@17
+
+python3 aux-python/bootstrap.py --all
+python3 aux-python/bootstrap.py --run
+open http://127.0.0.1:8765/console/
+
+<span class="c"># verify + inspect listener</span>
+lsof -nP -iTCP:8765 -sTCP:LISTEN
+curl -s http://127.0.0.1:8765/api/health</div>
+      <div class="mini-tags"><span>arm64</span><span>x64</span><span>launchd</span></div>
+      <div class="note"><b>Gatekeeper:</b> xattr -dr com.apple.quarantine native/bin/CodeForgeCore</div>
+    </div>
+
+    <div class="plat android">
+      <div class="plat-head"><span class="glyph">▥</span><h3>Android</h3><span class="role">TWO ROUTES</span></div>
+      <p class="lead">Termux can host the full stack. The Kotlin WebView client connects to a server on the device or LAN.</p>
+      <div class="code"><span class="c"># Termux host</span>
+pkg install python clang make cmake \
+  libcurl openssl openjdk-17 git
+termux-wake-lock
+python aux-python/bootstrap.py --all
+
+<span class="c"># thin client</span>
+cd mobile/android &amp;&amp; ./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+<span class="c"># USB link to a LAN host</span>
+adb reverse tcp:8765 tcp:8765</div>
+      <div class="mini-tags"><span>Termux</span><span>Kotlin / WebView</span><span>10.0.2.2</span></div>
+      <div class="note"><i>No prebuilt llama.cpp asset:</i> build it from source and write runtime/runtime.json. See PLATFORMS.md.</div>
+    </div>
+
+    <div class="plat ios">
+      <div class="plat-head"><span class="glyph">▦</span><h3>iOS / iPadOS</h3><span class="role">THIN CLIENT</span></div>
+      <p class="lead">The SwiftUI WKWebView client is the recommended route. Hosting inside iSH is experimental and memory-bound.</p>
+      <div class="code"><span class="c"># Swift thin client</span>
+brew install xcodegen
+cd mobile/ios &amp;&amp; xcodegen generate
+xcodebuild -list -project CodeForge.xcodeproj
+xcodebuild -project CodeForge.xcodeproj \
+  -scheme CodeForge -configuration Release build
+
+<span class="c"># iSH host (experimental)</span>
+apk add python3 clang cmake curl-dev openjdk17</div>
+      <div class="mini-tags"><span>SwiftUI</span><span>WKWebView</span><span>ATS / TLS</span></div>
+      <div class="note"><b>Server URL</b> http://&lt;host&gt;:8765/console/ · use a TLS proxy off-device</div>
+    </div>
+
+    <div class="plat ops">
+      <div class="plat-head"><span class="glyph">⌘</span><h3>Operating rules</h3><span class="role alt">ALL PLATFORMS</span></div>
+      <p class="lead">The same ports, paths and safety model apply everywhere the stack runs.</p>
+      <div class="ops-grid">
+        <div class="ops-cell"><b>PORTS</b><span><code>8765</code> API/console<br><code>8080</code> inference</span></div>
+        <div class="ops-cell"><b>BIND</b><span>127.0.0.1 only<br>never 0.0.0.0 by default</span></div>
+        <div class="ops-cell"><b>DATA</b><span><code>models/</code> <code>runtime/</code><br><code>workspace/</code> <code>logs/</code></span></div>
+        <div class="ops-cell"><b>REMOTE</b><span>TLS reverse proxy<br>+ authentication</span></div>
+        <div class="ops-cell"><b>MODELS</b><span>downloaded on demand<br>SHA-256 verified</span></div>
+        <div class="ops-cell"><b>JDK</b><span>system 17+ or portable<br>Temurin under native/jdk</span></div>
+      </div>
+      <div class="note"><i>Security:</i> executed code runs as your user; there is no OS sandbox.</div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span><b>One codebase</b> · five platforms · two mobile deployment routes</span>
+    <span class="sep"></span>
+    <span>Windows · Linux · macOS · Android · iOS</span>
+    <span class="sep"></span>
+    <span>CodeForge AI v1.0.0</span>
+  </div>
+</div>
+</body>
+</html>

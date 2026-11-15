@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CodeForge AI request lifecycle</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .lanes { display: flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
+  .lane {
+    display: grid; grid-template-columns: 118px 1fr; gap: 14px;
+    padding: 9px 14px; border-radius: 11px;
+    background: linear-gradient(160deg, rgba(13,26,48,.82), rgba(6,13,26,.66));
+    border: 1px solid var(--line-soft);
+  }
+  .lane-label { display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+  .lane-label b { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--cyan); }
+  .lane-label span { font-family: var(--mono); font-size: 8.8px; color: var(--dim); line-height: 1.5; }
+  .lane-label em { font-style: normal; font-size: 10px; color: var(--muted); line-height: 1.45; }
+  .lane.debug .lane-label b { color: #b79cff; }
+  .lane.download .lane-label b { color: var(--green); }
+  .lane.runtime .lane-label b { color: var(--amber); }
+  .lane.selftest .lane-label b { color: #7fe3ff; }
+
+  .track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .lnode {
+    flex: 1; min-width: 0; padding: 8px 12px; border-radius: 8px;
+    background: rgba(7,18,34,0.9); border: 1px solid rgba(56,242,255,0.16);
+  }
+  .lnode b { display: block; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lnode span { display: block; margin-top: 2px; font-family: var(--mono); font-size: 8.8px; line-height: 1.4; color: var(--dim); }
+  .lnode .k { color: var(--cyan); }
+  .lnode.violet { border-color: rgba(139,92,246,0.35); }
+  .lnode.fail { border-color: rgba(255,92,138,0.38); }
+  .lnode.ok { border-color: rgba(56,249,165,0.38); }
+  .lnode.amber { border-color: rgba(255,209,102,0.3); }
+
+  .fa {
+    flex: 0 0 44px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-family: var(--mono); font-size: 7.6px; color: var(--dim); letter-spacing: 0.04em;
+    text-align: center; white-space: nowrap;
+  }
+  .fa .shaft { position: relative; width: 32px; height: 1px; background: linear-gradient(90deg, rgba(56,242,255,0.2), rgba(56,242,255,0.8)); }
+  .fa .shaft::after {
+    content: ""; position: absolute; right: -1px; top: -3.5px;
+    border-left: 6px solid rgba(56,242,255,0.9);
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  }
+  .fa.back .shaft { background: linear-gradient(90deg, rgba(255,92,138,0.8), rgba(255,92,138,0.2)); }
+  .fa.back .shaft::after { left: -1px; right: auto; border-left: 0; border-right: 6px solid rgba(255,92,138,0.9); }
+
+  .timeouts {
+    margin-top: 14px; display: grid; grid-template-columns: 1.1fr 1.2fr 1fr 1fr 1.4fr; gap: 10px;
+  }
+  .to { padding: 10px 13px; border-radius: 8px; border: 1px solid var(--line-soft); background: rgba(8,18,34,0.62); }
+  .to b { display: block; font-family: var(--mono); font-size: 8.4px; letter-spacing: 0.14em; color: var(--dim); margin-bottom: 4px; }
+  .to span { font-family: var(--mono); font-size: 11.4px; color: var(--cyan); }
+  .to em { display: block; margin-top: 2px; font-style: normal; font-size: 9px; color: var(--muted); }
+
+  .state {
+    flex: 1; min-height: 0; margin-top: 12px; padding: 11px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    border: 1px solid rgba(56,249,165,0.22); border-radius: 11px;
+    background: linear-gradient(160deg, rgba(8,28,24,0.55), rgba(6,13,26,0.7));
+  }
+  .state-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 8.8px; letter-spacing: 0.16em;
+    color: var(--green); text-transform: uppercase;
+  }
+  .state-head span { color: var(--dim); letter-spacing: 0.08em; }
+  .state-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .st {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(140,172,210,0.14);
+    background: rgba(6,14,26,0.62);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .st b { display: block; font-family: var(--mono); font-size: 10.2px; color: var(--cyan); }
+  .st span { display: block; margin-top: 3px; font-size: 9.2px; line-height: 1.45; color: var(--muted); }
+  .st i { font-style: normal; font-family: var(--mono); color: var(--green); }
+</style>
+</head>
+<body>
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+<div class="frame-line"></div>
+
+<div class="sheet">
+  <div class="head-row">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> Request lifecycle <span class="line"></span></div>
+      <h1 class="title"><span class="grad">Five paths through the stack</span></h1>
+      <p class="subtitle">Every request is a bounded subprocess call with a JSON contract. Five flows share one local control plane.</p>
+    </div>
+    <div class="head-meta">
+      <div><b>TRANSPORT</b> HTTP + piped JSON</div>
+      <div><b>ERRORS</b> 200 with ok:false</div>
+      <div><b>STATE</b> disk registries</div>
+    </div>
+  </div>
+
+  <div class="lanes">
+    <div class="lane">
+      <div class="lane-label"><b>CHAT</b><span>POST /api/chat</span><em>One model completion over the last 30 messages.</em></div>
+      <div class="track">
+        <div class="lnode"><b>Console</b><span><span class="k">messages[]</span> · last 30</span></div>
+        <div class="fa"><span>JSON</span><div class="shaft"></div></div>
+        <div class="lnode"><b>Java API</b><span>guard · 8 MB · <span class="k">900 s</span></span></div>
+        <div class="fa"><span>stdin</span><div class="shaft"></div></div>
+        <div class="lnode violet"><b>C++ core</b><span>system prompt · last 40</span></div>
+        <div class="fa"><span>/v1</span><div class="shaft"></div></div>
+        <div class="lnode"><b>llama-server</b><span>GGUF · 4096 ctx</span></div>
+        <div class="fa"><span>reply</span><div class="shaft"></div></div>
+        <div class="lnode ok"><b>Rendered answer</b><span>markdown · tables · copy</span></div>
+      </div>
+    </div>
+
+    <div class="lane debug">
+      <div class="lane-label"><b>DEBUG</b><span>POST /api/debug</span><em>Compile, run, repair, repeat. Evidence persists.</em></div>
+      <div class="track">
+        <div class="lnode"><b>Console</b><span>source · language</span></div>
+        <div class="fa"><span>JSON</span><div class="shaft"></div></div>
+        <div class="lnode"><b>Java API</b><span><span class="k">240 + 300 × n</span> s</span></div>
+        <div class="fa"><span>stdin</span><div class="shaft"></div></div>
+        <div class="lnode violet"><b>C++ core</b><span>workspace · compile</span></div>
+        <div class="fa"><span>exec</span><div class="shaft"></div></div>
+        <div class="lnode fail"><b>Observe</b><span>exit · stderr · timeout</span></div>
+        <div class="fa back"><span>on fail</span><div class="shaft"></div></div>
+        <div class="lnode violet"><b>Model patch</b><span>whole file · fenced</span></div>
+        <div class="fa"><span>re-run</span><div class="shaft"></div></div>
+        <div class="lnode ok"><b>Report</b><span>report.json · final.*</span></div>
+      </div>
+    </div>
+
+    <div class="lane download">
+      <div class="lane-label"><b>DOWNLOAD</b><span>POST /api/models/download</span><em>Explicit egress, resumable, verified.</em></div>
+      <div class="track">
+        <div class="lnode"><b>Console</b><span>model id</span></div>
+        <div class="fa"><span>JSON</span><div class="shaft"></div></div>
+        <div class="lnode"><b>Java worker</b><span>job · progress</span></div>
+        <div class="fa"><span>HTTPS</span><div class="shaft"></div></div>
+        <div class="lnode amber"><b>Hugging Face</b><span>size · LFS sha256</span></div>
+        <div class="fa"><span>range</span><div class="shaft"></div></div>
+        <div class="lnode"><b>.part stream</b><span>12 retries · resume</span></div>
+        <div class="fa"><span>C17</span><div class="shaft"></div></div>
+        <div class="lnode violet"><b>SHA-256</b><span>match or delete</span></div>
+        <div class="fa"><span>atomic</span><div class="shaft"></div></div>
+        <div class="lnode ok"><b>Installed</b><span>installed.json · llama-server</span></div>
+      </div>
+    </div>
+
+    <div class="lane runtime">
+      <div class="lane-label"><b>RUNTIME</b><span>POST /api/runtime/install</span><em>CPU llama.cpp build, staged and swapped.</em></div>
+      <div class="track">
+        <div class="lnode"><b>Console</b><span>action · install</span></div>
+        <div class="fa"><span>JSON</span><div class="shaft"></div></div>
+        <div class="lnode"><b>Java worker</b><span>job · progress</span></div>
+        <div class="fa"><span>HTTPS</span><div class="shaft"></div></div>
+        <div class="lnode amber"><b>GitHub API</b><span>latest release · asset</span></div>
+        <div class="fa"><span>range</span><div class="shaft"></div></div>
+        <div class="lnode"><b>.part stream</b><span>resume · digest</span></div>
+        <div class="fa"><span>C17</span><div class="shaft"></div></div>
+        <div class="lnode violet"><b>SHA-256 + unzip</b><span>traversal-safe extract</span></div>
+        <div class="fa"><span>atomic</span><div class="shaft"></div></div>
+        <div class="lnode ok"><b>Staged runtime</b><span>runtime.json · dir swap</span></div>
+      </div>
+    </div>
+
+    <div class="lane selftest">
+      <div class="lane-label"><b>SELF-TEST</b><span>POST /api/selftest</span><em>Compile and run every detected language.</em></div>
+      <div class="track">
+        <div class="lnode"><b>Console</b><span>System · Run self-test</span></div>
+        <div class="fa"><span>JSON</span><div class="shaft"></div></div>
+        <div class="lnode"><b>Java API</b><span>guard · <span class="k">300 s</span></span></div>
+        <div class="fa"><span>stdin</span><div class="shaft"></div></div>
+        <div class="lnode violet"><b>C++ core</b><span>temp workspace</span></div>
+        <div class="fa"><span>probe</span><div class="shaft"></div></div>
+        <div class="lnode"><b>Toolchains</b><span>C · C++ · Java · Python</span></div>
+        <div class="fa"><span>exec</span><div class="shaft"></div></div>
+        <div class="lnode"><b>Four suites</b><span>compile · run · compare</span></div>
+        <div class="fa"><span>report</span><div class="shaft"></div></div>
+        <div class="lnode ok"><b>Summary table</b><span>ok:true · per-language rows</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="state">
+    <div class="state-head">Local state · files are the source of truth <span>No database · atomic writes · survives restart</span></div>
+    <div class="state-grid">
+      <div class="st"><b>models/installed.json</b><span>id · file · bytes · <i>sha256</i>. Rewritten through a temp file after verification.</span></div>
+      <div class="st"><b>runtime/runtime.json</b><span>tag · asset · server path · <i>sha256</i>. Directory swapped after extraction.</span></div>
+      <div class="st"><b>workspace/&lt;job&gt;/</b><span>Source · compile log · <i>report.json</i> · final file, retained for inspection.</span></div>
+      <div class="st"><b>logs/ · downloads/</b><span>Bounded <i>llama-server.log</i> tail · resumable <i>.part</i> downloads.</span></div>
+    </div>
+  </div>
+
+  <div class="timeouts">
+    <div class="to"><b>CHAT TIMEOUT</b><span>900 s</span><em>browser + server aligned</em></div>
+    <div class="to"><b>DEBUG TIMEOUT</b><span>240 + 300 × n s</span><em>iterations clamped 1–8</em></div>
+    <div class="to"><b>RUN TIMEOUT</b><span>180 s</span><em>compile 60 · execute 20</em></div>
+    <div class="to"><b>SELFTEST</b><span>300 s</span><em>all detected languages</em></div>
+    <div class="to"><b>BODY / SOURCE</b><span>8 MB / 200 KB</span><em>415 · 403 · 404 guards</em></div>
+  </div>
+
+  <div class="footer-strip">
+    <span><b>One JSON contract</b> from browser to native core</span>
+    <span class="sep"></span>
+    <span>Logical failures return <b>200</b> with <b>ok:false</b></span>
+    <span class="sep"></span>
+    <span>CodeForge AI v1.0.0</span>
+  </div>
+</div>
+</body>
+</html>

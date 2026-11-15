@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CodeForge AI debug loop</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .stage-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .stage {
+    position: relative; min-height: 176px; padding: 18px 18px 16px;
+    background: linear-gradient(165deg, rgba(14,28,52,.9), rgba(7,14,28,.72));
+    border: 1px solid var(--line-soft); border-radius: 12px;
+  }
+  .stage .idx {
+    position: absolute; top: 14px; right: 16px;
+    font-family: var(--mono); font-size: 30px; font-weight: 700;
+    color: rgba(56,242,255,0.16);
+  }
+  .stage h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: 0.02em; }
+  .stage p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--muted); }
+  .stage .tagline { margin-top: 10px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--cyan); }
+  .stage.fail { border-color: rgba(255,92,138,0.35); }
+  .stage.fail .idx { color: rgba(255,92,138,0.22); }
+  .stage.ok { border-color: rgba(56,249,165,0.35); }
+  .stage.ok .idx { color: rgba(56,249,165,0.22); }
+  .stage.ai { border-color: rgba(139,92,246,0.4); }
+  .stage.ai .idx { color: rgba(139,92,246,0.28); }
+
+  .row-arrows { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; height: 42px; }
+  .row-arrows .cell { display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+  .row-arrows .cell:last-child { visibility: hidden; }
+  .row-arrows .arrow { width: 74px; }
+
+  .branch { display: grid; grid-template-columns: 1fr 220px; gap: 20px; align-items: center; margin: 2px 0 6px; }
+  .branch .success {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 18px; border: 1px dashed rgba(56,249,165,0.4);
+    border-radius: 10px; background: rgba(6,24,22,0.5);
+  }
+  .branch .success .icon {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(56,249,165,0.55); color: var(--green); font-size: 17px;
+  }
+  .branch .success b { display: block; font-size: 13px; }
+  .branch .success span { font-size: 11px; color: var(--muted); }
+  .branch .failbar {
+    justify-self: end; text-align: center; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.12em; color: var(--pink); text-transform: uppercase;
+  }
+  .branch .failbar .down {
+    width: 1px; height: 26px; margin: 6px auto 5px;
+    background: linear-gradient(180deg, rgba(255,92,138,0.15), rgba(255,92,138,0.85));
+  }
+
+  .stage-row.two { grid-template-columns: repeat(3, 1fr); margin-top: 2px; }
+  .loopback {
+    display: flex; align-items: center; gap: 14px; margin: 12px 0 0 0;
+    padding: 9px 16px; border: 1px solid rgba(56,242,255,0.16);
+    border-radius: 8px; background: rgba(6,14,27,0.6);
+    color: var(--muted); font-size: 11px;
+  }
+  .loopback b { color: var(--cyan); font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; }
+  .loopback .spacer { flex: 1; }
+
+  .record { margin-top: 18px; padding: 14px 18px; }
+  .record-top { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .record-top h3 { margin: 0; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cyan); }
+  .record-top span { font-size: 10.5px; color: var(--dim); font-family: var(--mono); }
+  .fields { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+  .field {
+    padding: 8px 10px; border-radius: 6px; background: rgba(5,13,26,0.8);
+    border: 1px solid rgba(140,172,210,0.12);
+    font-family: var(--mono); font-size: 9.7px; color: #bcd8f5; letter-spacing: 0.04em;
+  }
+  .field b { display: block; color: var(--dim); font-weight: 500; font-size: 8.4px; letter-spacing: 0.16em; margin-bottom: 3px; }
+  .snippet { font-family: var(--mono); font-size: 9.6px; line-height: 1.5; color: #9fdcff; margin-top: 8px; }
+  .snippet .err { color: #ff8da9; }
+</style>
+</head>
+<body>
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+<div class="glow-c"></div>
+<div class="frame-line"></div>
+
+<div class="sheet">
+  <div class="head-row">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> Autonomous repair engine <span class="line"></span></div>
+      <h1 class="title"><span class="grad">The debug loop</span></h1>
+      <p class="subtitle">Compile, execute, capture the truth, then let the local model replace the whole file with a corrected version. Repeat until green or bounded.</p>
+    </div>
+    <div class="head-meta">
+      <div><b>ITERATIONS</b> 1–8 · default 3</div>
+      <div><b>RUN LIMIT</b> 20 s · compile 60 s</div>
+      <div><b>AI</b> llama.cpp / Ollama / OpenAI-compatible</div>
+    </div>
+  </div>
+
+  <div class="stage-row">
+    <div class="stage">
+      <div class="idx">01</div>
+      <h3>Source intake</h3>
+      <p>Full file from the editor, language and filename. Auto-detect uses the extension: .py .c .cpp .cxx .cc .java.</p>
+      <div class="tagline">≤ 200 KB · workspace created</div>
+    </div>
+    <div class="stage">
+      <div class="idx">02</div>
+      <h3>Compile</h3>
+      <p>Python is interpreted. C, C++ and Java are compiled with the detected toolchain inside the session directory.</p>
+      <div class="tagline">gcc · g++ · javac · 60 s budget</div>
+    </div>
+    <div class="stage">
+      <div class="idx">03</div>
+      <h3>Execute</h3>
+      <p>The program runs with a process-tree timeout. stdout, stderr, exit code, command line and duration are captured.</p>
+      <div class="tagline">Job Objects / process groups</div>
+    </div>
+    <div class="stage fail">
+      <div class="idx">04</div>
+      <h3>Observe</h3>
+      <p>Exit code 0 means success. Any compiler error, runtime error or timeout becomes diagnostic context for the next step.</p>
+      <div class="tagline">exact output · no guessing</div>
+    </div>
+  </div>
+
+  <div class="row-arrows">
+    <div class="cell"><div class="arrow"><span class="shaft"></span></div></div>
+    <div class="cell"><div class="arrow"><span class="shaft"></span></div></div>
+    <div class="cell"><div class="arrow"><span class="shaft"></span></div></div>
+    <div class="cell"></div>
+  </div>
+
+  <div class="branch">
+    <div class="success">
+      <div class="icon">✓</div>
+      <div><b>Success path</b><span>Persist <span class="mono">report.json</span> + <span class="mono">final.&lt;ext&gt;</span>, return every iteration record, stop immediately. No model call is made if the first run passes.</span></div>
+    </div>
+    <div class="failbar">failure<br><div class="down"></div>continue loop</div>
+  </div>
+
+  <div class="stage-row two">
+    <div class="stage ai">
+      <div class="idx">05</div>
+      <h3>Diagnose</h3>
+      <p>The complete source and the exact diagnostics are sent with a system prompt that demands a single fenced block containing the full corrected program.</p>
+      <div class="tagline">root cause first · minimal change</div>
+    </div>
+    <div class="stage ai">
+      <div class="idx">06</div>
+      <h3>Patch</h3>
+      <p>The first fenced code block is extracted. Missing blocks or identical content stop the loop with a precise error instead of spinning.</p>
+      <div class="tagline">no diff · complete replacement</div>
+    </div>
+    <div class="stage">
+      <div class="idx">07</div>
+      <h3>Re-run</h3>
+      <p>The corrected file is written and executed again. Steps 03–06 repeat until success or the iteration limit.</p>
+      <div class="tagline">bounded · auditable · saved</div>
+    </div>
+  </div>
+
+  <div class="loopback">
+    <b>LOOP</b><span>Re-run feeds the next observation</span>
+    <span class="spacer"></span>
+    <span><b>BACKEND</b> local model · Qwen3 4B / DeepSeek / GPT-OSS / Devstral…</span>
+    <span class="spacer"></span>
+    <span><b>EVIDENCE</b> compiler output + runtime output</span>
+  </div>
+
+  <div class="panel record">
+    <div class="record-top">
+      <h3>Iteration record</h3><span>one object per attempt · returned by /api/debug and stored in report.json</span>
+    </div>
+    <div class="fields">
+      <div class="field"><b>INDEX</b>1..N</div>
+      <div class="field"><b>PHASE</b>compile / run</div>
+      <div class="field"><b>COMMAND</b>g++.exe …</div>
+      <div class="field"><b>EXIT</b>3</div>
+      <div class="field"><b>TIMED OUT</b>false</div>
+      <div class="field"><b>DURATION</b>32 ms</div>
+      <div class="field"><b>OK</b>false</div>
+      <div class="field"><b>OUTPUT</b>stdout + stderr</div>
+    </div>
+    <div class="snippet">
+      <span class="dim">iteration 1 →</span> <span class="err">std::out_of_range: vector::_M_range_check: __n (which is 5) &gt;= this->size() (which is 3)</span><br>
+      <span class="dim">iteration 2 →</span> program prints <span class="green">3</span> · exit 0 · <span class="green">REPAIRED</span>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span><b>run → observe → repair</b> without leaving the machine</span>
+    <span class="sep"></span>
+    <span>Bounded iterations · process-tree timeouts · persisted evidence</span>
+    <span class="sep"></span>
+    <span>CodeForge AI v1.0.0</span>
+  </div>
+</div>
+</body>
+</html>

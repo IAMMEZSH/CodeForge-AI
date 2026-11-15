@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CodeForge AI model matrix</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; flex: 0 0 auto; }
+  .mcol { padding: 14px 16px 16px; }
+  .mcol-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .mcol-head h3 { margin: 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .mcol-head .count { font-family: var(--mono); font-size: 9.5px; color: var(--dim); letter-spacing: 0.12em; margin-left: auto; }
+  .flag { width: 9px; height: 9px; border-radius: 2px; background: var(--cyan); box-shadow: 0 0 10px rgba(56,242,255,.7); }
+  .flag.g { background: var(--violet); box-shadow: 0 0 10px rgba(139,92,246,.7); }
+
+  .mrow {
+    display: grid; grid-template-columns: 24px 1fr 168px 74px; gap: 10px;
+    align-items: center; padding: 11px 8px; border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .mrow:nth-child(odd) { background: rgba(8, 18, 34, 0.55); border-color: rgba(140,172,210,0.06); }
+  .mrow .rank { font-family: var(--mono); font-size: 9.4px; color: var(--dim); }
+  .mrow .mname b { display: block; font-size: 12.2px; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
+  .mrow .mname span { display: block; font-family: var(--mono); font-size: 9.2px; color: var(--dim); margin-top: 3px; white-space: nowrap; }
+  .mrow .mbar .bar { height: 5px; margin-bottom: 4px; }
+  .mrow .mbar span { font-family: var(--mono); font-size: 9px; color: var(--muted); white-space: nowrap; }
+  .mrow .mlic {
+    justify-self: end; font-family: var(--mono); font-size: 8.3px;
+    padding: 2px 5px; border: 1px solid rgba(140,172,210,0.16); border-radius: 3px;
+    color: var(--dim); white-space: nowrap;
+  }
+  .guide { margin-top: 10px; border-top: 1px solid rgba(140,172,210,0.1); padding-top: 10px; }
+  .guide-row { display: flex; gap: 9px; align-items: baseline; margin-bottom: 5px; font-size: 10.2px; color: var(--muted); }
+  .guide-row b { font-family: var(--mono); font-size: 8.6px; letter-spacing: 0.1em; color: var(--violet); min-width: 82px; text-transform: uppercase; }
+  .guide-row code { font-family: var(--mono); font-size: 9.2px; color: var(--cyan); }
+
+  .pipeline { margin-top: 18px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 26px; }
+  .step { position: relative; padding: 13px 14px; }
+  .step .n { font-family: var(--mono); font-size: 8.5px; color: var(--dim); letter-spacing: 0.14em; }
+  .step h4 { margin: 3px 0 4px; font-size: 12.5px; }
+  .step p { margin: 0; font-size: 9.8px; line-height: 1.45; color: var(--muted); }
+  .step code { font-family: var(--mono); font-size: 8.8px; color: var(--cyan); }
+  .step::after {
+    content: ""; position: absolute; right: -18px; top: 50%;
+    border-left: 7px solid rgba(56,242,255,0.55);
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  }
+  .step:last-child::after { display: none; }
+
+  .notes { display: flex; align-items: center; gap: 18px; margin-top: 14px; font-family: var(--mono); font-size: 9.2px; letter-spacing: 0.06em; color: var(--dim); }
+  .notes .spacer { flex: 1; }
+  .notes b { color: var(--green); font-weight: 500; }
+  .notes i { color: var(--amber); font-style: normal; }
+
+  .tiers { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .tier {
+    padding: 10px 13px; border-radius: 8px;
+    border: 1px solid rgba(56,249,165,0.18); background: rgba(7,22,24,0.45);
+  }
+  .tier b { display: block; font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; color: var(--green); }
+  .tier span { display: block; margin-top: 4px; font-size: 10.2px; color: var(--text); }
+  .tier em { display: block; margin-top: 2px; font-style: normal; font-family: var(--mono); font-size: 8.8px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+<div class="glow-c"></div>
+<div class="frame-line"></div>
+
+<div class="sheet">
+  <div class="head-row">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> Offline model vault <span class="line"></span></div>
+      <h1 class="title"><span class="grad">Twelve models. One local engine.</span></h1>
+      <p class="subtitle">A balanced China / Global catalog of GGUF coding and reasoning models, from a 2.5 GB laptop model to a 30B agentic flagship. Download, verify, serve.</p>
+    </div>
+    <div class="head-meta">
+      <div><b>FORMAT</b> GGUF · Q4_K_M / MXFP4</div>
+      <div><b>RUNTIME</b> llama.cpp · CPU</div>
+      <div><b>CONTEXT</b> 4096 served window</div>
+    </div>
+  </div>
+
+  <div class="columns">
+    <div class="panel cyan mcol">
+      <div class="mcol-head"><span class="flag"></span><h3>China</h3><span class="count">7 MODELS · ALIBABA · DEEPSEEK · 01.AI · ZHIPU · BYTEDANCE</span></div>
+      <div class="mrow"><div class="rank">01</div><div class="mname"><b>Qwen3-Coder 30B-A3B</b><span>Alibaba Qwen · 30B MoE (3B active) · 256K ctx</span></div><div class="mbar"><div class="bar"><i style="width:80%"></i></div><span>18.6 GB · 24 GB RAM</span></div><div class="mlic">Apache-2.0</div></div>
+      <div class="mrow"><div class="rank">02</div><div class="mname"><b>DeepSeek-Coder V2 Lite</b><span>DeepSeek · 16B MoE (2.4B active) · 128K ctx</span></div><div class="mbar"><div class="bar"><i style="width:47%"></i></div><span>10.4 GB · 14 GB RAM</span></div><div class="mlic">DeepSeek</div></div>
+      <div class="mrow"><div class="rank">03</div><div class="mname"><b>DeepSeek R1 0528 Qwen3 8B</b><span>DeepSeek · 8B · 128K ctx</span></div><div class="mbar"><div class="bar green"><i style="width:27%"></i></div><span>5.0 GB · 8 GB RAM</span></div><div class="mlic">MIT</div></div>
+      <div class="mrow"><div class="rank">04</div><div class="mname"><b>Qwen3 4B Instruct 2507</b><span>Alibaba Qwen · 4B · 256K ctx</span></div><div class="mbar"><div class="bar green"><i style="width:20%"></i></div><span>2.5 GB · 6 GB RAM</span></div><div class="mlic">Apache-2.0</div></div>
+      <div class="mrow"><div class="rank">05</div><div class="mname"><b>Yi-Coder 9B Chat</b><span>01.AI · 9B · 128K ctx</span></div><div class="mbar"><div class="bar green"><i style="width:27%"></i></div><span>5.3 GB · 8 GB RAM</span></div><div class="mlic">Apache-2.0</div></div>
+      <div class="mrow"><div class="rank">06</div><div class="mname"><b>CodeGeeX4 ALL 9B</b><span>Zhipu AI · 9B · 128K ctx</span></div><div class="mbar"><div class="bar green"><i style="width:30%"></i></div><span>6.3 GB · 9 GB RAM</span></div><div class="mlic">CodeGeeX4</div></div>
+      <div class="mrow"><div class="rank">07</div><div class="mname"><b>Seed-OSS 36B Instruct</b><span>ByteDance Seed · 36B · 512K ctx</span></div><div class="mbar"><div class="bar"><i style="width:90%"></i></div><span>21.8 GB · 27 GB RAM</span></div><div class="mlic">Apache-2.0</div></div>
+    </div>
+
+    <div class="panel violet mcol">
+      <div class="mcol-head"><span class="flag g"></span><h3>Global</h3><span class="count">5 MODELS · OPENAI · MISTRAL · MICROSOFT · GOOGLE</span></div>
+      <div class="mrow"><div class="rank">08</div><div class="mname"><b>GPT-OSS 20B</b><span>OpenAI · 20B MoE (3.6B active) · 128K ctx</span></div><div class="mbar"><div class="bar"><i style="width:53%"></i></div><span>12.1 GB · 16 GB RAM</span></div><div class="mlic">Apache-2.0</div></div>
+      <div class="mrow"><div class="rank">09</div><div class="mname"><b>Devstral Small 2507</b><span>Mistral AI · 24B · 128K ctx</span></div><div class="mbar"><div class="bar"><i style="width:67%"></i></div><span>14.3 GB · 20 GB RAM</span></div><div class="mlic">Apache-2.0</div></div>
+      <div class="mrow"><div class="rank">10</div><div class="mname"><b>Phi-4</b><span>Microsoft · 14B · 16K ctx</span></div><div class="mbar"><div class="bar green"><i style="width:40%"></i></div><span>9.1 GB · 12 GB RAM</span></div><div class="mlic">MIT</div></div>
+      <div class="mrow"><div class="rank">11</div><div class="mname"><b>Gemma 3 27B IT</b><span>Google · 27B · 128K ctx</span></div><div class="mbar"><div class="bar"><i style="width:73%"></i></div><span>16.6 GB · 22 GB RAM</span></div><div class="mlic">Gemma</div></div>
+      <div class="mrow"><div class="rank">12</div><div class="mname"><b>Codestral 22B</b><span>Mistral AI · 22B · 32K ctx</span></div><div class="mbar"><div class="bar"><i style="width:60%"></i></div><span>13.3 GB · 18 GB RAM</span></div><div class="mlic amber">Non-Prod</div></div>
+
+      <div class="guide">
+        <div class="guide-row"><b>Fastest</b><span><code>qwen3-4b-instruct-2507</code> · 2.5 GB · runs on 8 GB laptops</span></div>
+        <div class="guide-row"><b>Best debugger</b><span><code>deepseek-r1-0528-qwen3-8b</code> · visible reasoning chains</span></div>
+        <div class="guide-row"><b>Agentic</b><span><code>gpt-oss-20b</code> · <code>devstral-small-2507</code> · <code>qwen3-coder-30b-a3b</code></span></div>
+        <div class="guide-row"><b>Long code</b><span><code>seed-oss-36b-instruct</code> · 512K architecture (serve 4096)</span></div>
+        <div class="guide-row"><b>Licenses</b><span>DeepSeek, CodeGeeX, Gemma and Codestral have their own terms</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipeline">
+    <div class="panel step">
+      <div class="n">STEP 01</div>
+      <h4>Resolve</h4>
+      <p>Query the Hugging Face API for exact size and LFS hash. <code>GET /api/models/resolve</code></p>
+    </div>
+    <div class="panel step">
+      <div class="n">STEP 02</div>
+      <h4>Stream + resume</h4>
+      <p>256 KB chunks, Range requests, 12 retries with backoff. <code>.part</code> survives restarts.</p>
+    </div>
+    <div class="panel step">
+      <div class="n">STEP 03</div>
+      <h4>Verify</h4>
+      <p>C17 SHA-256. A mismatch deletes the file. <code>cforge_native verify</code></p>
+    </div>
+    <div class="panel step">
+      <div class="n">STEP 04</div>
+      <h4>Register</h4>
+      <p>Atomic write to <code>models/installed.json</code> with path, bytes, hash, time.</p>
+    </div>
+    <div class="panel step">
+      <div class="n">STEP 05</div>
+      <h4>Serve</h4>
+      <p><code>llama-server</code> on 127.0.0.1:8080, health-probed, 180 s readiness window.</p>
+    </div>
+  </div>
+
+  <div class="tiers">
+    <div class="tier"><b>8 GB RAM FLOOR</b><span>Qwen3 4B · DeepSeek R1 8B</span><em>2.5–5.0 GB weights · CPU only</em></div>
+    <div class="tier"><b>16 GB SWEET SPOT</b><span>Phi-4 · GPT-OSS 20B</span><em>9.1–12.1 GB weights</em></div>
+    <div class="tier"><b>24 GB+ WORKSTATION</b><span>Qwen3-Coder 30B · Seed-OSS 36B</span><em>needs 24–27 GB RAM</em></div>
+    <div class="tier"><b>DISK PLANNING</b><span>Largest model 21.8 GB · +512 MB</span><em>Runtime ~25–80 MB · .part resumes</em></div>
+  </div>
+
+  <div class="notes">
+    <span><b>CPU-ONLY MANAGED RUNTIME</b></span>
+    <span><b>DISK PREFLIGHT</b> SIZE + 512 MB</span>
+    <span><i>LICENSES VARY BY MODEL</i></span>
+    <span class="spacer"></span>
+    <span>Q4_K_M · GPT-OSS USES MXFP4 · QWEN3 4B VERIFIED AT 2,497,281,120 BYTES</span>
+  </div>
+
+  <div class="footer-strip">
+    <span><b>12</b> curated offline models · China + Global</span>
+    <span class="sep"></span>
+    <span>Download → verify → serve locally</span>
+    <span class="sep"></span>
+    <span>CodeForge AI v1.0.0</span>
+  </div>
+</div>
+</body>
+</html>

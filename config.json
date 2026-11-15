@@ -1,0 +1,50 @@
+{
+  "llm": {
+    "backend": "auto",
+    "ollama_url": "http://127.0.0.1:11434",
+    "openai_url": "http://127.0.0.1:8080",
+    "api_key": "",
+    "model": "",
+    "llama_server": "",
+    "temperature": 0.2,
+    "max_tokens": 2048,
+    "request_timeout_ms": 600000,
+    "online": {
+      "enabled": true,
+      "base_url": "https://api.deepseek.com",
+      "api_key": "",
+      "model": "deepseek-chat",
+      "timeout_ms": 120000
+    }
+  },
+  "debug": {
+    "max_iterations": 3,
+    "run_timeout_ms": 20000,
+    "compile_timeout_ms": 60000
+  },
+  "memory": {
+    "enabled": true,
+    "auto_capture": true,
+    "max_entries": 4000,
+    "retrieval_limit": 5
+  },
+  "online": {
+    "enabled": true,
+    "research": "auto",
+    "search_endpoint": "",
+    "timeout_ms": 12000,
+    "max_results": 3
+  },
+  "compliance": {
+    "enabled": true,
+    "jurisdiction": "auto",
+    "online_refresh": true,
+    "refresh_hours": 24
+  },
+  "server": {
+    "port": 8765
+  },
+  "toolchains": {
+    "auto_install": true
+  }
+}

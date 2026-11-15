@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CodeForge AI banner</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .hero {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    height: 100%;
+  }
+  .hero-left { width: 1010px; }
+  .hero-right {
+    position: relative;
+    flex: 1;
+    height: 430px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-title {
+    font-size: 104px;
+    line-height: 0.94;
+    letter-spacing: 0.015em;
+    font-weight: 800;
+    margin: 16px 0 18px;
+  }
+  .logo-title .thin {
+    display: block;
+    font-size: 31px;
+    line-height: 1.2;
+    letter-spacing: 0.42em;
+    font-weight: 500;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+  .lead {
+    font-size: 19px;
+    line-height: 1.6;
+    color: #a9c0dc;
+    max-width: 820px;
+  }
+  .lead b { color: #fff; }
+  .stack-row { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+  .platform-row {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    margin-top: 30px;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .platform-row b { color: #cfe6ff; font-weight: 500; }
+  .platform-row i { color: rgba(56, 242, 255, 0.35); font-style: normal; }
+
+  .orb-wrap { position: relative; width: 430px; height: 430px; }
+  .orb-wrap svg { position: absolute; inset: 0; }
+  .orb-label {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+  .lbl-a { top: 6px; left: 50%; transform: translateX(-50%); color: var(--cyan); }
+  .lbl-b { bottom: 14px; left: 50%; transform: translateX(-50%); color: var(--green); }
+  .lbl-c { right: -6px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+  .lbl-d { left: -10px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+
+  .stat-strip {
+    display: flex;
+    gap: 28px;
+    margin-top: 26px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.13em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+  .stat-strip b { color: var(--cyan); font-weight: 600; }
+</style>
+</head>
+<body class="banner-body">
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+<div class="frame-line"></div>
+
+<div class="banner-sheet">
+  <div class="hero">
+    <div class="hero-left">
+      <div class="eyebrow"><span class="dot"></span> Local-first intelligent development <span class="line"></span></div>
+      <div class="logo-title">
+        <span class="grad">CODEFORGE</span> AI
+        <span class="thin">DEBUG · EXECUTE · REASON</span>
+      </div>
+      <p class="lead">
+        A private programming workbench with an <b>agentic repair loop</b>,
+        <b>four-language execution</b> and <b>12 offline models</b>.
+        Every prompt, source file and diagnostic stays on your machine.
+      </p>
+      <div class="stack-row">
+        <span class="pill"><span class="dot"></span>C17</span>
+        <span class="pill"><span class="dot"></span>C++17</span>
+        <span class="pill violet"><span class="dot"></span>JAVA 17</span>
+        <span class="pill green"><span class="dot"></span>PYTHON 3</span>
+        <span class="pill amber"><span class="dot"></span>LLAMA.CPP</span>
+      </div>
+      <div class="platform-row">
+        <b>Windows</b><i>/</i><b>Linux</b><i>/</i><b>macOS</b><i>/</i><b>Android</b><i>/</i><b>iOS</b>
+        <span style="margin-left:14px">TERMINAL + THIN CLIENT</span>
+      </div>
+      <div class="stat-strip">
+        <span><b>12</b> OFFLINE MODELS</span>
+        <span><b>4</b> EXECUTION TARGETS</span>
+        <span><b>127.0.0.1</b> ONLY</span>
+        <span><b>0</b> TELEMETRY</span>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="orb-wrap">
+        <svg viewBox="0 0 430 430" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="cy" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#38f2ff"/>
+              <stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+            <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="7" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle cx="215" cy="215" r="196" stroke="rgba(56,242,255,0.12)" stroke-dasharray="2 8"/>
+          <circle cx="215" cy="215" r="160" stroke="rgba(56,242,255,0.22)" stroke-dasharray="34 18"/>
+          <circle cx="215" cy="215" r="124" stroke="rgba(139,92,246,0.30)" stroke-dasharray="8 10"/>
+          <polygon points="215,72 339,143 339,287 215,358 91,287 91,143"
+                   stroke="url(#cy)" stroke-width="2.4" filter="url(#glow)" fill="rgba(7,18,36,0.55)"/>
+          <polygon points="215,104 311,160 311,270 215,326 119,270 119,160"
+                   stroke="rgba(56,242,255,0.30)" stroke-width="1"/>
+          <path d="M158 185 L132 215 L158 245 M272 185 L298 215 L272 245 M236 165 L194 265"
+                stroke="#38f2ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+          <circle cx="215" cy="19" r="3.5" fill="#38f2ff"/>
+          <circle cx="398" cy="215" r="3" fill="#8b5cf6"/>
+          <circle cx="215" cy="411" r="3" fill="#38f9a5"/>
+          <circle cx="32" cy="215" r="3" fill="#8b5cf6"/>
+          <path d="M215 46 L215 64 M215 366 L215 384 M46 215 L64 215 M366 215 L384 215"
+                stroke="rgba(56,242,255,0.5)" stroke-width="1.4"/>
+        </svg>
+        <span class="orb-label lbl-a">Neural core</span>
+        <span class="orb-label lbl-b">Local inference</span>
+        <span class="orb-label lbl-c">C / C++</span>
+        <span class="orb-label lbl-d">Java / Python</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span><b>CodeForge AI</b> v1.0.0</span>
+    <span class="sep"></span>
+    <span>Local-first intelligent dev workbench</span>
+    <span class="sep"></span>
+    <span>Windows · Linux · macOS · Android · iOS</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# Generated build outputs
+build/
+native/bin/
+native/jdk/
+native/toolchains/
+server-java/build/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/ios/build/
+mobile/ios/DerivedData/
+mobile/ios/CodeForge.xcodeproj/
+
+# Downloaded models and runtime (multi-GB, never commit)
+models/downloads/
+models/installed.json
+runtime/
+logs/
+workspace/
+release/
+
+# Private user brain: lessons, indexed paths, compliance audit
+memory/
+
+# Python
+__pycache__/
+*.pyc
+
+# Scratch captures
+docs/images/_*
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

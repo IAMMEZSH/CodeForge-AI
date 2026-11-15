@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- CodeForge is a local-first console. Plain HTTP is only expected on
+         127.0.0.1, 10.0.2.2 (Android emulator) and private LAN addresses. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

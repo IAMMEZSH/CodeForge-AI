@@ -1,0 +1,92 @@
+CodeForge AI 1.0.0 — Linux quick start
+======================================
+
+This package is a source bundle. It builds a native C17 helper, the C++17
+core and the Java server on your machine. No prebuilt Linux binaries are
+included; the one-command build below produces them.
+
+1. Install the toolchain
+------------------------
+
+Debian / Ubuntu / Mint / Pop!_OS:
+    sudo apt update
+    sudo apt install -y build-essential python3 python3-venv curl \
+        libcurl4-openssl-dev openjdk-17-jdk cmake zip unzip git
+
+Fedora / RHEL / Rocky:
+    sudo dnf install -y gcc gcc-c++ make python3 curl libcurl-devel \
+        java-17-openjdk-devel cmake zip unzip git
+
+Arch / Manjaro:
+    sudo pacman -S --needed base-devel python curl jdk17-openjdk cmake \
+        zip unzip git
+
+openSUSE:
+    sudo zypper install -y gcc gcc-c++ make python3 curl libcurl-devel \
+        java-17-openjdk-devel cmake zip unzip git
+
+Alpine:
+    apk add build-base python3 curl curl-dev openjdk17-jdk cmake zip unzip git bash
+
+2. Build and test
+-----------------
+
+    cd CodeForge-AI-1.0.0
+    python3 aux-python/bootstrap.py --all
+
+This checks or provisions JDK 17, compiles native/bin/cforge_native and
+native/bin/CodeForgeCore, compiles the Java classes, packages
+server-java/build/CodeForgeServer.jar, and runs the C/C++/Java/Python
+self-test.
+
+Alternative build route (CMake):
+
+    ./build.sh
+
+3. Run
+------
+
+    python3 aux-python/bootstrap.py --run --port 8765
+
+Open http://127.0.0.1:8765/console/ in any browser.
+
+Server only, without Python:
+
+    java --add-modules jdk.httpserver -Dfile.encoding=UTF-8 \
+      -jar server-java/build/CodeForgeServer.jar \
+      --root "$PWD" --port 8765
+
+4. First model
+--------------
+
+In the Models tab: install the llama.cpp runtime, download a model that
+fits your RAM (Qwen3 4B needs about 6 GB), then press "Start inference".
+
+Runtime selection follows uname -m:
+
+    x86_64  -> ubuntu-x64
+    aarch64 -> ubuntu-arm64
+    s390x   -> ubuntu-s390x
+
+On 32-bit ARM/x86 or Alpine/musl there is no prebuilt asset. Build llama.cpp
+and point the server at it:
+
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp
+    cmake -S llama.cpp -B llama.cpp/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+    cmake --build llama.cpp/build -j"$(nproc)" --target llama-server
+    export CODEFORGE_LLAMA_SERVER="$PWD/llama.cpp/build/bin/llama-server"
+    python3 aux-python/bootstrap.py --run --port 8765
+
+The runtime listens on 127.0.0.1:8080.
+
+5. Optional service and remote UI
+---------------------------------
+
+A systemd user unit template is in docs/PLATFORMS.md section 4.8.
+For a headless machine, keep the server on loopback and forward it:
+
+    ssh -L 8765:127.0.0.1:8765 user@server
+    # then open http://127.0.0.1:8765/console/ on your laptop
+
+Documentation: docs/MANUAL.md, docs/PLATFORMS.md, docs/API.md
+License: MIT (see LICENSE). Model weights keep their own licenses.

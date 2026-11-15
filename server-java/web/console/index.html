@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>CodeForge AI — Local Intelligence Workbench</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpolygon points='16 4 48 4 62 32 48 60 16 60 2 32' fill='%23081020' stroke='%2338f2ff' stroke-width='3'/%3E%3Cpath d='M22 22 L14 32 L22 42 M42 22 L50 32 L42 42' fill='none' stroke='%2338f2ff' stroke-width='4'/%3E%3C/svg%3E">
+</head>
+<body>
+<canvas id="backdrop"></canvas>
+<div class="grid-plane"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand-mark" title="CodeForge AI">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M10 9 L4 16 L10 23 M22 9 L28 16 L22 23 M18.5 6.5 L13.5 25.5" fill="none" stroke="#38f2ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <button class="rail-btn active" data-view="chat" title="AI Chat">
+      <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"/><path d="M8 11h8M8 15h5"/></svg>
+      <span>Chat</span>
+    </button>
+    <button class="rail-btn" data-view="debug" title="Debug Engine">
+      <svg viewBox="0 0 24 24"><path d="M8 4 4 8l4 4M16 4l4 4-4 4M13 3l-2 18"/></svg>
+      <span>Debug</span>
+    </button>
+    <button class="rail-btn" data-view="models" title="Models & Runtime">
+      <svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg>
+      <span>Models</span>
+    </button>
+    <button class="rail-btn" data-view="env" title="Environment">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      <span>System</span>
+    </button>
+    <div class="rail-spacer"></div>
+    <div class="rail-status">OFFLINE · READY</div>
+  </aside>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="title-block">
+        <div class="eyebrow">Local-first intelligent dev workbench</div>
+        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0</span></div>
+      </div>
+      <div class="top-chips">
+        <span class="chip off" id="chip-core"><i class="dot"></i>Core</span>
+        <span class="chip off" id="chip-llm"><i class="dot"></i>LLM</span>
+        <span class="chip off" id="chip-runtime"><i class="dot"></i>Runtime</span>
+      </div>
+      <div class="top-right">
+        <div class="clock"><b id="clock-time">--:--:--</b><span id="clock-date">----</span></div>
+        <button class="icon-btn" id="btn-about" title="About CodeForge">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="views">
+      <!-- ================= CHAT ================= -->
+      <section class="view active" id="view-chat">
+        <div class="chat-layout">
+          <div class="panel chat-panel">
+            <div class="panel-head chat-head">
+              <h3>Neural Console</h3>
+              <span class="badge" id="chat-model-badge">NO MODEL</span>
+              <div class="spacer"></div>
+              <label class="auto-toggle" title="Automatically compile and run the first runnable code block of each answer">
+                <input type="checkbox" id="chk-auto-run">
+                <span class="switch"></span>
+                <span class="auto-label">AUTO COMPILE</span>
+              </label>
+              <button class="btn ghost sm" id="btn-chat-save">Save code</button>
+              <button class="btn ghost sm" id="btn-chat-clear">New session</button>
+            </div>
+            <div class="chat-scroll scroll" id="chat-scroll">
+              <div class="chat-empty" id="chat-empty">
+                <div class="orb"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="core"></div></div>
+                <h2>Forge code with <span>on-device intelligence</span></h2>
+                <p>A private coding copilot running entirely on this machine. Ask about repositories, generate implementations, or hand a failing program to the autonomous debug loop.</p>
+                <div class="suggestions">
+                  <button class="suggestion" data-prompt="Explain the difference between processes and threads with a C++ example.">Explain process vs thread</button>
+                  <button class="suggestion" data-prompt="Write a thread-safe bounded queue in C++17 with condition variables.">Generate C++ concurrency</button>
+                  <button class="suggestion" data-prompt="Review this Python function for edge cases and rewrite it: def avg(xs): return sum(xs)/len(xs)">Review Python edge cases</button>
+                  <button class="suggestion" data-prompt="Create a Java 17 record-based DTO layer with validation annotations explained in plain code.">Design Java DTO layer</button>
+                </div>
+              </div>
+              <div id="chat-messages"></div>
+            </div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <textarea id="chat-input" rows="1" placeholder="Ask anything — or say: run it · save to D:\path · place project on desktop · /help"></textarea>
+                <button class="send-btn" id="btn-chat-send" title="Send">
+                  <svg class="icon-send" viewBox="0 0 24 24"><path d="m3 3 18 9-18 9 4-9-4-9Z"/><path d="M7 12h14"/></svg>
+                  <svg class="icon-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                  <span class="send-label" id="send-label">STOP</span>
+                </button>
+              </div>
+              <div class="composer-meta">
+                <span><span class="kbd">ENTER</span> send · <span class="kbd">SHIFT+ENTER</span> newline · <span class="kbd">ENTER</span> while generating interrupts</span>
+                <span class="spacer"></span>
+                <span id="chat-hint">LOCAL MEMORY · ONLINE RESEARCH · LAW-AWARE</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="chat-side">
+            <div class="panel side-card">
+              <div class="side-label">Inference link</div>
+              <div class="stat-row"><span class="muted">Backend</span><span class="v" id="side-backend">—</span></div>
+              <div class="stat-row"><span class="muted">Model</span><span class="v" id="side-model">—</span></div>
+              <div class="stat-row"><span class="muted">State</span><span class="v" id="side-state">—</span></div>
+              <div class="stat-row"><span class="muted">Last latency</span><span class="v" id="side-latency">—</span></div>
+              <div class="mini-meter"><i id="side-meter"></i></div>
+            </div>
+            <div class="panel side-card">
+              <div class="side-label">Dual brain</div>
+              <div class="stat-row"><span class="muted">Route</span><span class="v" id="side-route">—</span></div>
+              <div class="stat-row"><span class="muted">Online brain</span><span class="v" id="side-online-brain">—</span></div>
+              <div class="stat-row"><span class="muted">Memory</span><span class="v" id="side-memory">—</span></div>
+              <div class="stat-row"><span class="muted">Workspace</span><span class="v" id="side-workspace">—</span></div>
+              <div class="stat-row"><span class="muted">Law pack</span><span class="v" id="side-law">—</span></div>
+            </div>
+            <div class="panel side-card">
+              <div class="side-label">Operator hints</div>
+              <ul class="hint-list">
+                <li>Start the bundled runtime in Models to unlock inference.</li>
+                <li>Paste failing code in Debug for an autonomous repair loop.</li>
+                <li>Every request is served from 127.0.0.1 — nothing leaves the host.</li>
+                <li>Use C/C++/Python/Java; toolchains are auto-detected.</li>
+              </ul>
+            </div>
+            <div class="panel side-card">
+              <div class="side-label">Session</div>
+              <div class="stat-row"><span class="muted">Messages</span><span class="v" id="side-count">0</span></div>
+              <div class="stat-row"><span class="muted">Tokens (est.)</span><span class="v" id="side-tokens">0</span></div>
+              <div class="stat-row"><span class="muted">Core</span><span class="v" id="side-core">—</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================= DEBUG ================= -->
+      <section class="view" id="view-debug">
+        <div class="debug-layout">
+          <div class="debug-toolbar">
+            <div>
+              <label class="small">Target file</label>
+              <input class="field" id="dbg-filename" value="main.cpp" spellcheck="false" style="width:170px">
+            </div>
+            <div>
+              <label class="small">Language</label>
+              <select class="field" id="dbg-language" style="width:130px">
+                <option value="auto">Auto detect</option>
+                <option value="cpp">C++</option>
+                <option value="c">C</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+              </select>
+            </div>
+            <div>
+              <label class="small">Max iterations</label>
+              <select class="field" id="dbg-iterations" style="width:100px">
+                <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
+              </select>
+            </div>
+            <div class="grow"></div>
+            <div class="debug-status" id="dbg-status">
+              <span class="badge" id="dbg-badge">IDLE</span>
+            </div>
+            <button class="btn ghost" id="btn-dbg-run">
+              <svg viewBox="0 0 24 24"><path d="m6 3 15 9-15 9V3Z"/></svg>Run
+            </button>
+            <button class="btn violet" id="btn-dbg-auto">
+              <svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg>Auto-debug
+            </button>
+          </div>
+
+          <div class="panel debug-pane">
+            <div class="pane-head">
+              <span class="label">Source</span>
+              <span class="spacer"></span>
+              <button class="btn ghost sm" id="btn-dbg-sample">Load sample</button>
+              <button class="btn ghost sm" id="btn-dbg-copy">Copy</button>
+              <button class="btn ghost sm" id="btn-dbg-download">Save</button>
+            </div>
+            <div class="pane-body">
+              <div class="line-numbers" id="dbg-lines">1</div>
+              <textarea class="editor" id="dbg-code" spellcheck="false" placeholder="Paste code or load a sample…"></textarea>
+            </div>
+          </div>
+
+          <div class="panel debug-pane">
+            <div class="pane-head">
+              <span class="label">Telemetry</span>
+              <span class="spacer"></span>
+              <span class="badge" id="dbg-exit">—</span>
+            </div>
+            <div class="pane-body">
+              <pre class="output empty" id="dbg-output">Execution telemetry, compiler diagnostics and debug iterations appear here.</pre>
+            </div>
+          </div>
+
+          <div class="panel debug-bottom" id="dbg-iter-panel">
+            <div class="panel-head"><h3>Debug iterations</h3><div class="spacer"></div><span class="badge" id="dbg-session"></span></div>
+            <div class="panel-body"><div class="iterations" id="dbg-iterations-list"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MODELS ================= -->
+      <section class="view" id="view-models">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <div>
+            <div class="eyebrow">Offline model vault</div>
+            <h2 style="margin:4px 0 0;font-size:21px;font-weight:650;letter-spacing:.02em">GGUF models &amp; llama.cpp runtime</h2>
+          </div>
+          <div style="flex:1"></div>
+          <span class="model-state" id="model-count">12 CURATED MODELS</span>
+          <button class="btn ghost" id="btn-models-refresh">Refresh</button>
+          <button class="btn" id="btn-runtime-install">Install runtime</button>
+        </div>
+        <div class="model-filters" id="model-filters"></div>
+        <div class="models-grid" id="models-grid"></div>
+
+        <div class="panel runtime-panel">
+          <div class="panel-head">
+            <h3>Inference runtime</h3>
+            <span class="badge" id="rt-badge">UNKNOWN</span>
+            <div class="spacer"></div>
+            <span class="model-state" id="rt-version"></span>
+          </div>
+          <div class="panel-body">
+            <div class="runtime-grid">
+              <div class="runtime-stat"><div class="k">Service</div><div class="v" id="rt-state">—</div></div>
+              <div class="runtime-stat"><div class="k">Endpoint</div><div class="v mono" id="rt-endpoint">127.0.0.1:8080</div></div>
+              <div class="runtime-stat"><div class="k">Active model</div><div class="v" id="rt-model">—</div></div>
+              <div class="runtime-stat"><div class="k">Process</div><div class="v mono" id="rt-pid">—</div></div>
+            </div>
+            <div class="runtime-actions">
+              <button class="btn green" id="btn-rt-start">Start inference</button>
+              <button class="btn red" id="btn-rt-stop">Stop</button>
+              <button class="btn ghost" id="btn-rt-logs">View log</button>
+              <span style="flex:1"></span>
+              <span class="model-state" id="rt-installed">runtime not installed</span>
+            </div>
+            <pre class="log-box" id="rt-log" style="display:none"></pre>
+          </div>
+        </div>
+
+        <div class="panel runtime-panel">
+          <div class="panel-head"><h3>Download queue</h3><div class="spacer"></div><span class="model-state" id="dl-count">0 active</span></div>
+          <div class="panel-body"><div class="iterations" id="dl-jobs"><div class="dim" style="font-size:11.5px">No transfers in this session. Downloads resume automatically after interruption.</div></div></div>
+        </div>
+      </section>
+
+      <!-- ================= ENVIRONMENT ================= -->
+      <section class="view" id="view-env">
+        <div class="env-grid">
+          <div class="env-stack">
+            <div class="panel">
+              <div class="panel-head"><h3>Main core · C++17</h3><span class="badge" id="env-core-badge">—</span><div class="spacer"></div><span class="model-state mono" id="env-core-ver"></span></div>
+              <div class="panel-body">
+                <table class="info-table">
+                  <tr><td>AI backend</td><td id="env-backend">—</td></tr>
+                  <tr><td>Base URL</td><td id="env-base">—</td></tr>
+                  <tr><td>Active model</td><td id="env-model">—</td></tr>
+                  <tr><td>Available models</td><td id="env-models">—</td></tr>
+                  <tr><td>Debug loop</td><td id="env-debug">—</td></tr>
+                  <tr><td>Project root</td><td id="env-root">—</td></tr>
+                </table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Dual brain · memory · compliance</h3><div class="spacer"></div>
+                <button class="btn ghost sm" id="btn-index-refresh">Reindex workspace</button>
+                <button class="btn ghost sm" id="btn-law-refresh">Refresh law</button>
+              </div>
+              <div class="panel-body">
+                <table class="info-table">
+                  <tr><td>Brain route</td><td id="brain-route">—</td></tr>
+                  <tr><td>Online brain</td><td id="brain-online">—</td></tr>
+                  <tr><td>Memory store</td><td id="brain-memory">—</td></tr>
+                  <tr><td>Workspace index</td><td id="brain-workspace">—</td></tr>
+                  <tr><td>Jurisdiction</td><td id="brain-jurisdiction">—</td></tr>
+                  <tr><td>Legal brief</td><td id="brain-law">—</td></tr>
+                  <tr><td>Online research</td><td id="brain-research">—</td></tr>
+                </table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Toolchains</h3><div class="spacer"></div><button class="btn ghost sm" id="btn-lang-refresh">Refresh</button><button class="btn ghost sm" id="btn-selftest">Run self-test</button></div>
+              <div class="panel-body" id="env-toolchains"><div class="dim" style="font-size:11.5px">Detecting compilers…</div></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Place project anywhere</h3><div class="spacer"></div><span class="model-state">WHOLE TREE</span></div>
+              <div class="panel-body">
+                <label class="small">Destination folder</label>
+                <input class="field mono" id="place-path" placeholder="C:\Users\you\Desktop\CodeForge-AI" spellcheck="false">
+                <div class="hint">Empty = Desktop / CodeForge-AI. Any drive, any folder, ~ for home. Missing drives are reported.</div>
+                <div class="place-options">
+                  <label><input type="checkbox" id="place-jdk"> Include portable JDK (+305 MB)</label>
+                  <label><input type="checkbox" id="place-toolchains"> Include downloaded toolchains</label>
+                  <label><input type="checkbox" id="place-shortcut" checked> Create launcher inside project</label>
+                </div>
+                <div class="place-actions"><button class="btn" id="btn-place-project">PLACE PROJECT</button></div>
+                <div class="place-result" id="place-result"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Launcher anywhere</h3><div class="spacer"></div><span class="model-state">.LNK · .DESKTOP · .COMMAND</span></div>
+              <div class="panel-body">
+                <label class="small">Launcher folder or full file path</label>
+                <input class="field mono" id="desktop-path" placeholder="C:\Users\you\Desktop" spellcheck="false">
+                <div class="hint">Empty = Desktop. Give a folder or a full shortcut path. Missing folders are reported before anything is written.</div>
+                <div class="place-actions"><button class="btn" id="btn-desktop-install">CREATE LAUNCHER</button></div>
+                <div class="place-result" id="desktop-result"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Write any file</h3><div class="spacer"></div><span class="model-state">UTF-8</span></div>
+              <div class="panel-body">
+                <label class="small">Full file path</label>
+                <input class="field mono" id="file-path" placeholder="D:\projects\notes\readme.txt" spellcheck="false">
+                <label class="small" style="margin-top:10px;display:block">Content</label>
+                <textarea class="field mono" id="file-content" rows="5" placeholder="Anything you want to write to that exact path…" spellcheck="false"></textarea>
+                <div class="place-actions"><button class="btn" id="btn-file-write">SAVE FILE</button></div>
+                <div class="place-result" id="file-result"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Local API</h3><div class="spacer"></div><span class="model-state">127.0.0.1 ONLY</span></div>
+              <div class="panel-body">
+                <div class="api-list">
+                  <div class="api-row"><span class="api-method">GET</span><span class="api-path">/api/status</span><span class="api-desc">full stack telemetry</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/chat</span><span class="api-desc">LLM completion</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/debug</span><span class="api-desc">agentic repair loop</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/run</span><span class="api-desc">compile &amp; execute</span></div>
+                  <div class="api-row"><span class="api-method">GET</span><span class="api-path">/api/models</span><span class="api-desc">model registry</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/models/download</span><span class="api-desc">fetch GGUF</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/runtime/install</span><span class="api-desc">llama.cpp setup</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/runtime/start</span><span class="api-desc">launch inference</span></div>
+                  <div class="api-row"><span class="api-method">GET</span><span class="api-path">/api/languages</span><span class="api-desc">runtimes &amp; toolchains</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/languages/install</span><span class="api-desc">download a runtime</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/files/write</span><span class="api-desc">write any file path</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/files/write-batch</span><span class="api-desc">many files anywhere</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/desktop/install</span><span class="api-desc">launcher at any path</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/project/place</span><span class="api-desc">copy project anywhere</span></div>
+                  <div class="api-row"><span class="api-method">GET</span><span class="api-path">/preview/&lt;session&gt;/</span><span class="api-desc">sandboxed HTML preview</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="env-stack">
+            <div class="panel">
+              <div class="panel-head"><h3>Host telemetry</h3><div class="spacer"></div><span class="model-state mono" id="env-native-ver">cforge_native</span></div>
+              <div class="panel-body"><table class="info-table" id="env-native"><tr><td>Status</td><td>collecting…</td></tr></table></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Java server</h3><div class="spacer"></div><span class="badge ok">ONLINE</span></div>
+              <div class="panel-body"><table class="info-table">
+                <tr><td>Version</td><td id="env-server-ver">—</td></tr>
+                <tr><td>Platform</td><td id="env-server-os">—</td></tr>
+                <tr><td>Architecture</td><td id="env-server-arch">—</td></tr>
+                <tr><td>Runtime</td><td id="env-server-java">—</td></tr>
+                <tr><td>Uptime</td><td id="env-server-uptime">—</td></tr>
+                <tr><td>Console URL</td><td class="mono" id="env-server-url">—</td></tr>
+              </table></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Self-test</h3><div class="spacer"></div><span class="model-state">PY · C · C++ · JAVA</span></div>
+              <div class="panel-body"><pre class="log-box" id="selftest-out" style="margin-top:0;display:block">Run the self-test to compile and execute a program in every detected language.</pre></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Privacy</h3></div>
+              <div class="panel-body" style="font-size:11.5px;color:var(--muted);line-height:1.75">
+                CodeForge executes generated code on this host by design. Only loopback sockets are used for inference and the local API. Model downloads contact Hugging Face and GitHub; no code or prompt is uploaded.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <span class="sdot"></span><span id="sb-state">CONNECTING</span>
+      <span id="sb-endpoint">127.0.0.1:8765</span>
+      <span class="spacer"></span>
+      <span id="sb-core">CORE —</span>
+      <span id="sb-model">MODEL —</span>
+      <span id="sb-memory">MEM —</span>
+      <span id="sb-law">LAW —</span>
+      <span id="sb-time">00:00:00</span>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="save-modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="save-title">
+    <div class="modal-head">
+      <h3 id="save-title">Save files</h3>
+      <div class="spacer"></div>
+      <button class="modal-x" id="save-close" title="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <label class="small">Destination folder or full file path</label>
+      <input class="field mono" id="save-path" placeholder="C:\Users\you\Desktop" spellcheck="false">
+      <div class="hint" id="save-hint">Any absolute path on any drive. ~ expands to your home folder. Missing folders are reported before anything is written.</div>
+      <div class="save-files" id="save-files"></div>
+      <div class="save-status" id="save-status"></div>
+    </div>
+    <div class="modal-foot">
+      <span class="spacer"></span>
+      <button class="btn ghost" id="save-cancel">Cancel</button>
+      <button class="btn" id="save-confirm">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toasts"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

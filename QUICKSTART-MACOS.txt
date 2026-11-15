@@ -1,0 +1,81 @@
+CodeForge AI 1.0.0 — macOS quick start
+======================================
+
+This package is a source bundle for Intel and Apple Silicon Macs. It builds
+a native C17 helper, the C++17 core and the Java server locally. No prebuilt
+macOS binaries are included. The llama.cpp runtime installer resolves
+macos-arm64 on Apple silicon and macos-x64 on Intel automatically.
+
+1. Install the toolchain
+------------------------
+
+    xcode-select --install
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    brew install python@3.13 cmake curl openjdk@17
+
+Apple Silicon: make sure Homebrew is on PATH.
+
+    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
+    source ~/.zshrc
+
+Verify:
+
+    clang --version
+    python3 --version
+    java -version
+
+2. Build and test
+-----------------
+
+    cd CodeForge-AI-1.0.0
+    python3 aux-python/bootstrap.py --all
+
+Outputs:
+    native/bin/cforge_native
+    native/bin/CodeForgeCore
+    server-java/build/CodeForgeServer.jar
+
+The build runs the C/C++/Java/Python self-test at the end. CMake route:
+
+    ./build.sh
+
+If linking cannot find libcurl:
+
+    export CPPFLAGS="-I/opt/homebrew/opt/curl/include"
+    export LDFLAGS="-L/opt/homebrew/opt/curl/lib"
+    python3 aux-python/bootstrap.py --build
+
+3. Run
+------
+
+    python3 aux-python/bootstrap.py --run --port 8765
+    open http://127.0.0.1:8765/console/
+
+Server only, without Python:
+
+    java --add-modules jdk.httpserver -Dfile.encoding=UTF-8 \
+      -jar server-java/build/CodeForgeServer.jar \
+      --root "$PWD" --port 8765
+
+4. Gatekeeper
+-------------
+
+If macOS quarantines a downloaded archive or binary:
+
+    xattr -dr com.apple.quarantine CodeForge-AI-1.0.0
+
+5. First model
+--------------
+
+In the Models tab: install the llama.cpp runtime, download a model that
+fits your unified memory (Qwen3 4B needs about 6 GB), then press
+"Start inference". The runtime resolver picks macos-arm64 or macos-x64.
+Inference binds to 127.0.0.1:8080.
+
+6. Optional background service
+------------------------------
+
+A launchd user agent template is in docs/PLATFORMS.md section 5.3.
+
+Documentation: docs/MANUAL.md, docs/PLATFORMS.md, docs/API.md
+License: MIT (see LICENSE). Model weights keep their own licenses.
