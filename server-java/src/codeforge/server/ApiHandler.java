@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.0.2";
+    public static final String VERSION = "1.0.3";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private final Path root;

@@ -2,7 +2,7 @@
 
 Every command you need, for every supported platform.
 
-Version 1.0.2
+Version 1.0.3
 
 ---
 
@@ -306,7 +306,7 @@ curl.exe -s http://127.0.0.1:8765/api/status |
 
 A native ARM64 build of the C++ core requires an ARM64 C++17 toolchain and an
 ARM64 JDK 17; the runtime installer then prefers `win-cpu-arm64` and falls back
-to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.2;
+to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.3;
 the emulated x64 bundle is the supported route.
 
 Native build with MSYS2 CLANGARM64:
@@ -1212,7 +1212,7 @@ while ($true) { curl.exe -s http://127.0.0.1:8765/api/downloads; Start-Sleep 2 }
 | `Content-Type must be application/json` | POST without JSON header | Add `-H "Content-Type: application/json"` |
 | `Cross-origin request rejected` | Origin differs from Host | Use the served console or a same-origin client |
 | Port already in use | Another server | `netstat`/`ss`/`lsof`, stop the process, or pass `--port` |
-| Download stuck at 0% | Network/DNS | Check `curl -I https://huggingface.co` |
+| Download stuck at 0% | Network/DNS | Check `curl -I https://hf-mirror.com`; set `llm.model_mirror` if needed |
 | Download fails at 45% | Connection drop | Automatic resume; check `/api/downloads` message |
 | `SHA-256 mismatch` | Corrupted `.part` | Delete the `.part` and retry |
 | Model loads forever | Too little RAM | Choose a smaller model |

@@ -3,6 +3,26 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## 1.0.3 — 2026-11-16
+
+### Changed
+
+- **Offline model downloads now use a domestic source by default.** Model
+  metadata and files resolve through `https://hf-mirror.com` first, with
+  `https://huggingface.co` kept as an automatic fallback. The upstream
+  repositories, filenames and SHA-256 values are unchanged.
+- The mirror is configurable with `llm.model_mirror` in `config.json` or
+  `CODEFORGE_MODEL_MIRROR`; comma-separated sources are tried in order.
+- Fixed SHA-256 extraction for Hugging Face metadata that reports
+  `lfs.sha256` instead of the legacy `lfs.oid`.
+- Version, native binaries, server jar, web console, mobile projects,
+  documentation and diagrams updated to 1.0.3.
+
+### Notes
+
+- A mirror-only metadata response that omits size or SHA-256 is rejected and
+  the next source is tried, so an unverified model is never registered.
+
 ## 1.0.2 — 2026-11-16
 
 ### Added

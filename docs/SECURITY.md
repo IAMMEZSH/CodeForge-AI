@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.0.2 · Last reviewed 2026-11-16
+Version 1.0.3 · Last reviewed 2026-11-16
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:
@@ -136,8 +136,9 @@ network, and persist changes.
 ### 4.5 Download integrity
 
 - HTTPS only, certificate validation by the JVM/OS trust store.
-- Upstream file size and LFS SHA-256 are resolved from Hugging Face metadata
-  before download.
+- Upstream file size and LFS SHA-256 are resolved from the configured mirror
+  metadata (`hf-mirror.com` by default, `huggingface.co` fallback) before
+  download. A response without both values is rejected.
 - The `.part` file is hashed after the byte count matches; on mismatch the job
   fails and nothing is installed.
 - Only after verification is the file atomically moved to `.gguf` and recorded
@@ -153,9 +154,10 @@ file. Keep llama.cpp current and prefer well-known repositories.
 ### 4.6 Data handling
 
 - No analytics, crash reporting, telemetry, update checks, or fingerprinting.
-- No outbound request except: model downloads (Hugging Face), runtime downloads
-  (GitHub), the configured LLM backend (loopback by default), the optional
-  online LLM you configure, and law/geolocation research when enabled.
+- No outbound request except: model downloads (domestic mirror with Hugging
+  Face fallback), runtime downloads (GitHub), the configured LLM backend
+  (loopback by default), the optional online LLM you configure, and
+  law/geolocation research when enabled.
 - Chat history and code are not uploaded by CodeForge itself. They are written
   to `workspace/` and — by design, so the offline brain remembers — to
   `memory/memories.jsonl`.
@@ -310,7 +312,7 @@ icacls workspace /inheritance:r /grant:r "<user>:(OI)(CI)(F)"
 
 | Destination | When | Data |
 | --- | --- | --- |
-| `huggingface.co`, `cdn-lfs*.hf.co` | model download/resolve | anonymous HTTPS GET |
+| `hf-mirror.com` (default), `huggingface.co`, `cdn-lfs*.hf.co`, `cas-bridge.xethub.hf.co` | model download/resolve | anonymous HTTPS GET |
 | `api.github.com`, `github.com`, `objects.githubusercontent.com` | runtime install | anonymous HTTPS GET |
 | Configured `openai_url` (default `127.0.0.1:8080`) | chat/debug | prompts and code |
 | Configured `ollama_url` (default `127.0.0.1:11434`) | chat/debug | prompts and code |

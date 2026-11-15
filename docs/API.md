@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.2 · Java 17 HTTP server · C++ core bridge
+Version 1.0.3 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -90,7 +90,7 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | POST | `/api/selftest` | Toolchain and smoke-test suite |
 | GET | `/api/models` | Model registry, install state, runtime state, jobs |
 | POST | `/api/models/download` | Start a background model download |
-| GET | `/api/models/resolve` | Resolve upstream file URL and SHA-256 |
+| GET | `/api/models/resolve` | Resolve mirror URL, size and SHA-256 |
 | POST | `/api/runtime/install` | Download and extract llama.cpp runtime |
 | POST | `/api/runtime/start` | Start llama-server with an installed model |
 | POST | `/api/runtime/stop` | Stop the managed llama-server |
@@ -122,7 +122,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -171,7 +171,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -687,7 +687,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -762,9 +762,10 @@ curl -s http://127.0.0.1:8765/api/models | jq '.registry[] | {id, size_display, 
 ### POST `/api/models/download`
 
 Starts a background download job. The downloader resolves the upstream file
-from Hugging Face metadata, validates the expected size and SHA-256, resumes
-with HTTP `Range` after connection drops (up to 12 attempts), and only then
-moves the `.part` file into `models/downloads/<id>/`.
+through the configured Hugging Face-compatible mirror (`hf-mirror.com` by
+default, `huggingface.co` fallback), validates the expected size and SHA-256,
+resumes with HTTP `Range` after connection drops (up to 12 attempts), and only
+then moves the `.part` file into `models/downloads/<id>/`.
 
 Request:
 
@@ -796,7 +797,10 @@ Typical transfer is 2–20 GB — plan disk space accordingly.
 
 ### GET `/api/models/resolve?id=<id>`
 
-Resolves the live upstream metadata without downloading.
+Resolves the live upstream metadata without downloading. The default source is
+the domestic `hf-mirror.com` mirror; `huggingface.co` is tried automatically if
+the mirror fails or returns incomplete metadata. Override the order with
+`llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
 
 ```bash
 curl -s "http://127.0.0.1:8765/api/models/resolve?id=deepseek-r1-0528-qwen3-8b"
@@ -808,15 +812,17 @@ curl -s "http://127.0.0.1:8765/api/models/resolve?id=deepseek-r1-0528-qwen3-8b"
   "id": "deepseek-r1-0528-qwen3-8b",
   "repo": "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
   "file": "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
-  "url": "https://huggingface.co/.../resolve/main/...gguf",
+  "url": "https://hf-mirror.com/.../resolve/main/...gguf",
+  "source": "https://hf-mirror.com",
   "size": 5012345678,
   "sha256": "…",
   "installed": false
 }
 ```
 
-SHA-256 resolution may query the Hugging Face LFS pointer when the tree API
-does not expose it. If resolution fails: `{"ok": false, "error": "..."}`.
+The `source` field reports which mirror answered. SHA-256 resolution accepts
+both the current `lfs.sha256` metadata field and the legacy `lfs.oid` pointer.
+If resolution fails: `{"ok": false, "error": "..."}`.
 
 ---
 
@@ -1104,7 +1110,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.2", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.3", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1475,6 +1481,7 @@ allow-forms allow-modals allow-popups allow-pointer-lock`, `nosniff`,
   product's purpose, but it means any local process can do the same through
   the port.
 - The server never reads environment secrets or sends telemetry. Downloads are
-  anonymous HTTPS requests to Hugging Face and GitHub.
+  anonymous HTTPS requests to the configured model mirror (`hf-mirror.com` by
+  default, `huggingface.co` fallback) and GitHub.
 - All model files stay under `models/downloads/`; all generated code stays
   under `workspace/`; logs stay under `logs/`.

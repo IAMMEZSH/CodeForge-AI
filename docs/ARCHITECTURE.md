@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.2 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.0.3 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -288,19 +288,22 @@ POST /api/models/download {id}
   → ModelManager.startModelDownload
       create Job(status=queued), return immediately
       daemon thread:
-        resolving   → GET huggingface.co/api/models/<repo>/tree/main?recursive=1
-                      find the exact file, read size + LFS oid
+        resolving   → GET hf-mirror.com/api/models/<repo>?blobs=true
+                      (huggingface.co fallback) find exact file,
+                      read size + lfs.sha256
         downloading → HTTPS GET with Range resume
                       write <id>/<file>.part
                       update Job bytes/percent/speed every chunk
                       on IOException: retry up to 12 times, resume at current size
-        verifying   → SHA-256 compare against the upstream LFS oid
+        verifying   → SHA-256 compare against the upstream LFS hash
         installing  → atomic move .part → .gguf
                       update models/models.json
         complete
 ```
 
-Downloads are anonymous and follow redirects (Hugging Face redirects to a CDN).
+Downloads are anonymous and follow redirects (the mirror may hand off to a
+CDN). The default source is selected by `llm.model_mirror` /
+`CODEFORGE_MODEL_MIRROR`; `https://huggingface.co` is always the final fallback.
 The hash comparison happens after the full byte count is confirmed, so a
 truncated transfer can never be installed. `models/models.json` is the source of
 truth for installed models; the registry itself is compiled into the server.
@@ -539,9 +542,10 @@ assumes a **local trust boundary** and does not pretend to be a sandbox.
 - Compilation and execution run as the current user — the same privilege as a
   terminal. Process-tree kill is a resource control, not a security boundary.
 - No telemetry, no analytics, no auto-update pings. Outbound requests happen
-  only for: model downloads (Hugging Face), runtime downloads (GitHub releases),
-  the optional online LLM you configure, and law/geolocation research when
-  `compliance.enabled` and `online.enabled` are true.
+  only for: model downloads (domestic mirror with Hugging Face fallback),
+  runtime downloads (GitHub releases), the optional online LLM you configure,
+  and law/geolocation research when `compliance.enabled` and
+  `online.enabled` are true.
 - The online brain is opt-in: an empty `llm.online.api_key` keeps every prompt
   on the local model. When configured, chat text plus the injected memory and
   workspace context leave the machine for that provider — treat it exactly like
@@ -665,8 +669,8 @@ for the two reference implementations.
   `GET /api/status → runtime.platform`.
 - There is no GPU configuration UI. `llama-server` runs with CPU defaults; edit
   the command in `RuntimeManager` or run your own server for GPU builds.
-- Model downloads trust Hugging Face TLS and pinned file names; there is no
-  independent signature layer.
+- Model downloads trust the configured mirror/Hugging Face TLS and pinned file
+  names; there is no independent signature layer.
 - Memory retrieval is lexical (CJK bigrams and Latin tokens), not embedding
   search. It is fast, dependency-free and predictable, but a paraphrase with no
   shared token will miss. `memory/project-index.jsonl` can be deleted to reset

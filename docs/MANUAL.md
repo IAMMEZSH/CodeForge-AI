@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.2 · 2026-11-16**
+**Version 1.0.3 · 2026-11-16**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -213,8 +213,10 @@ size plus 512 MB. Keep at least 15 GB free for comfortable model rotation.
 
 - **Offline use** is fully supported once a runtime and at least one model are
   installed.
-- **First model download** resolves metadata from `huggingface.co` and streams
-  weights from Hugging Face CDN.
+- **First model download** resolves metadata through the domestic
+  `hf-mirror.com` mirror by default, with `huggingface.co` as an automatic
+  fallback, and streams the weights through the same source. Override the
+  order with `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
 - **Runtime install** resolves releases from `api.github.com` and downloads
   the archive from GitHub.
 - **JDK bootstrap** (only when no JDK 17+ is present) resolves Temurin assets
@@ -1006,8 +1008,11 @@ changes to **Installed** when the file is present and verified.
 
 ![Download and runtime flow](images/diagram-models.png)
 
-1. **Resolve.** The server queries the Hugging Face API for the exact file,
-   expected size and LFS SHA-256.
+1. **Resolve.** The server queries the configured Hugging Face-compatible
+   mirror (`hf-mirror.com` by default) for the exact file, expected size and
+   LFS SHA-256. If that source fails or omits the size/hash, it tries
+   `huggingface.co` next. Set `llm.model_mirror` to a comma-separated list to
+   choose your own order.
 2. **Disk check.** It requires the expected size plus 512 MB free.
 3. **Stream.** It writes to `<file>.gguf.part` with a 256 KB buffer, reporting
    progress and speed.
@@ -1265,6 +1270,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `max_tokens` | `2048` | 64–32768 | Response budget |
 | `context_size` | `16384` | 2048–524288 | Managed llama-server context window (`-c`), in tokens; also selectable in the runtime panel |
 | `parallel` | `1` | 1–8 | Concurrent llama-server slots; the total context is divided across them |
+| `model_mirror` | `https://hf-mirror.com` | — | Hugging Face-compatible metadata/file mirror for every offline model; comma-separated sources are tried in order and `https://huggingface.co` is appended as fallback |
 | `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core |
 
 ### 10.2 `debug` section
@@ -1332,6 +1338,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `CODEFORGE_LLM_MAX_TOKENS` | `llm.max_tokens` |
 | `CODEFORGE_CONTEXT_SIZE` | `llm.context_size` |
 | `CODEFORGE_PARALLEL` | `llm.parallel` |
+| `CODEFORGE_MODEL_MIRROR` | `llm.model_mirror` |
 | `CODEFORGE_REQUEST_TIMEOUT_MS` | `llm.request_timeout_ms` |
 | `CODEFORGE_LLAMA_SERVER` | `llm.llama_server` |
 | `CODEFORGE_DEBUG_ITERATIONS` | `debug.max_iterations` |
@@ -1454,11 +1461,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.2-source.zip`
-- `CodeForge-AI-1.0.2-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.2-docs.zip`
+- `CodeForge-AI-1.0.3-source.zip`
+- `CodeForge-AI-1.0.3-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.3-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.2.json`
+- `manifest-1.0.3.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -1639,8 +1646,10 @@ Never delete `models/installed.json` while a download is running.
 - **Same-user processes** can read `config.json`, logs, models and workspaces.
 - **Model licenses** are not enforced by the software; check them before
   commercial use.
-- **Supply chain.** Models and the llama.cpp runtime come from Hugging Face and
-  GitHub. Hashes are verified when the upstream provides them; provenance
+- **Supply chain.** Models resolve through the configured mirror
+  (`hf-mirror.com` by default, `huggingface.co` fallback), and the llama.cpp
+  runtime comes from GitHub. Model downloads require an upstream size and
+  SHA-256; the C17 helper verifies the hash before registration. Provenance
   beyond that is your responsibility.
 
 ### 15.3 Hardening checklist
@@ -1693,7 +1702,7 @@ If you suspect the API was exposed:
 | `SHA-256 mismatch. The file was removed` | Corrupt or intercepted download | Retry on a stable connection |
 | `Incomplete download (x/y bytes). Partial file kept for resume.` | Stream ended early | Start the same download again |
 | `This model is already downloading or verifying.` | Duplicate request | Wait for the active job |
-| Download stuck at 0% | Hugging Face unreachable | Test `curl -I https://huggingface.co` |
+| Download stuck at 0% | Mirror unreachable | Test `curl -I https://hf-mirror.com`; set `llm.model_mirror` if needed |
 | `Unknown model: <id>` | Typo or old registry | Use an id from `GET /api/models` |
 
 ### 16.3 Runtime and inference

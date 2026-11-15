@@ -50,6 +50,8 @@ public final class ModelManager {
             .map(ModelManager::runtimeAssetPattern).toList();
     private static final String RUNTIME_SERVER_NAME =
             IS_WINDOWS ? "llama-server.exe" : "llama-server";
+    private static final String DEFAULT_MODEL_MIRROR = "https://hf-mirror.com";
+    private static final String MODEL_SOURCE_FALLBACK = "https://huggingface.co";
 
     private static List<String> buildRuntimeTags() {
         if (IS_WINDOWS) {
@@ -406,6 +408,7 @@ public final class ModelManager {
                     "repo", Json.str(entry, "repo", ""),
                     "file", Json.str(entry, "file", ""),
                     "url", Json.str(meta, "url", ""),
+                    "source", Json.str(meta, "source", ""),
                     "size", Json.lon(meta, "size", 0L),
                     "sha256", Json.str(meta, "sha256", ""),
                     "installed", isModelInstalled(id));
@@ -722,9 +725,54 @@ public final class ModelManager {
     }
 
     private Map<String, Object> resolveHuggingFace(Map<String, Object> entry) throws Exception {
+        Exception last = null;
+        for (String base : modelBaseCandidates()) {
+            try {
+                Map<String, Object> meta = resolveHuggingFace(base, entry);
+                meta.put("source", base);
+                return meta;
+            } catch (Exception ex) {
+                last = ex;
+                System.err.println("[models] metadata from " + base + " failed: "
+                        + ex.getMessage());
+            }
+        }
+        throw last != null ? last : new IOException("No model metadata source is configured.");
+    }
+
+    private List<String> modelBaseCandidates() {
+        String configured = System.getenv("CODEFORGE_MODEL_MIRROR");
+        if (configured == null || configured.isBlank()) {
+            try {
+                Map<String, Object> doc = Json.asObject(Json.parse(Files.readString(
+                        root.resolve("config.json"), StandardCharsets.UTF_8)));
+                configured = Json.str(Json.asObject(doc.get("llm")), "model_mirror", "");
+            } catch (Exception ignored) {
+            }
+        }
+        List<String> bases = new ArrayList<>();
+        if (configured != null && !configured.isBlank()) {
+            for (String part : configured.split("[,\\s]+")) {
+                String base = part.trim().replaceAll("/+$", "");
+                if (!base.isEmpty() && !bases.contains(base)) {
+                    bases.add(base);
+                }
+            }
+        }
+        if (bases.isEmpty()) {
+            bases.add(DEFAULT_MODEL_MIRROR);
+        }
+        if (!bases.contains(MODEL_SOURCE_FALLBACK)) {
+            bases.add(MODEL_SOURCE_FALLBACK);
+        }
+        return bases;
+    }
+
+    private Map<String, Object> resolveHuggingFace(String base, Map<String, Object> entry)
+            throws Exception {
         String repo = Json.str(entry, "repo", "");
         String file = Json.str(entry, "file", "");
-        String api = "https://huggingface.co/api/models/" + repo + "?blobs=true";
+        String api = base + "/api/models/" + repo + "?blobs=true";
         Map<String, Object> doc = Json.asObject(Json.parse(httpGetText(api)));
         List<Object> siblings = Json.asList(doc.get("siblings"));
         long size = 0L;
@@ -741,14 +789,19 @@ public final class ModelManager {
             Map<String, Object> lfs = Json.asObject(lfsObject);
             if (!lfs.isEmpty()) {
                 size = Json.lon(lfs, "size", size);
-                sha = Json.str(lfs, "oid", sha);
+                sha = Json.str(lfs, "sha256", Json.str(lfs, "oid", sha));
             }
             break;
         }
         if (!found) {
-            throw new IOException("File not found in the Hugging Face repository: " + file);
+            throw new IOException("File not found in the Hugging Face repository at " + base
+                    + ": " + file);
         }
-        String url = "https://huggingface.co/" + repo + "/resolve/main/" + file + "?download=true";
+        if (size <= 0L || sha.isBlank()) {
+            throw new IOException("Metadata from " + base
+                    + " is missing size or SHA-256 for " + file);
+        }
+        String url = base + "/" + repo + "/resolve/main/" + file + "?download=true";
         return Json.map("size", size, "sha256", sha, "url", url);
     }
 

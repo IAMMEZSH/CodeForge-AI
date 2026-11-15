@@ -1,4 +1,4 @@
-CodeForge AI 1.0.2 — Linux quick start
+CodeForge AI 1.0.3 — Linux quick start
 ======================================
 
 This package is a source bundle. It builds a native C17 helper, the C++17
@@ -31,7 +31,7 @@ Alpine:
 2. Build and test
 -----------------
 
-    cd CodeForge-AI-1.0.2
+    cd CodeForge-AI-1.0.3
     python3 aux-python/bootstrap.py --all
 
 This checks or provisions JDK 17, compiles native/bin/cforge_native and

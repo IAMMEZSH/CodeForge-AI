@@ -2254,7 +2254,7 @@ $('#btn-law-refresh').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.0.2 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.0.3 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- boot ---------------- */

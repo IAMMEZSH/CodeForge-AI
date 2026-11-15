@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {

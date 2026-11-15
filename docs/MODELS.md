@@ -23,7 +23,7 @@ All models are served locally by `llama.cpp`'s `llama-server` on `127.0.0.1:8080
 | 11 | Gemma 3 27B IT | Google | Global | Generalist | 27B | 128K | ≈ 16.6 GB | 22 GB | Gemma License |
 | 12 | Codestral 22B | Mistral AI | Global | Code completion | 22B | 32K | ≈ 13.3 GB | 18 GB | Mistral Non-Production |
 
-Sizes are Q4-class quantizations resolved from Hugging Face at download time and rounded; the exact byte count is shown in the console before and during download. RAM figures are practical guidance for CPU inference (model + KV cache + runtime overhead), not hard limits.
+Sizes are Q4-class quantizations resolved through the `hf-mirror.com` metadata mirror at download time and rounded; the exact byte count is shown in the console before and during download. RAM figures are practical guidance for CPU inference (model + KV cache + runtime overhead), not hard limits.
 
 ---
 
@@ -128,12 +128,14 @@ Sizes are Q4-class quantizations resolved from Hugging Face at download time and
 ## How downloads work
 
 1. You select a model and press **Download**.
-2. The Java server resolves the exact file and SHA-256 from the Hugging Face API.
+2. The Java server resolves the exact file and SHA-256 through the domestic `hf-mirror.com` source by default. If that source fails or returns incomplete metadata, it retries `huggingface.co`.
 3. Disk space is checked (file size + 512 MB headroom).
 4. The file is streamed to `models/downloads/<model-id>/<file>.part` with HTTP Range resume.
 5. If the connection drops, up to **12 automatic attempts** resume from the bytes already on disk.
-6. When the size matches, the C helper computes SHA-256 and compares it with the Hugging Face LFS hash.
+6. When the size matches, the C helper computes SHA-256 and compares it with the upstream LFS hash.
 7. Only a verified file is moved to its final name and registered in `models/installed.json`.
+
+The source order is configurable with `llm.model_mirror` in `config.json` or the `CODEFORGE_MODEL_MIRROR` environment variable. A comma-separated list is tried in order, and `https://huggingface.co` is appended automatically as the final fallback. The upstream repositories, filenames and hashes do not change.
 
 You can close the browser — the download runs in a daemon thread inside the Java server. Progress is visible in **Models → Download queue** and via `GET /api/downloads`.
 

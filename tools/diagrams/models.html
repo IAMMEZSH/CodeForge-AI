@@ -74,12 +74,13 @@
     <div>
       <div class="eyebrow"><span class="dot"></span> Offline model vault <span class="line"></span></div>
       <h1 class="title"><span class="grad">Twelve models. One local engine.</span></h1>
-      <p class="subtitle">A balanced China / Global catalog of GGUF coding and reasoning models, from a 2.5 GB laptop model to a 30B agentic flagship. Download, verify, serve.</p>
+      <p class="subtitle">A balanced China / Global catalog of GGUF coding and reasoning models, from a 2.5 GB laptop model to a 30B agentic flagship. Domestic-mirror download, SHA-256 verify, serve locally.</p>
     </div>
     <div class="head-meta">
       <div><b>FORMAT</b> GGUF · Q4_K_M / MXFP4</div>
       <div><b>RUNTIME</b> llama.cpp · CPU</div>
       <div><b>CONTEXT</b> 16384 default window</div>
+      <div><b>SOURCE</b> hf-mirror.com · HF fallback</div>
     </div>
   </div>
 
@@ -117,7 +118,7 @@
     <div class="panel step">
       <div class="n">STEP 01</div>
       <h4>Resolve</h4>
-      <p>Query the Hugging Face API for exact size and LFS hash. <code>GET /api/models/resolve</code></p>
+      <p>Query <code>hf-mirror.com</code> for exact size and LFS SHA-256; fall back to Hugging Face if incomplete. <code>GET /api/models/resolve</code></p>
     </div>
     <div class="panel step">
       <div class="n">STEP 02</div>
@@ -159,9 +160,9 @@
   <div class="footer-strip">
     <span><b>12</b> curated offline models · China + Global</span>
     <span class="sep"></span>
-    <span>Download → verify → serve locally</span>
+    <span>Domestic mirror → verify → serve locally</span>
     <span class="sep"></span>
-    <span>CodeForge AI v1.0.2</span>
+    <span>CodeForge AI v1.0.3</span>
   </div>
 </div>
 </body>
