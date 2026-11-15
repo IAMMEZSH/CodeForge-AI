@@ -33,7 +33,7 @@ JDK_ROOT = ROOT / "native" / "jdk"
 BUILD = ROOT / "server-java" / "build"
 CLASSES = BUILD / "classes"
 JAR = BUILD / "CodeForgeServer.jar"
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 C_SOURCES = [
     ROOT / "native-c" / "native_tool.c",

@@ -2,7 +2,7 @@
 
 Every command you need, for every supported platform.
 
-Version 1.0.1
+Version 1.0.2
 
 ---
 
@@ -306,7 +306,7 @@ curl.exe -s http://127.0.0.1:8765/api/status |
 
 A native ARM64 build of the C++ core requires an ARM64 C++17 toolchain and an
 ARM64 JDK 17; the runtime installer then prefers `win-cpu-arm64` and falls back
-to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.1;
+to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.2;
 the emulated x64 bundle is the supported route.
 
 Native build with MSYS2 CLANGARM64:

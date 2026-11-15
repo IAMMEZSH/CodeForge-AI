@@ -799,6 +799,18 @@ label.small {
 .runtime-stat .k { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.16em; color: var(--dim); text-transform: uppercase; }
 .runtime-stat .v { font-size: 13px; margin-top: 5px; color: var(--text); word-break: break-all; }
 .runtime-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 14px; }
+.rt-field {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--dim);
+}
+.rt-field select {
+  height: 34px; padding: 0 9px;
+  background: rgba(4, 9, 17, 0.85); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--text); font-family: var(--mono);
+  font-size: 11px; outline: none;
+}
+.rt-field select:focus { border-color: rgba(56, 242, 255, 0.45); box-shadow: 0 0 0 3px rgba(56, 242, 255, 0.07); }
 .log-box {
   margin-top: 12px; max-height: 180px; overflow: auto;
   border: 1px solid var(--line); border-radius: 9px;

@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.1 · 2026-11-16**
+**Version 1.0.2 · 2026-11-16**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -990,9 +990,10 @@ balanced for coding, reasoning and agentic work.
 | 12 | Codestral 22B | Global · Mistral AI | 22B | 32K | Mistral Non-Production | 13.3 GB | 18 GB |
 
 The GGUF context window is much larger than the managed runtime's default
-16,384-token window. The default keeps CPU memory bounded for 8 GB machines;
-raise `llm.context_size` (up to 262,144) and keep `llm.parallel` at 1 when you
-have RAM headroom.
+16,384-token window. The default keeps CPU memory bounded for 8 GB machines.
+Choose the window and slot count in **Models → Inference runtime** before
+starting, or set `llm.context_size` (2,048–524,288) and `llm.parallel` (1–8).
+The selected model's architecture limit always wins.
 
 ### 7.2 Filters and cards
 
@@ -1061,6 +1062,10 @@ runtime/llama.cpp/llama-server[.exe]   (or llm.llama_server override)
 
 - The model defaults to the **recommended installed model**, then the first
   installed model. To choose a specific model, call the API with `model_id`.
+- Choose **Context** (2K–512K total) and **Slots** (1–8) in the runtime panel
+  before pressing Start. The browser remembers the selection; the API accepts
+  the same values as `context_size` and `parallel`. llama.cpp divides the total
+  window across the slots, so the per-slot window is `context_size / parallel`.
 - Readiness is probed at `GET http://127.0.0.1:8080/health` every 750 ms for up
   to 180 seconds.
 - Output is appended to `logs/llama-server.log`; the UI can show the tail.
@@ -1085,7 +1090,7 @@ chat/debug become available.
 | Broad language coverage | Yi-Coder 9B, CodeGeeX4 9B |
 | Strong agentic repairs | GPT-OSS 20B, Devstral Small 24B |
 | Best overall on a workstation | Qwen3-Coder 30B-A3B |
-| Huge context | Seed-OSS 36B (512K architecture; raise `llm.context_size` up to 262,144) |
+| Huge context | Seed-OSS 36B (512K architecture; select up to 524,288 in the runtime panel, with very large RAM) |
 | Fill-in-the-middle completion | Codestral 22B (non-production license) |
 
 Only one model is served at a time. Stop inference, start another model, and
@@ -1258,8 +1263,8 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `llama_server` | empty | — | Path to a source-built or distro `llama-server`; takes priority over the managed runtime |
 | `temperature` | `0.2` | 0.0–2.0 | Sampling temperature |
 | `max_tokens` | `2048` | 64–32768 | Response budget |
-| `context_size` | `16384` | 2048–262144 | Managed llama-server context window (`-c`), in tokens |
-| `parallel` | `1` | 1–8 | Concurrent llama-server slots |
+| `context_size` | `16384` | 2048–524288 | Managed llama-server context window (`-c`), in tokens; also selectable in the runtime panel |
+| `parallel` | `1` | 1–8 | Concurrent llama-server slots; the total context is divided across them |
 | `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core |
 
 ### 10.2 `debug` section
@@ -1449,11 +1454,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.1-source.zip`
-- `CodeForge-AI-1.0.1-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.1-docs.zip`
+- `CodeForge-AI-1.0.2-source.zip`
+- `CodeForge-AI-1.0.2-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.2-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.1.json`
+- `manifest-1.0.2.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -1588,8 +1593,11 @@ Never delete `models/installed.json` while a download is running.
   fewer threads than logical cores often improves throughput; this requires
   starting llama-server manually and pointing `llm.openai_url` at it.
 - **Context.** The managed runtime defaults to 16,384 tokens with one slot
-  (`llm.context_size`, `llm.parallel`). The 4B Q4 model needs about 40 GB of
-  RAM at 262,144 tokens, and CPU prefill is slow; raise it only with headroom.
+  (`llm.context_size`, `llm.parallel`). You can choose 2K–512K in the runtime
+  panel. The 4B Q4 model needs about 40 GB of RAM at 262,144 tokens and about
+  76 GB at 524,288, where it also exceeds its native 256K limit; 512K is meant
+  for models such as Seed-OSS 36B on a very large workstation. CPU prefill is
+  slow, so raise it only with headroom.
 - **Model choice.** MoE models (Qwen3-Coder 30B-A3B, GPT-OSS 20B,
   DeepSeek-Coder V2 Lite) activate a fraction of parameters per token and are
   markedly faster on CPU than dense models of similar quality.

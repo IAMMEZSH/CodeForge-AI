@@ -32,6 +32,8 @@ public final class RuntimeManager {
     private Process process;
     private String activeModelId = "";
     private String activeModelPath = "";
+    private int activeContextSize;
+    private int activeParallelSlots;
     private Instant startedAt;
     private Path logFile;
     private String lastError = "";
@@ -58,6 +60,15 @@ public final class RuntimeManager {
                 "base_url", "http://127.0.0.1:" + INFERENCE_PORT,
                 "model_id", activeModelId,
                 "model_path", activeModelPath,
+                "context_size", activeContextSize > 0 ? activeContextSize : settings.contextSize(),
+                "parallel", activeParallelSlots > 0 ? activeParallelSlots : settings.parallelSlots(),
+                "active_context_size", activeContextSize,
+                "active_parallel", activeParallelSlots,
+                "configured_context_size", settings.contextSize(),
+                "configured_parallel", settings.parallelSlots(),
+                "context_min", AppSettings.MIN_CONTEXT_SIZE,
+                "context_max", AppSettings.MAX_CONTEXT_SIZE,
+                "parallel_max", AppSettings.MAX_PARALLEL_SLOTS,
                 "started_at", startedAt == null ? "" : startedAt.toString(),
                 "log", logFile == null ? "" : root.relativize(logFile).toString(),
                 "error", lastError);
@@ -97,11 +108,16 @@ public final class RuntimeManager {
         return Json.map("processing", false);
     }
 
-    public synchronized Map<String, Object> start(String modelId) {
+    public synchronized Map<String, Object> start(String modelId, int requestedContextSize,
+                                                  int requestedParallelSlots) {
         if (process != null && process.isAlive()) {
             return Json.map("ok", false, "error", "Inference service is already running.",
                             "status", status());
         }
+        int contextSize = Math.max(AppSettings.MIN_CONTEXT_SIZE,
+                Math.min(AppSettings.MAX_CONTEXT_SIZE, requestedContextSize));
+        int parallelSlots = Math.max(1,
+                Math.min(AppSettings.MAX_PARALLEL_SLOTS, requestedParallelSlots));
         if (probeHealth()) {
             return Json.map("ok", false,
                     "error", "Port " + INFERENCE_PORT + " is already used by an external inference service.",
@@ -139,9 +155,9 @@ public final class RuntimeManager {
             command.add("--port");
             command.add(Integer.toString(INFERENCE_PORT));
             command.add("-c");
-            command.add(Integer.toString(settings.contextSize()));
+            command.add(Integer.toString(contextSize));
             command.add("--parallel");
-            command.add(Integer.toString(settings.parallelSlots()));
+            command.add(Integer.toString(parallelSlots));
             command.add("-t");
             command.add(Integer.toString(Math.max(2, Runtime.getRuntime().availableProcessors() / 2)));
             command.add("--no-webui");
@@ -154,6 +170,8 @@ public final class RuntimeManager {
             process = builder.start();
             activeModelId = id;
             activeModelPath = model.toString();
+            activeContextSize = contextSize;
+            activeParallelSlots = parallelSlots;
             startedAt = Instant.now();
             lastError = "";
 
@@ -202,6 +220,8 @@ public final class RuntimeManager {
         process = null;
         activeModelId = "";
         activeModelPath = "";
+        activeContextSize = 0;
+        activeParallelSlots = 0;
         startedAt = null;
         if (target == null) {
             return;

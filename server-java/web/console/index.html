@@ -45,7 +45,7 @@
     <header class="topbar">
       <div class="title-block">
         <div class="eyebrow">Local-first intelligent dev workbench</div>
-        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0</span></div>
+        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0.2</span></div>
       </div>
       <div class="top-chips">
         <span class="chip off" id="chip-core"><i class="dot"></i>Core</span>
@@ -243,11 +243,37 @@
             </div>
             <div class="runtime-actions">
               <button class="btn green" id="btn-rt-start">Start inference</button>
+              <label class="rt-field" title="Total context window in tokens, divided by llama.cpp across the selected slots. The model must support it; larger windows need more RAM.">Context
+                <select id="rt-context">
+                  <option value="2048">2K</option>
+                  <option value="4096">4K</option>
+                  <option value="8192">8K</option>
+                  <option value="16384" selected>16K</option>
+                  <option value="32768">32K</option>
+                  <option value="65536">64K</option>
+                  <option value="131072">128K</option>
+                  <option value="262144">256K</option>
+                  <option value="524288">512K</option>
+                </select>
+              </label>
+              <label class="rt-field" title="Concurrent llama-server slots. The total context window is divided across them.">Slots
+                <select id="rt-parallel">
+                  <option value="1" selected>1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                </select>
+              </label>
               <button class="btn red" id="btn-rt-stop">Stop</button>
               <button class="btn ghost" id="btn-rt-logs">View log</button>
               <span style="flex:1"></span>
               <span class="model-state" id="rt-installed">runtime not installed</span>
             </div>
+            <div class="dim" style="font-size:11.5px;margin-top:8px">Default 16K total. 512K is available for models whose architecture supports it and needs a large-RAM workstation; the model's native limit always wins.</div>
             <pre class="log-box" id="rt-log" style="display:none"></pre>
           </div>
         </div>

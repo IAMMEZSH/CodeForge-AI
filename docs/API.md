@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.1 · Java 17 HTTP server · C++ core bridge
+Version 1.0.2 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -122,7 +122,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -171,7 +171,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -687,7 +687,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -858,10 +858,13 @@ Request:
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `model_id` | string | no | Installed model id; when empty, the first installed model is used |
+| `context_size` | integer | no | Context window in tokens; default `llm.context_size`, clamped to 2,048–524,288 |
+| `parallel` | integer | no | Concurrent slots; default `llm.parallel`, clamped to 1–8. The total context is divided across slots |
 
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/runtime/start \
-  -H "Content-Type: application/json" -d '{"model_id":"qwen3-4b-instruct-2507"}'
+  -H "Content-Type: application/json" \
+  -d '{"model_id":"qwen3-4b-instruct-2507","context_size":32768,"parallel":1}'
 ```
 
 ```json
@@ -884,10 +887,12 @@ Failure cases (all `200` with `ok:false`):
 | Model missing on disk | `Model file does not exist: <id>` |
 | Startup timeout (180 s) | `... did not become ready within 180 seconds...` plus `log` and `tail` |
 
-The server is started with `--host 127.0.0.1 --port 8080 -c <llm.context_size>
---parallel <llm.parallel> -t <half the cores> --no-webui`. Defaults are 16,384
-tokens and one slot; the context is clamped to 2,048–262,144. Logs are appended
-to `logs/llama-server.log`.
+The server is started with `--host 127.0.0.1 --port 8080 -c <context_size>
+--parallel <parallel> -t <half the cores> --no-webui`. Defaults are 16,384
+tokens and one slot; both values are clamped to 2,048–524,288 and 1–8.
+llama.cpp divides the total context across the slots. The runtime panel sends
+the same fields; the model's native context remains the effective ceiling.
+Logs are appended to `logs/llama-server.log`.
 
 ### POST `/api/runtime/stop`
 
@@ -1099,7 +1104,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.1", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.2", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`

@@ -212,7 +212,7 @@ Rules of thumb:
 
 - **MoE models** (Qwen3-Coder 30B-A3B, DeepSeek-Coder V2 Lite, GPT-OSS 20B) activate only a fraction of parameters per token, so they decode faster on CPU than their parameter count suggests — but they still need the full weights in RAM.
 - **Q4_K_M** is the default quantization: a good quality/size trade-off. MXFP4 is used for GPT-OSS because that is the published format.
-- **Context** affects KV-cache memory. The runtime defaults to `-c 16384 --parallel 1`; raise `llm.context_size` up to 262144 only if you have RAM headroom.
+- **Context** affects KV-cache memory. The runtime defaults to `-c 16384 --parallel 1`; choose 2K–512K in the runtime panel or set `llm.context_size` only if you have RAM headroom and the model supports it. Qwen3 4B tops out at 256K; Seed-OSS 36B supports 512K.
 - First tokens are slower while the model is paged in. Let the model warm up with a short prompt.
 
 ---

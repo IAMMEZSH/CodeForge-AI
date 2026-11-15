@@ -3,6 +3,31 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## 1.0.2 — 2026-11-16
+
+### Added
+
+- **User-selectable context window and slots.** Models → Inference runtime now
+  has Context (2K–512K) and Slots (1–8) selectors. The choice is remembered in
+  the browser and passed to `POST /api/runtime/start` as `context_size` and
+  `parallel`; it applies to the next managed llama-server start.
+- The runtime status reports configured and active context/slot values plus
+  the supported limits.
+
+### Changed
+
+- The software ceiling is raised from 262,144 to 524,288 tokens. The published
+  default remains 16,384 tokens and one slot so 8 GB machines still work.
+- Version, native binaries, server jar, web console, mobile projects,
+  documentation and diagrams updated to 1.0.2.
+
+### Notes
+
+- 512K is effective only when the selected model has a native 512K window
+  (Seed-OSS 36B) and the machine has enough RAM; Qwen3 4B stops at 256K. The
+  runtime panel keeps the choice but the model architecture remains the
+  effective ceiling.
+
 ## 1.0.1 — 2026-11-16
 
 ### Fixed

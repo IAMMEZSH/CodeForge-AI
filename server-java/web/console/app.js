@@ -3,6 +3,24 @@
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+function storedChoice(key, min, max) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return 0;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= min && value <= max ? value : 0;
+}
+function setRuntimeSelect(selector, value) {
+  const select = $(selector);
+  if (!select) return;
+  const raw = String(value);
+  if (!Array.from(select.options).some(option => option.value === raw)) {
+    const option = document.createElement('option');
+    option.value = raw;
+    option.textContent = Number(value).toLocaleString();
+    select.appendChild(option);
+  }
+  select.value = raw;
+}
 const state = {
   status: null,
   models: null,
@@ -21,6 +39,8 @@ const state = {
   progressTimer: null,
   thinkingNode: null,
   runResults: {},
+  rtContext: storedChoice('cf-rt-context', 2048, 524288),
+  rtParallel: storedChoice('cf-rt-parallel', 1, 8),
   autoRun: localStorage.getItem('cf-auto-run') === '1',
   lastSavePath: localStorage.getItem('cf-save-path') || '',
   saveFiles: null,
@@ -1913,6 +1933,16 @@ function renderModels() {
   $('#btn-runtime-install').disabled = false;
   $('#btn-rt-start').disabled = !installedRuntime || rt.running;
   $('#btn-rt-stop').disabled = !rt.running;
+  if (rt.running && Number(rt.active_context_size) > 0) {
+    setRuntimeSelect('#rt-context', rt.active_context_size);
+    setRuntimeSelect('#rt-parallel', rt.active_parallel || 1);
+  } else if (state.rtContext) {
+    setRuntimeSelect('#rt-context', state.rtContext);
+    setRuntimeSelect('#rt-parallel', state.rtParallel || 1);
+  } else {
+    setRuntimeSelect('#rt-context', rt.configured_context_size || 16384);
+    setRuntimeSelect('#rt-parallel', rt.configured_parallel || 1);
+  }
 
   const queue = $('#dl-jobs');
   if (!jobs.length) {
@@ -1977,12 +2007,36 @@ $('#btn-runtime-install').addEventListener('click', async () => {
     button.disabled = false;
   }
 });
+$('#rt-context').addEventListener('change', () => {
+  const value = Number($('#rt-context').value);
+  if (Number.isInteger(value) && value >= 2048 && value <= 524288) {
+    state.rtContext = value;
+    localStorage.setItem('cf-rt-context', String(value));
+  }
+});
+$('#rt-parallel').addEventListener('change', () => {
+  const value = Number($('#rt-parallel').value);
+  if (Number.isInteger(value) && value >= 1 && value <= 8) {
+    state.rtParallel = value;
+    localStorage.setItem('cf-rt-parallel', String(value));
+  }
+});
 $('#btn-rt-start').addEventListener('click', async () => {
   const button = $('#btn-rt-start');
+  const context = Math.max(2048, Math.min(524288, Number($('#rt-context').value) || 16384));
+  const parallel = Math.max(1, Math.min(8, Number($('#rt-parallel').value) || 1));
+  state.rtContext = context;
+  state.rtParallel = parallel;
+  localStorage.setItem('cf-rt-context', String(context));
+  localStorage.setItem('cf-rt-parallel', String(parallel));
   button.disabled = true;
-  toast('Starting inference service — loading model into memory…');
+  toast('Starting inference service with a ' + context.toLocaleString() + '-token window — loading model into memory…');
   try {
-    const result = await api('/api/runtime/start', { method: 'POST', body: {}, timeout: 240000 });
+    const result = await api('/api/runtime/start', {
+      method: 'POST',
+      body: { context_size: context, parallel },
+      timeout: 240000
+    });
     if (!result.ok) throw new Error(result.error || 'Start failed');
     toast('Inference service is ready', 'ok');
     await loadModels();
@@ -2200,7 +2254,7 @@ $('#btn-law-refresh').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.0 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.0.2 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- boot ---------------- */

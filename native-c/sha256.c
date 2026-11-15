@@ -237,5 +237,5 @@ int cf_sha256_file(const char *utf8_path, char out_hex[65]) {
 }
 
 const char *cf_sha256_version(void) {
-    return "1.0.1";
+    return "1.0.2";
 }

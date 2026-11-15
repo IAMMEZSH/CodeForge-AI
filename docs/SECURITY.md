@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.0.1 · Last reviewed 2026-11-16
+Version 1.0.2 · Last reviewed 2026-11-16
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:

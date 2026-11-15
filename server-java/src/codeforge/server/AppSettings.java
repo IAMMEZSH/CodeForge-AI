@@ -11,6 +11,10 @@ import java.util.Map;
  * Reloads automatically when config.json changes on disk.
  */
 public final class AppSettings {
+    public static final int MIN_CONTEXT_SIZE = 2048;
+    public static final int MAX_CONTEXT_SIZE = 524288;
+    public static final int MAX_PARALLEL_SLOTS = 8;
+
     private final Path root;
     private final Path configFile;
     private long lastModified = -1;
@@ -164,8 +168,8 @@ public final class AppSettings {
         onlineTimeoutMs = Math.max(2000, Math.min(60000, onlineTimeoutMs));
         maxResults = Math.max(1, Math.min(6, maxResults));
         refreshHours = Math.max(1, Math.min(24 * 30, refreshHours));
-        contextSize = Math.max(2048, Math.min(262144, contextSize));
-        parallelSlots = Math.max(1, Math.min(8, parallelSlots));
+        contextSize = Math.max(MIN_CONTEXT_SIZE, Math.min(MAX_CONTEXT_SIZE, contextSize));
+        parallelSlots = Math.max(1, Math.min(MAX_PARALLEL_SLOTS, parallelSlots));
         researchMode = researchMode.toLowerCase(Locale.ROOT);
         if (!researchMode.equals("off") && !researchMode.equals("auto")
                 && !researchMode.equals("always")) {
