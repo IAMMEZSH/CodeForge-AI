@@ -3,6 +3,91 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## 1.0.4 — 2026-11-16
+
+### Added
+
+- **Selectable CPU or CUDA llama.cpp runtime.** The Models panel now carries a
+  Backend selector with **Auto**, **CPU** and **CUDA**. Auto uses the CUDA build
+  when `runtime/llama.cpp-cuda` contains a valid `llama-server`; otherwise it
+  stays on the managed CPU build. Choosing CUDA starts the server with
+  `-ngl 99`, while CPU remains available for machines without an NVIDIA GPU or
+  when the GPU build cannot load. The choice is persisted in
+  `runtime/selection.json` and exposed through `/api/runtime/select`,
+  `runtime_variants` and the `backend` / `backend_selected` status fields.
+  Measured on an RTX 4070 12 GB: ~83.6 tok/s with CUDA versus ~4.5 tok/s on
+  CPU for Qwen3 4B; a direct `add(a,b)` completion returned code-only in 0.8 s.
+- **Action-first short prompts.** Reasoning is capped
+  (`--reasoning-budget 256`, template `enable_thinking:false`) so simple
+  calculator, command and code requests return executable code immediately
+  instead of producing a long deliberation. A capped-reasoning calculator
+  request returned code in 4.6 s.
+- **Local command agent on every supported platform.** Chat can emit
+  `<codeforge_shell>` blocks that the host executes through PowerShell, cmd,
+  bash, sh or zsh, with an optional working directory and timeout. The new
+  `/api/agent` settings and Command Agent console panel expose tool and
+  application discovery, up to 256 tool steps, command/install timeouts,
+  automatic tool downloads, online learning and the publishing guard. The
+  agent prompt carries installed tools, installed applications and a
+  per-platform software control reference, so it can operate office suites,
+  browsers, media tools, archives, cloud CLIs and databases as well as
+  compilers.
+- **Automatic missing-tool provisioning.** When a command is absent, the host
+  resolves a portable toolchain first and otherwise uses the native package
+  manager (winget on Windows; apt, dnf, yum, pacman, zypper, apk or brew on
+  Unix), then pip or npm when mapped; PATH is refreshed, and the command is
+  retried once. On this Windows host the
+  mapping covers 70 unique tools, including compilers, database clients,
+  GitHub/AWS/Azure/Google Cloud CLIs, Kubernetes, media, OCR, document and
+  archive utilities. Provisionable names are deduplicated in the API and UI.
+  On Windows, yt-dlp prefers pip and falls back to winget with
+  `--skip-dependencies`, avoiding its optional ~190 MB FFmpeg build; FFmpeg
+  remains a separate tool.
+- **Autonomous web tools for the agent.** `<codeforge_search>`,
+  `<codeforge_fetch>` and `<codeforge_learn>` let the model search every
+  configured source, read a page as text, or research unfamiliar software and
+  errors before acting. A genuinely missing simple command also triggers one
+  automatic web-research pass whose ranked sources are fed back into the loop.
+- **Publishing with an explicit guard.** Local commits, builds, packages and
+  exports stay available. `git push`, release/PR/issue creation, package
+  registry uploads, container pushes, remote copies, cloud deploys and outbound
+  write HTTP methods are blocked until `agent.allow_publish` is enabled or a
+  direct API run sets `allow_publish=true` for that action. Wrapped commands
+  (`cmd /c`, PowerShell, bash -c) are normalized before matching, and blocked
+  calls report `blocked`, `permission_required` and `publish_guard`.
+- **Long-loop context compaction.** Before each model call the agent keeps the
+  leading system prompt and the newest tool results within the feedback
+  budget, inserts a compaction marker when older output is dropped, and returns
+  accumulated `tool_calls` even when the model call fails. A 16-command loop
+  now completes without the former "No usable AI backend" failure.
+- **Reply limit corrected to 393,216 tokens.** This is the largest value
+  accepted by the active DeepSeek endpoint; the shared setting, console input
+  and documentation had advertised 524,288, which returned HTTP 400. The
+  configurable context window remains up to 524,288 tokens.
+
+### Changed
+
+- **Parallel multi-source web research.** Google, Baidu, Baidu Zhidao,
+  DuckDuckGo, Bing, 360 Search and Wikipedia are queried at the same time.
+  Unreachable, blocked or captcha-walled sources are skipped instead of
+  blocking the request, and are retried after a ten-minute cooldown.
+  Results are deduplicated by URL, filtered for query overlap, and ranked by
+  relevance, source trust, cross-source agreement and executable snippets.
+  The strongest candidate is marked as `BEST CANDIDATE` in the prompt and in
+  the research step, so the local model compares the available answers
+  instead of trusting a single engine.
+- **Streamlined request handling.** Chat, debug and run now go directly from
+  the selected brain to the executor. The auxiliary review service, its
+  configuration keys, status fields and console panel are gone, and the core
+  system prompts were cleaned accordingly.
+- **Release artifacts are built from a sanitized tree.** The packager blanks
+  both API key fields in the shipped `config.json` and excludes `.prebuild`,
+  `.prebuild.exe` and `.pre-stream-bak` leftovers, so no local secret or build
+  scratch file can enter an archive.
+- Documentation, diagrams and console copy were refreshed to match: the
+  manual, API reference, architecture notes, model guide and rendered diagrams
+  now describe CPU/CUDA selection instead of CPU-only inference.
+
 ## 1.0.3 — 2026-11-16
 
 ### Changed
@@ -80,9 +165,9 @@ C17, C++17, Java 17 and Python 3.
   empty box turns it into **STOP**. The server exposes
   `GET /api/chat/progress` and `POST /api/chat/cancel`, kills the core process
   on cancellation, and skips memory writes for the aborted turn. During
-  generation the bubble shows a stage-by-stage trace (compliance screen,
-  memory recall, workspace scan, live research, context assembly, generation,
-  output screen), a live token counter and decoding rate read from the local
+  generation the bubble shows a stage-by-stage trace (memory recall,
+  workspace scan, live research, context assembly, generation, response
+  rendering), a live token counter and decoding rate read from the local
   runtime, an adaptive remaining-time estimate and a progress bar.
 - **Dual-brain routing.** A DeepSeek-compatible online brain is used when a
   key is configured and the network is reachable; the C++ core probes again and
@@ -96,13 +181,6 @@ C17, C++17, Java 17 and Python 3.
   `memory/project-index.jsonl` and injected into chat/debug prompts with real
   paths and excerpts. Secrets, configuration, builds, models and memory are
   excluded.
-- **Current-law compliance layer.** 13 non-disableable baseline prohibitions,
-  14 jurisdiction packs with official legal portals, network geolocation,
-  stale-brief refresh, bilingual refusals, hashed audit log and a
-  “guardrail, not legal advice” prompt notice. Screening covers chat, debug and
-  one-shot run; a dedicated code-artifact rule closes the “no verb” bypass
-  while an explicit defensive/analysis context still allows review work.
-  Output screening is narrower than input screening to avoid false positives.
 - **Four-language architecture.** A C++17 main core owns orchestration,
   compilation, execution, diagnostics, LLM calls and the agentic debug loop.
   Java 17 serves the REST API, downloads and llama.cpp lifecycle. A C17 helper
@@ -186,10 +264,8 @@ C17, C++17, Java 17 and Python 3.
 - Archive extraction rejects path traversal (`..`) and absolute paths.
 - No telemetry, no accounts, no analytics. Outbound traffic is limited to
   actions the user enables: Hugging Face model downloads, GitHub release
-  metadata/runtime downloads, the JDK bootstrap, web research and current-law
-  refreshes while online, and the optional online brain when a key is set.
-- Compliance screens both the request and the model output; every decision is
-  appended to a hashed `memory/compliance.log`.
+  metadata/runtime downloads, the JDK bootstrap, web research, and the
+  optional online brain when a key is set.
 
 ### Verification record
 
@@ -212,10 +288,7 @@ Q4_K_M served by llama.cpp:
 | Memory recall offline | Online answer stored as a lesson, then recalled with 3 memory hits while `CODEFORGE_ONLINE=0` |
 | Dual-brain fallback | Requested `online` with an unreachable URL → `route=local`, `route_error` naming the failed endpoint |
 | Dual-brain online path | Simulated OpenAI-compatible endpoint → `route=online`, distilled `lesson` memory written |
-| Compliance block | Prohibited request returned `blocked=true` with a bilingual refusal and audit entry |
-| Code submission screening | A keylogger artifact was refused on both `/api/debug` and `/api/run`; sandbox-labelled defensive code still executed |
 | Citation discipline | Workspace-context replies cited real relative paths and produced no fabricated repository URLs |
-| Jurisdiction detection | `geo:ipwho.is` resolved the country; law packs and official sources injected |
 | API guard, missing Content-Type | `415 {"ok":false,"error":"Content-Type must be application/json"}` |
 | API guard, foreign Origin | `403 {"ok":false,"error":"Cross-origin request rejected"}` |
 | Same-origin POST | `200` with expected JSON |

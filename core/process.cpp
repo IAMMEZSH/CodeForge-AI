@@ -72,6 +72,37 @@ std::string join_command(const std::vector<std::string>& argv) {
     return out;
 }
 
+// A buffered truncation can cut a multi-byte UTF-8 character in half. Drop the
+// incomplete tail before the JSON envelope is written; otherwise the tail
+// makes the whole line invalid and forces a lossy code-page conversion.
+static void trim_incomplete_utf8(std::string& text) {
+    if (text.empty()) {
+        return;
+    }
+    size_t start = text.size();
+    size_t continuation = 0;
+    while (start > 0 && continuation < 3 &&
+           ((unsigned char)text[start - 1] & 0xC0) == 0x80) {
+        --start;
+        ++continuation;
+    }
+    if (start == 0) {
+        return;
+    }
+    unsigned char lead = (unsigned char)text[start - 1];
+    size_t need = 0;
+    if ((lead & 0xE0) == 0xC0) {
+        need = 2;
+    } else if ((lead & 0xF0) == 0xE0) {
+        need = 3;
+    } else if ((lead & 0xF8) == 0xF0) {
+        need = 4;
+    }
+    if (need > 0 && text.size() - (start - 1) < need) {
+        text.resize(start - 1);
+    }
+}
+
 #ifdef _WIN32
 
 static std::wstring temp_output_path(const wchar_t* suffix) {
@@ -83,6 +114,96 @@ static std::wstring temp_output_path(const wchar_t* suffix) {
                         std::to_wstring(GetTickCount64()) + L"_" +
                         std::to_wstring(++counter) + suffix;
     return name;
+}
+
+static bool utf8_valid(const std::string& text) {
+    size_t i = 0;
+    while (i < text.size()) {
+        unsigned char c = (unsigned char)text[i];
+        if (c < 0x80) {
+            ++i;
+            continue;
+        }
+        size_t length;
+        unsigned int code;
+        if ((c & 0xE0) == 0xC0) {
+            length = 2;
+            code = c & 0x1Fu;
+        } else if ((c & 0xF0) == 0xE0) {
+            length = 3;
+            code = c & 0x0Fu;
+        } else if ((c & 0xF8) == 0xF0) {
+            length = 4;
+            code = c & 0x07u;
+        } else {
+            return false;
+        }
+        if (i + length > text.size()) {
+            return false;
+        }
+        for (size_t j = 1; j < length; ++j) {
+            unsigned char next = (unsigned char)text[i + j];
+            if ((next & 0xC0) != 0x80) {
+                return false;
+            }
+            code = (code << 6) | (next & 0x3Fu);
+        }
+        if ((length == 2 && code < 0x80) || (length == 3 && code < 0x800) ||
+            (length == 4 && code < 0x10000) || code > 0x10FFFF ||
+            (code >= 0xD800 && code <= 0xDFFF)) {
+            return false;
+        }
+        i += length;
+    }
+    return true;
+}
+
+static std::string ansi_to_utf8(const std::string& text) {
+    if (text.empty()) {
+        return text;
+    }
+    UINT code_page = GetACP();
+    int wide_length = MultiByteToWideChar(code_page, 0, text.c_str(), (int)text.size(),
+                                          nullptr, 0);
+    if (wide_length <= 0) {
+        return text;
+    }
+    std::wstring wide((size_t)wide_length, L'\0');
+    MultiByteToWideChar(code_page, 0, text.c_str(), (int)text.size(), wide.data(),
+                        wide_length);
+    int utf8_length = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), wide_length,
+                                          nullptr, 0, nullptr, nullptr);
+    if (utf8_length <= 0) {
+        return text;
+    }
+    std::string converted((size_t)utf8_length, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), wide_length, converted.data(),
+                        utf8_length, nullptr, nullptr);
+    return converted;
+}
+
+// Compiler diagnostics on Chinese Windows arrive as GBK even though the JSON
+// envelope is UTF-8. Convert only lines that are not valid UTF-8 so both
+// encodings survive in the same document.
+static std::string sanitize_output(const std::string& text) {
+    if (text.empty() || utf8_valid(text)) {
+        return text;
+    }
+    std::string result;
+    result.reserve(text.size() + 16);
+    size_t start = 0;
+    while (start <= text.size()) {
+        size_t newline = text.find('\n', start);
+        size_t end = newline == std::string::npos ? text.size() : newline;
+        std::string line = text.substr(start, end - start);
+        result += utf8_valid(line) ? line : ansi_to_utf8(line);
+        if (newline == std::string::npos) {
+            break;
+        }
+        result.push_back('\n');
+        start = newline + 1;
+    }
+    return result;
 }
 
 static void read_limited(const std::wstring& path, std::string& out, size_t limit) {
@@ -98,7 +219,12 @@ static void read_limited(const std::wstring& path, std::string& out, size_t limi
     if (got > 0) {
         out.assign(buffer.data(), (size_t)got);
     }
-    if (!ec && size > limit) {
+    bool truncated = !ec && size > limit;
+    if (truncated) {
+        trim_incomplete_utf8(out);
+    }
+    out = sanitize_output(out);
+    if (truncated) {
         out += "\n...[output truncated]";
     }
 }
@@ -333,11 +459,29 @@ ProcessResult run_process(const std::vector<std::string>& argv,
     bool out_truncated = false;
     bool err_truncated = false;
     bool child_exited = false;
+    auto exit_time = started;
     int status = 0;
     char buffer[65536];
 
     while (true) {
         if (child_exited && !out_open && !err_open) {
+            break;
+        }
+        // A grandchild can inherit the pipes and keep the reader waiting forever
+        // after the direct child has already exited. Give the pipes a short
+        // grace period, then stop the whole group and stop reading.
+        if (child_exited && elapsed_ms(exit_time) > 2000) {
+            kill(-pid, SIGKILL);
+            if (out_open) {
+                close(out_pipe[0]);
+                out_pipe[0] = -1;
+                out_open = false;
+            }
+            if (err_open) {
+                close(err_pipe[0]);
+                err_pipe[0] = -1;
+                err_open = false;
+            }
             break;
         }
         long long remaining = (long long)timeout_ms - elapsed_ms(started);
@@ -386,8 +530,10 @@ ProcessResult run_process(const std::vector<std::string>& argv,
             pid_t done = waitpid(pid, &status, WNOHANG);
             if (done == pid) {
                 child_exited = true;
+                exit_time = std::chrono::steady_clock::now();
             } else if (done < 0 && errno != EINTR) {
                 child_exited = true;
+                exit_time = std::chrono::steady_clock::now();
             }
         }
     }
@@ -433,9 +579,11 @@ ProcessResult run_process(const std::vector<std::string>& argv,
     }
     result.duration_ms = elapsed_ms(started);
     if (out_truncated) {
+        trim_incomplete_utf8(result.out);
         result.out += "\n...[output truncated]";
     }
     if (err_truncated) {
+        trim_incomplete_utf8(result.err);
         result.err += "\n...[output truncated]";
     }
     return result;

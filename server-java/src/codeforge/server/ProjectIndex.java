@@ -1,6 +1,10 @@
 package codeforge.server;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -31,7 +35,7 @@ public final class ProjectIndex {
             "properties", "rs", "go", "rb", "php", "sql", "ini", "cfg", "conf", "cmake");
     private static final Set<String> SKIP_FILES = Set.of(
             "config.json", "installed.json", "runtime.json", ".env", "credentials.json",
-            "secrets.json", "id_rsa", "id_ed25519", "memories.jsonl", "compliance.log");
+            "secrets.json", "id_rsa", "id_ed25519", "memories.jsonl");
     private static final Set<String> SKIP_DIRS = Set.of(
             ".git", "models", "release", "build", "memory", "logs", "workspace",
             "node_modules", ".gradle", ".idea", ".vscode", "dist", "downloads");
@@ -96,6 +100,22 @@ public final class ProjectIndex {
         }
     }
 
+    // Source trees on Chinese Windows often contain GBK files. Reading every
+    // file as UTF-8 would drop those documents from the index entirely.
+    private static String readText(Path path) throws IOException {
+        byte[] bytes = Files.readAllBytes(path);
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(bytes)).toString();
+        } catch (CharacterCodingException ignored) {
+            boolean windows = System.getProperty("os.name", "")
+                    .toLowerCase(Locale.ROOT).contains("win");
+            return new String(bytes, Charset.forName(windows ? "GBK" : "ISO-8859-1"));
+        }
+    }
+
     public synchronized Map<String, Object> refresh() {
         List<Doc> scanned = new ArrayList<>();
         long[] bytes = {0};
@@ -132,7 +152,7 @@ public final class ProjectIndex {
                         return FileVisitResult.CONTINUE;
                     }
                     try {
-                        String text = Files.readString(path, StandardCharsets.UTF_8).trim();
+                        String text = readText(path).trim();
                         if (text.length() < 20) {
                             return FileVisitResult.CONTINUE;
                         }

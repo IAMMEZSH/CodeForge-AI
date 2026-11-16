@@ -114,54 +114,7 @@ public final class DesktopIntegration {
     }
 
     public Path desktopDir() {
-        if (WINDOWS) {
-            String profile = System.getenv("USERPROFILE");
-            if (profile != null && !profile.isBlank()) {
-                Path desktop = Path.of(profile, "Desktop");
-                if (Files.isDirectory(desktop)) {
-                    return desktop;
-                }
-            }
-            String oneDrive = System.getenv("OneDrive");
-            if (oneDrive != null && !oneDrive.isBlank()) {
-                Path desktop = Path.of(oneDrive, "Desktop");
-                if (Files.isDirectory(desktop)) {
-                    return desktop;
-                }
-            }
-            String home = System.getProperty("user.home", "");
-            return Path.of(home, "Desktop");
-        }
-        if (!MAC) {
-            Path configured = xdgDesktop();
-            if (configured != null && Files.isDirectory(configured)) {
-                return configured;
-            }
-        }
-        return Path.of(System.getProperty("user.home", ""), "Desktop");
-    }
-
-    private Path xdgDesktop() {
-        Path config = Path.of(System.getProperty("user.home", ""), ".config", "user-dirs.dirs");
-        if (!Files.isRegularFile(config)) {
-            return null;
-        }
-        try {
-            for (String line : Files.readAllLines(config, StandardCharsets.UTF_8)) {
-                String trimmed = line.trim();
-                if (!trimmed.startsWith("XDG_DESKTOP_DIR=")) {
-                    continue;
-                }
-                String value = trimmed.substring("XDG_DESKTOP_DIR=".length()).trim();
-                value = value.replace("\"", "").replace("$HOME",
-                        System.getProperty("user.home", ""));
-                if (!value.isBlank()) {
-                    return Path.of(value);
-                }
-            }
-        } catch (IOException ignored) {
-        }
-        return null;
+        return FileService.desktopDir();
     }
 
     private String launcherName() {
@@ -194,7 +147,8 @@ public final class DesktopIntegration {
         }
         Path lnk = launcher.toString().toLowerCase(Locale.ROOT).endsWith(".lnk")
                 ? launcher : Path.of(launcher + ".lnk");
-        String script = "$ws = New-Object -ComObject WScript.Shell; "
+        String script = "$OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8; "
+                + "$ws = New-Object -ComObject WScript.Shell; "
                 + "$s = $ws.CreateShortcut('" + ps(lnk.toString()) + "'); "
                 + "$s.TargetPath = '" + ps(exe.toString()) + "'; "
                 + "$s.WorkingDirectory = '" + ps(projectRoot.toString()) + "'; "
@@ -226,8 +180,21 @@ public final class DesktopIntegration {
                 + "cd /d \"" + projectRoot + "\"\r\n"
                 + "python aux-python\\bootstrap.py --run\r\n"
                 + "if errorlevel 1 pause\r\n";
-        Files.writeString(cmd, content, StandardCharsets.UTF_8);
+        // cmd.exe parses .cmd files with the active ANSI code page, so a UTF-8
+        // script would garble a project path containing non-ASCII characters.
+        Files.writeString(cmd, content, nativeCharset());
         return cmd.toString();
+    }
+
+    private static java.nio.charset.Charset nativeCharset() {
+        String name = System.getProperty("sun.jnu.encoding", "");
+        try {
+            if (!name.isBlank()) {
+                return java.nio.charset.Charset.forName(name);
+            }
+        } catch (Exception ignored) {
+        }
+        return java.nio.charset.Charset.forName("GBK");
     }
 
     private String installMac(Path projectRoot, Path launcher) throws IOException {

@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>CodeForge AI — Local Intelligence Workbench</title>
 <link rel="stylesheet" href="styles.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpolygon points='16 4 48 4 62 32 48 60 16 60 2 32' fill='%23081020' stroke='%2338f2ff' stroke-width='3'/%3E%3Cpath d='M22 22 L14 32 L22 42 M42 22 L50 32 L42 42' fill='none' stroke='%2338f2ff' stroke-width='4'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="brand-bat-icon.svg">
 </head>
 <body>
 <canvas id="backdrop"></canvas>
@@ -16,10 +16,144 @@
 
 <div class="app">
   <aside class="rail">
-    <div class="brand-mark" title="CodeForge AI">
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M10 9 L4 16 L10 23 M22 9 L28 16 L22 23 M18.5 6.5 L13.5 25.5" fill="none" stroke="#38f2ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+    <div class="brand-mark" title="CodeForge AI — bat totem">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" aria-hidden="true">
+<defs>
+<radialGradient id="cfBatbadge" cx="50%" cy="34%" r="72%"><stop offset="0" stop-color="#10243c"/><stop offset=".42" stop-color="#081322"/><stop offset=".78" stop-color="#04080f"/><stop offset="1" stop-color="#010205"/></radialGradient>
+<radialGradient id="cfBathalo" cx="50%" cy="60%" r="55%"><stop offset="0" stop-color="#ff8a18" stop-opacity=".55"/><stop offset=".42" stop-color="#ff3d00" stop-opacity=".2"/><stop offset="1" stop-color="#ff3d00" stop-opacity="0"/></radialGradient>
+<radialGradient id="cfBatcore" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff8d8"/><stop offset=".35" stop-color="#ffd24a"/><stop offset=".7" stop-color="#ff6a00"/><stop offset="1" stop-color="#ff3d00" stop-opacity="0"/></radialGradient>
+<linearGradient id="cfBatflameOuter" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#5c0600"/><stop offset=".3" stop-color="#ff3d00"/><stop offset=".68" stop-color="#ff8a00"/><stop offset="1" stop-color="#ffd24a"/></linearGradient>
+<linearGradient id="cfBatflameInner" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff6a00"/><stop offset=".5" stop-color="#ffb300"/><stop offset="1" stop-color="#fff6c0"/></linearGradient>
+<linearGradient id="cfBatring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38f2ff" stop-opacity=".95"/><stop offset=".3" stop-color="#38f2ff" stop-opacity=".08"/><stop offset=".58" stop-color="#ff6a00" stop-opacity=".12"/><stop offset="1" stop-color="#ff8a00" stop-opacity=".95"/></linearGradient>
+<linearGradient id="cfBatbatMetal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101b2b"/><stop offset=".42" stop-color="#070c14"/><stop offset="1" stop-color="#010205"/></linearGradient>
+<linearGradient id="cfBatbatEdge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7af8ff"/><stop offset=".3" stop-color="#a06bff"/><stop offset=".6" stop-color="#ff6a00"/><stop offset="1" stop-color="#ffb300"/></linearGradient>
+<linearGradient id="cfBatscan" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#38f2ff" stop-opacity="0"/><stop offset=".5" stop-color="#c8fdff" stop-opacity=".9"/><stop offset="1" stop-color="#38f2ff" stop-opacity="0"/></linearGradient>
+<linearGradient id="cfBatsweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#38f2ff" stop-opacity=".22"/><stop offset="1" stop-color="#38f2ff" stop-opacity="0"/></linearGradient>
+<filter id="cfBatglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="cfBatsoft" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.8"/></filter>
+<filter id="cfBatstrong" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3.4"/></filter>
+<clipPath id="cfBatbadgeClip"><circle cx="80" cy="80" r="68"/></clipPath>
+<path id="cfBatbatShape" d="M64 22 73 7l6 19c9-2 20 0 31 6 7 4 11 7 14 9-4 1-8 3-11 7-3-2-6-2-9 1-3-3-7-3-10 1-3-3-7-2-10 2-4-3-9-1-12 4-3-3-5-2-8 2-3-4-5-5-8-2-3-5-8-7-12-4-3-4-7-5-10-2-3-4-7-4-10-1-3-3-6-3-9-1-3-4-7-6-11-7 3-2 7-5 14-9 11-6 22-8 31-6l6-19Z"/>
+<clipPath id="cfBatbatClip"><use href="#cfBatbatShape"/></clipPath>
+</defs>
+
+<g class="hud-b" opacity=".72">
+<circle cx="80" cy="80" r="77" fill="none" stroke="url(#cfBatring)" stroke-width="1" stroke-dasharray="46 12 3 12 72 18 5 14"/>
+<circle cx="80" cy="80" r="72.5" fill="none" stroke="#38f2ff" stroke-width=".45" stroke-dasharray="1 8" opacity=".5"/>
+</g>
+<g class="hud-a" opacity=".9">
+<circle cx="80" cy="80" r="79" fill="none" stroke="#38f2ff" stroke-width=".7" stroke-dasharray="1 14" opacity=".45"/>
+<path d="M80 2a78 78 0 0 1 68 40" fill="none" stroke="#38f2ff" stroke-width="1.6" stroke-linecap="round" filter="url(#cfBatglow)"/>
+<path d="M149 112a78 78 0 0 1-45 44" fill="none" stroke="#ff6a00" stroke-width="1.25" stroke-linecap="round" opacity=".8" filter="url(#cfBatglow)"/>
+<path d="M44 4l4 3-4 3-4-3Z" fill="#a8fbff" opacity=".9"/>
+<path d="M142 143l4 3-4 3-4-3Z" fill="#ffb300" opacity=".9"/>
+</g>
+<g opacity=".7" stroke="#38f2ff" stroke-width=".9">
+<path d="M80 0v6M80 154v6M0 80h6M154 80h6"/>
+<path d="M126 8l-3 5M31 148l3-5M34 8l3 5M129 148l-3-5" opacity=".55"/>
+</g>
+
+<circle cx="80" cy="80" r="68" fill="url(#cfBatbadge)" stroke="#38f2ff" stroke-opacity=".22" stroke-width=".8"/>
+<g clip-path="url(#cfBatbadgeClip)">
+  <circle cx="80" cy="80" r="54" fill="none" stroke="#38f2ff" stroke-width=".4" stroke-dasharray="2 9" opacity=".18"/>
+  <circle cx="80" cy="80" r="34" fill="none" stroke="#ff6a00" stroke-width=".4" stroke-dasharray="1 11" opacity=".18"/>
+  <path d="M12 80h136M80 12v136M80 80 22 22M80 80 138 22M80 80 22 138M80 80 138 138" stroke="#38f2ff" stroke-width=".35" opacity=".09"/>
+  <path d="M80 80 80 12A68 68 0 0 1 139 38Z" fill="url(#cfBatsweep)" class="hud-a" opacity=".5"/>
+
+  <g transform="translate(28.5 33) scale(.84 .98)">
+    <g transform="translate(6.4 9) scale(.9)">
+    <circle cx="64" cy="62" r="44" fill="url(#cfBathalo)"/>
+    <g filter="url(#cfBatsoft)" opacity=".5">
+      <path class="flame f1" fill="#ff3d00" d="M64 98C36 92 20 72 26 45c5 14 11 20 18 22-9-18-2-36 12-50-3 18 8 23 6 38 10-13 12-24 6-43 20 17 34 40 27 63 6-10 6-21 3-34 17 22 13 47-5 59-8 5-19 4-29-2Z"/>
+      <path class="flame f2" fill="#ff8a00" d="M64 95c-16-3-25-15-21-32 3 8 8 12 13 13-6-13-1-26 10-36-2 13 7 17 4 28 8-8 9-17 5-30 12 11 20 26 14 42 4-6 4-13 2-20 10 14 6 30-8 35-6 2-12 1-19 0Z"/>
+      <path class="flame f3" fill="#ffb300" d="M64 92c-8-3-12-10-10-20 3 7 7 9 10 10-4-9 0-15 5-21 0 8 5 11 3 18 5-4 6-9 3-16 7 7 10 16 7 24-2 3-5 5-9 5h-9Z"/>
+    </g>
+    <g opacity=".96">
+      <path class="flame f1" fill="url(#cfBatflameOuter)" filter="url(#cfBatglow)" d="M65 98C46 95 36 83 39 63c3 9 8 15 13 17-6-14-2-28 9-38-2 14 6 19 4 30 7-9 9-19 5-33 13 13 24 31 19 49 4-9 4-16 2-26 13 16 11 35-4 45-7 4-14 3-22-9Z"/>
+      <path class="flame f2" fill="#ffb300" opacity=".94" d="M65 95c-11-3-16-11-13-22 3 6 6 8 9 9-5-9-1-20 7-26-1 10 5 14 3 21 5-6 5-13 3-22 9 9 14 19 10 30 3-5 3-10 2-15 8 10 5 22-5 27-5 2-10 1-16-2Z"/>
+      <path class="flame f3" fill="#fff2b0" opacity=".95" d="M65 92c-5-2-7-6-5-11 2 4 4 5 5 5-2-5 0-9 3-12 0 5 3 7 2 10 3-2 3-6 2-9 4 4 6 9 3 13-1 2-3 3-5 3h-5Z"/>
+    </g>
+    <g filter="url(#cfBatsoft)" opacity=".62">
+      <path class="flame f3" fill="#ff2a00" d="M20 96c-7-16-3-32 6-45 0 12 5 18 3 28 5-6 6-13 3-21 8 13 8 30-1 39-3 4-7 3-11-1Z"/>
+      <path class="flame f2" fill="#ff6a00" d="M108 96c7-16 3-32-6-45 0 12-5 18-3 28-5-6-6-13-3-21-8 13-8 30 1 39 3 4 7 3 11-1Z"/>
+    </g>
+    <g filter="url(#cfBatsoft)" opacity=".75">
+      <path class="flame f2" fill="#ff3d00" d="M31 73c-6-9-4-18 2-25 0 8 4 12 8 14-3-8-1-15 4-21-1 9 4 13 1 21 3 4 2 9-2 12-4 3-9 2-13-1Z"/>
+      <path class="flame f3" fill="#ff8a00" d="M97 73c6-9 4-18-2-25 0 8-4 12-8 14 3-8 1-15-4-21 1 9-4 13-1 21-3 4-2 9 2 12 4 3 9 2 13-1Z"/>
+    </g>
+    <circle class="pulse" cx="64" cy="60" r="8" fill="url(#cfBatcore)" opacity=".8"/>
+    </g>
+
+    <use href="#cfBatbatShape" fill="#020409" stroke="#020409" stroke-width="5.5" stroke-linejoin="round"/>
+    <use href="#cfBatbatShape" fill="url(#cfBatbatMetal)" stroke="#ff6a00" stroke-width="2.6" stroke-linejoin="round" filter="url(#cfBatglow)"/>
+    <use href="#cfBatbatShape" fill="url(#cfBatbatMetal)"/>
+    <use href="#cfBatbatShape" fill="none" stroke="url(#cfBatbatEdge)" stroke-width="1.05" stroke-linejoin="round"/>
+    <use href="#cfBatbatShape" fill="none" stroke="#38f2ff" stroke-width=".5" stroke-dasharray="10 8 2 6" opacity=".65"/>
+    <path d="M60 55 64 66 68 55 64 58Z" fill="#020409" stroke="#ff6a00" stroke-width="1.3" stroke-linejoin="round" filter="url(#cfBatglow)"/>
+    <path d="M64 59v4" stroke="#38f2ff" stroke-width=".6" opacity=".8"/>
+
+    <g clip-path="url(#cfBatbatClip)">
+      <path d="M64 28 46 30 28 33 38 46 57 40Z" fill="#0b1626" opacity=".9"/>
+      <path d="M64 28 82 30 100 33 90 46 71 40Z" fill="#0b1626" opacity=".9"/>
+      <path d="M38 46 20 36 12 40 29 52 46 49Z" fill="#0e1c2e" opacity=".9"/>
+      <path d="M90 46 108 36 116 40 99 52 82 49Z" fill="#0e1c2e" opacity=".9"/>
+      <path d="M57 40 44 47 32 52 41 57 56 51Z" fill="#07111d" opacity=".95"/>
+      <path d="M71 40 84 47 96 52 87 57 72 51Z" fill="#07111d" opacity=".95"/>
+      <path d="M59 27 69 27 71 43 64 51 57 43Z" fill="#0c192a" opacity=".95"/>
+      <path d="M64 26V51M45 31 36 45M83 31l9 14M30 35 24 46M98 35l6 11M42 49l-9 5M86 49l9 5" stroke="#38f2ff" stroke-width=".5" opacity=".5" stroke-dasharray="5 4 1 4"/>
+      <path d="M64 32 52 34M64 32l12 2M52 34 47 43M76 34l5 9M47 43l-8 5M81 43l8 5" stroke="#ff8a00" stroke-width=".45" opacity=".65"/>
+      <path d="M64 28 46 30 28 33" stroke="#38f2ff" stroke-width=".7" opacity=".6"/>
+      <path d="M64 28 82 30 100 33" stroke="#38f2ff" stroke-width=".7" opacity=".6"/>
+      <g fill="#38f2ff">
+        <circle cx="46" cy="30" r=".8"/><circle cx="82" cy="30" r=".8"/><circle cx="28" cy="33" r=".6" opacity=".8"/>
+        <circle cx="100" cy="33" r=".6" opacity=".8"/><circle cx="47" cy="43" r=".7"/><circle cx="81" cy="43" r=".7"/>
+      </g>
+      <g fill="#ffb300">
+        <circle cx="36" cy="45" r=".55" opacity=".9"/><circle cx="92" cy="45" r=".55" opacity=".9"/>
+      </g>
+      <path d="M55.5 25.5c1.8-1.2 4.2-1.2 6 0-1.8 2-4.2 2-6 0Z" fill="#a8fbff" filter="url(#cfBatglow)" opacity=".95"/>
+      <path d="M72.5 25.5c-1.8-1.2-4.2-1.2-6 0 1.8 2 4.2 2 6 0Z" fill="#a8fbff" filter="url(#cfBatglow)" opacity=".95"/>
+      <circle cx="58.5" cy="26" r=".95" fill="#04121a"/>
+      <circle cx="69.5" cy="26" r=".95" fill="#04121a"/>
+      <g fill="none" stroke-linecap="round" opacity=".55">
+        <path d="M54 44Q40 38 23 35" stroke="#ffb300" stroke-width=".55"/>
+        <path d="M56 48Q42 46 28 46" stroke="#ff8a00" stroke-width=".5"/>
+        <path d="M58 52Q46 52 34 54" stroke="#ffb300" stroke-width=".45"/>
+        <path d="M74 44Q88 38 105 35" stroke="#ffb300" stroke-width=".55"/>
+        <path d="M72 48Q86 46 100 46" stroke="#ff8a00" stroke-width=".5"/>
+        <path d="M70 52Q82 52 94 54" stroke="#ffb300" stroke-width=".45"/>
+        <path d="M54 44Q40 38 23 35" stroke="#38f2ff" stroke-width=".2" stroke-dasharray="3 4"/>
+        <path d="M74 44Q88 38 105 35" stroke="#38f2ff" stroke-width=".2" stroke-dasharray="3 4"/>
+      </g>
+      <circle cx="64" cy="44" r="4.6" fill="none" stroke="#ff8a00" stroke-width=".7" opacity=".9" filter="url(#cfBatglow)"/>
+      <circle cx="64" cy="44" r="2.8" fill="none" stroke="#38f2ff" stroke-width=".45" stroke-dasharray="1 1.5" opacity=".8"/>
+      <path d="M64 40.5 67 44l-3 3.5-3-3.5Z" fill="#ffd24a" filter="url(#cfBatglow)"/>
+      <path d="M64 42 65.2 44 64 46 62.8 44Z" fill="#fff8d8"/>
+      <rect class="scan" x="2" y="22" width="124" height="1.7" fill="url(#cfBatscan)" opacity=".9"/>
+    </g>
+
+    <g fill="#ffca6a">
+      <circle class="ember" cx="42" cy="82" r="1.2"/><circle class="ember" cx="86" cy="79" r="1"/>
+      <circle class="ember" cx="54" cy="86" r=".9"/><circle class="ember" cx="76" cy="88" r="1"/>
+      <circle class="ember" cx="64" cy="91" r=".8"/><circle class="ember" cx="96" cy="91" r=".75"/>
+      <circle class="ember" cx="34" cy="94" r=".7"/><circle class="ember" cx="110" cy="96" r=".65"/>
+      <circle class="ember" cx="18" cy="58" r=".6"/><circle class="ember" cx="110" cy="54" r=".55"/>
+      <circle class="ember" cx="34" cy="50" r=".55"/><circle class="ember" cx="94" cy="47" r=".5"/>
+    </g>
+    <g fill="#38f2ff" opacity=".75">
+      <circle class="ember" cx="28" cy="72" r=".55"/><circle class="ember" cx="102" cy="68" r=".5"/>
+    </g>
+  </g>
+</g>
+<circle cx="80" cy="80" r="68" fill="none" stroke="url(#cfBatring)" stroke-width="1.35"/>
+<circle cx="80" cy="80" r="64.5" fill="none" stroke="#ff6a00" stroke-width=".5" opacity=".28" stroke-dasharray="18 7 2 7"/>
+<g opacity=".85">
+  <path d="M80 9v5" stroke="#38f2ff" stroke-width="1.2"/>
+  <path d="M80 146v5" stroke="#ff8a00" stroke-width="1.2"/>
+  <path d="M9 80h5" stroke="#ff8a00" stroke-width="1.2"/>
+  <path d="M146 80h5" stroke="#38f2ff" stroke-width="1.2"/>
+</g>
+</svg>
     </div>
     <button class="rail-btn active" data-view="chat" title="AI Chat">
       <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"/><path d="M8 11h8M8 15h5"/></svg>
@@ -33,6 +167,10 @@
       <svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg>
       <span>Models</span>
     </button>
+    <button class="rail-btn" data-view="keys" title="API key vault">
+      <svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="m11 11 9 9M17 17l2-2M14 14l2-2"/></svg>
+      <span>Keys</span>
+    </button>
     <button class="rail-btn" data-view="env" title="Environment">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
       <span>System</span>
@@ -45,7 +183,7 @@
     <header class="topbar">
       <div class="title-block">
         <div class="eyebrow">Local-first intelligent dev workbench</div>
-        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0.3</span></div>
+        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0.4</span></div>
       </div>
       <div class="top-chips">
         <span class="chip off" id="chip-core"><i class="dot"></i>Core</span>
@@ -79,7 +217,7 @@
             </div>
             <div class="chat-scroll scroll" id="chat-scroll">
               <div class="chat-empty" id="chat-empty">
-                <div class="orb"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="core"></div></div>
+                <div class="hero-bat"><img src="brand-bat-icon.svg" alt="CodeForge AI bat totem"></div>
                 <h2>Forge code with <span>on-device intelligence</span></h2>
                 <p>A private coding copilot running entirely on this machine. Ask about repositories, generate implementations, or hand a failing program to the autonomous debug loop.</p>
                 <div class="suggestions">
@@ -93,7 +231,7 @@
             </div>
             <div class="composer-wrap">
               <div class="composer">
-                <textarea id="chat-input" rows="1" placeholder="Ask anything — or say: run it · save to D:\path · place project on desktop · /help"></textarea>
+                <textarea id="chat-input" rows="1" placeholder="Ask anything — or say: run it · save to D:\path · copy any file to desktop or D盘 · /help"></textarea>
                 <button class="send-btn" id="btn-chat-send" title="Send">
                   <svg class="icon-send" viewBox="0 0 24 24"><path d="m3 3 18 9-18 9 4-9-4-9Z"/><path d="M7 12h14"/></svg>
                   <svg class="icon-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
@@ -103,7 +241,7 @@
               <div class="composer-meta">
                 <span><span class="kbd">ENTER</span> send · <span class="kbd">SHIFT+ENTER</span> newline · <span class="kbd">ENTER</span> while generating interrupts</span>
                 <span class="spacer"></span>
-                <span id="chat-hint">LOCAL MEMORY · ONLINE RESEARCH · LAW-AWARE</span>
+                <span id="chat-hint">LOCAL MEMORY · ONLINE RESEARCH</span>
               </div>
             </div>
           </div>
@@ -123,7 +261,6 @@
               <div class="stat-row"><span class="muted">Online brain</span><span class="v" id="side-online-brain">—</span></div>
               <div class="stat-row"><span class="muted">Memory</span><span class="v" id="side-memory">—</span></div>
               <div class="stat-row"><span class="muted">Workspace</span><span class="v" id="side-workspace">—</span></div>
-              <div class="stat-row"><span class="muted">Law pack</span><span class="v" id="side-law">—</span></div>
             </div>
             <div class="panel side-card">
               <div class="side-label">Operator hints</div>
@@ -239,10 +376,18 @@
               <div class="runtime-stat"><div class="k">Service</div><div class="v" id="rt-state">—</div></div>
               <div class="runtime-stat"><div class="k">Endpoint</div><div class="v mono" id="rt-endpoint">127.0.0.1:8080</div></div>
               <div class="runtime-stat"><div class="k">Active model</div><div class="v" id="rt-model">—</div></div>
+              <div class="runtime-stat"><div class="k">Backend</div><div class="v" id="rt-backend-state">—</div></div>
               <div class="runtime-stat"><div class="k">Process</div><div class="v mono" id="rt-pid">—</div></div>
             </div>
             <div class="runtime-actions">
               <button class="btn green" id="btn-rt-start">Start inference</button>
+              <label class="rt-field" title="Auto uses the CUDA build when it is installed, otherwise CPU. Changing this while inference is running restarts it.">Backend
+                <select id="rt-backend">
+                  <option value="auto" selected>Auto (GPU if available)</option>
+                  <option value="cpu">CPU</option>
+                  <option value="cuda">CUDA (NVIDIA GPU)</option>
+                </select>
+              </label>
               <label class="rt-field" title="Total context window in tokens, divided by llama.cpp across the selected slots. The model must support it; larger windows need more RAM.">Context
                 <select id="rt-context">
                   <option value="2048">2K</option>
@@ -268,12 +413,16 @@
                   <option value="8">8</option>
                 </select>
               </label>
+              <label class="rt-field" title="Maximum reply length for every offline model, in tokens. Range 64–393,216. Applies to the next reply without restarting inference; the context window must be large enough for prompt plus reply.">Reply limit
+                <input id="rt-max-tokens" type="number" min="64" max="393216" step="64" value="2048" inputmode="numeric" aria-label="Maximum reply tokens">
+              </label>
               <button class="btn red" id="btn-rt-stop">Stop</button>
               <button class="btn ghost" id="btn-rt-logs">View log</button>
               <span style="flex:1"></span>
               <span class="model-state" id="rt-installed">runtime not installed</span>
             </div>
             <div class="dim" style="font-size:11.5px;margin-top:8px">Default 16K total. 512K is available for models whose architecture supports it and needs a large-RAM workstation; the model's native limit always wins.</div>
+            <div class="dim" style="font-size:11.5px;margin-top:5px">Reply limit is shared by every offline model and applies to the next reply without restarting inference. Range 64–393,216 tokens; the context window still caps the actual reply. On CPU, 4K–8K is a practical ceiling; a full 32K reply can take hours. The CUDA backend raises decoding speed about 18×.</div>
             <pre class="log-box" id="rt-log" style="display:none"></pre>
           </div>
         </div>
@@ -281,6 +430,93 @@
         <div class="panel runtime-panel">
           <div class="panel-head"><h3>Download queue</h3><div class="spacer"></div><span class="model-state" id="dl-count">0 active</span></div>
           <div class="panel-body"><div class="iterations" id="dl-jobs"><div class="dim" style="font-size:11.5px">No transfers in this session. Downloads resume automatically after interruption.</div></div></div>
+        </div>
+      </section>
+
+      <!-- ================= KEYS ================= -->
+      <section class="view" id="view-keys">
+        <div class="keys-grid">
+          <div class="keys-main">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Active brain</h3><span class="badge" id="keys-active-badge">—</span><div class="spacer"></div>
+                <label class="auto-toggle" title="Turn the hosted online brain on or off. Saved keys stay stored either way.">
+                  <input type="checkbox" id="chk-online-brain">
+                  <span class="switch"></span>
+                  <span class="auto-label" id="online-brain-label">ONLINE BRAIN</span>
+                </label>
+                <button class="btn ghost sm" id="btn-keys-refresh">Refresh</button>
+              </div>
+              <div class="panel-body">
+                <table class="info-table">
+                  <tr><td>Online routing</td><td id="keys-online-state">—</td></tr>
+                  <tr><td>Provider</td><td id="keys-active-name">—</td></tr>
+                  <tr><td>Model</td><td id="keys-active-model">—</td></tr>
+                  <tr><td>Base URL</td><td id="keys-active-url">—</td></tr>
+                  <tr><td>Masked key</td><td id="keys-active-hint">—</td></tr>
+                  <tr><td>Official top-up</td><td id="keys-active-topup">—</td></tr>
+                </table>
+                <div class="hint">Switch online routing off to force the offline GGUF model — saved keys stay stored but idle. Start the bundled runtime in Models for offline chat. The active key is mirrored into <span class="mono">llm.online</span> inside config.json; with the switch off or no active key, chat stays on the offline model.</div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Saved keys</h3><div class="spacer"></div><span class="model-state" id="keys-count">0</span></div>
+              <div class="panel-body">
+                <div id="keys-list" class="key-list"><div class="dim" style="font-size:11.5px">Loading…</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="keys-side">
+            <div class="panel">
+              <div class="panel-head"><h3 id="keys-form-title">Add a key</h3><div class="spacer"></div><span class="model-state">LOCAL ONLY</span></div>
+              <div class="panel-body">
+                <label class="small">Preset</label>
+                <select class="field" id="key-preset">
+                  <option value="">Choose a provider…</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="moonshot">Moonshot Kimi</option>
+                  <option value="zhipu">Zhipu GLM</option>
+                  <option value="qwen">Qwen / DashScope</option>
+                  <option value="siliconflow">SiliconFlow</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="custom">Custom / OpenAI-compatible</option>
+                </select>
+                <label class="small" style="margin-top:12px;display:block">Label</label>
+                <input class="field" id="key-name" placeholder="DeepSeek personal" spellcheck="false">
+                <label class="small" style="margin-top:12px;display:block">Base URL</label>
+                <input class="field mono" id="key-base" placeholder="https://api.deepseek.com" spellcheck="false">
+                <label class="small" style="margin-top:12px;display:block">Model</label>
+                <input class="field mono" id="key-model" placeholder="deepseek-chat" spellcheck="false">
+                <label class="small" style="margin-top:12px;display:block">API key</label>
+                <input class="field mono" id="key-secret" type="password" placeholder="sk-…" spellcheck="false" autocomplete="off">
+                <div class="hint" id="key-secret-hint">Stored only in this machine's config.json. After saving, the console shows a masked hint — never the key itself.</div>
+                <div class="place-options"><label><input type="checkbox" id="key-activate" checked> Use as active online brain</label></div>
+                <div class="place-actions">
+                  <button class="btn" id="btn-key-save">SAVE KEY</button>
+                  <button class="btn ghost" id="btn-key-test">TEST</button>
+                  <button class="btn ghost" id="btn-key-cancel" style="display:none">CANCEL</button>
+                </div>
+                <div class="place-result" id="key-form-result"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Security</h3></div>
+              <div class="panel-body" style="font-size:11.5px;color:var(--muted);line-height:1.75">
+                Keys never leave this machine. The local API returns a masked hint only, and deleting a key here removes it from config.json.
+              </div>
+            </div>
+          </div>
+          <div class="panel keys-official">
+            <div class="panel-head">
+              <h3>Official top-up &amp; billing</h3><div class="spacer"></div>
+              <span class="model-state">EXTERNAL OFFICIAL PAGES</span>
+            </div>
+            <div class="panel-body">
+              <div class="hint">One click opens the provider's official page in a new browser tab. CodeForge never handles payments and never sends your key. Sign in on the official domain and verify the address before paying — amounts, payment methods and regional availability are set by each provider.</div>
+              <div class="provider-links" id="provider-links"></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -302,9 +538,8 @@
               </div>
             </div>
             <div class="panel">
-              <div class="panel-head"><h3>Dual brain · memory · compliance</h3><div class="spacer"></div>
+              <div class="panel-head"><h3>Dual brain · memory · research</h3><div class="spacer"></div>
                 <button class="btn ghost sm" id="btn-index-refresh">Reindex workspace</button>
-                <button class="btn ghost sm" id="btn-law-refresh">Refresh law</button>
               </div>
               <div class="panel-body">
                 <table class="info-table">
@@ -312,8 +547,6 @@
                   <tr><td>Online brain</td><td id="brain-online">—</td></tr>
                   <tr><td>Memory store</td><td id="brain-memory">—</td></tr>
                   <tr><td>Workspace index</td><td id="brain-workspace">—</td></tr>
-                  <tr><td>Jurisdiction</td><td id="brain-jurisdiction">—</td></tr>
-                  <tr><td>Legal brief</td><td id="brain-law">—</td></tr>
                   <tr><td>Online research</td><td id="brain-research">—</td></tr>
                 </table>
               </div>
@@ -321,6 +554,41 @@
             <div class="panel">
               <div class="panel-head"><h3>Toolchains</h3><div class="spacer"></div><button class="btn ghost sm" id="btn-lang-refresh">Refresh</button><button class="btn ghost sm" id="btn-selftest">Run self-test</button></div>
               <div class="panel-body" id="env-toolchains"><div class="dim" style="font-size:11.5px">Detecting compilers…</div></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Command Agent · all platforms</h3><span class="badge" id="agent-badge">—</span><div class="spacer"></div><button class="btn ghost sm" id="btn-agent-refresh">Refresh</button></div>
+              <div class="panel-body">
+                <table class="info-table">
+                  <tr><td>Detected tools</td><td id="agent-tools">—</td></tr>
+                  <tr><td>Installed applications</td><td id="agent-app-summary">—</td></tr>
+                  <tr><td>Auto-provisionable</td><td id="agent-provisionable">—</td></tr>
+                  <tr><td>Online learning</td><td id="agent-learning">—</td></tr>
+                  <tr><td>Publishing guard</td><td id="agent-publish-state">—</td></tr>
+                </table>
+                <div class="agent-form">
+                  <label class="small">Max tool steps (1–256)</label>
+                  <input class="field mono" id="agent-max-steps" type="number" min="1" max="256" value="64">
+                  <label class="small">Command timeout (seconds)</label>
+                  <input class="field mono" id="agent-command-timeout" type="number" min="1" max="86400" value="3600">
+                  <label class="small">Tool install timeout (seconds)</label>
+                  <input class="field mono" id="agent-install-timeout" type="number" min="60" max="86400" value="1800">
+                  <label class="agent-check"><input type="checkbox" id="agent-auto-install" checked> Auto-download missing tools and retry</label>
+                  <label class="agent-check"><input type="checkbox" id="agent-auto-learn" checked> Autonomously learn unfamiliar software online</label>
+                  <label class="agent-check"><input type="checkbox" id="agent-allow-publish"> Allow publishing (git push, package upload, deploy)</label>
+                  <div class="hint" id="agent-publish-hint">Publishing is blocked by default. Local builds, commits, packages and exports are always allowed; public/remote actions need this switch, or a direct API run with allow_publish=true for that one action.</div>
+                  <div class="place-actions"><button class="btn" id="btn-agent-save">SAVE AGENT SETTINGS</button></div>
+                </div>
+                <label class="small" style="margin-top:12px;display:block">Test a command (runs locally, no model)</label>
+                <div class="agent-test-row">
+                  <input class="field mono" id="agent-test-cmd" placeholder="Get-Command | Measure-Object" spellcheck="false">
+                  <button class="btn ghost sm" id="btn-agent-test">RUN</button>
+                </div>
+                <pre class="log-box" id="agent-test-out" style="margin-top:8px;display:block">Run a test to verify command execution, PATH and the publish guard.</pre>
+                <details style="margin-top:10px">
+                  <summary class="small">Installed applications <span id="agent-app-count">(0)</span></summary>
+                  <div class="agent-app-list" id="agent-apps">Loading…</div>
+                </details>
+              </div>
             </div>
             <div class="panel">
               <div class="panel-head"><h3>Place project anywhere</h3><div class="spacer"></div><span class="model-state">WHOLE TREE</span></div>
@@ -345,6 +613,24 @@
                 <div class="hint">Empty = Desktop. Give a folder or a full shortcut path. Missing folders are reported before anything is written.</div>
                 <div class="place-actions"><button class="btn" id="btn-desktop-install">CREATE LAUNCHER</button></div>
                 <div class="place-result" id="desktop-result"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Place any file or folder</h3><div class="spacer"></div><span class="model-state">COPY · MOVE</span></div>
+              <div class="panel-body">
+                <label class="small">Source file or folder</label>
+                <input class="field mono" id="copy-source" placeholder="C:\Users\you\Downloads\report.pdf" spellcheck="false">
+                <label class="small" style="margin-top:10px;display:block">Destination folder or exact file path</label>
+                <input class="field mono" id="copy-dest" placeholder="desktop, D, D盘根目录 or D:\folder" spellcheck="false">
+                <div class="hint">Empty = Desktop. Type D, D盘 or D盘根目录 for the drive root (C works too; C:\ root may need administrator rights), any folder, ~ for home, or desktop / 桌面. Files keep their name unless you enter a new one; a missing destination that looks like a file name is used as the exact file path.</div>
+                <label class="small" style="margin-top:10px;display:block">New name (optional)</label>
+                <input class="field mono" id="copy-name" placeholder="report-final.pdf" spellcheck="false">
+                <div class="place-options">
+                  <label><input type="checkbox" id="copy-overwrite"> Overwrite if it already exists</label>
+                  <label><input type="checkbox" id="copy-move"> Move instead of copy</label>
+                </div>
+                <div class="place-actions"><button class="btn" id="btn-place-file">PLACE FILE</button></div>
+                <div class="place-result" id="copy-result"></div>
               </div>
             </div>
             <div class="panel">
@@ -374,6 +660,7 @@
                   <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/languages/install</span><span class="api-desc">download a runtime</span></div>
                   <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/files/write</span><span class="api-desc">write any file path</span></div>
                   <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/files/write-batch</span><span class="api-desc">many files anywhere</span></div>
+                  <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/files/place</span><span class="api-desc">copy or move any file</span></div>
                   <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/desktop/install</span><span class="api-desc">launcher at any path</span></div>
                   <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/api/project/place</span><span class="api-desc">copy project anywhere</span></div>
                   <div class="api-row"><span class="api-method">GET</span><span class="api-path">/preview/&lt;session&gt;/</span><span class="api-desc">sandboxed HTML preview</span></div>
@@ -420,7 +707,6 @@
       <span id="sb-core">CORE —</span>
       <span id="sb-model">MODEL —</span>
       <span id="sb-memory">MEM —</span>
-      <span id="sb-law">LAW —</span>
       <span id="sb-time">00:00:00</span>
     </footer>
   </div>
@@ -436,7 +722,7 @@
     <div class="modal-body">
       <label class="small">Destination folder or full file path</label>
       <input class="field mono" id="save-path" placeholder="C:\Users\you\Desktop" spellcheck="false">
-      <div class="hint" id="save-hint">Any absolute path on any drive. ~ expands to your home folder. Missing folders are reported before anything is written.</div>
+      <div class="hint" id="save-hint">Any absolute path on any drive. Type desktop / 桌面 for your real Desktop folder. ~ expands to your home folder. Missing folders are reported before anything is written.</div>
       <div class="save-files" id="save-files"></div>
       <div class="save-status" id="save-status"></div>
     </div>

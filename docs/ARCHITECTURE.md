@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.3 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.0.4 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -61,17 +61,17 @@ supervise and kill process trees.
                 │ REST /api/*
 ┌───────────────▼──────────────────────────────────────────────────────────┐
 │ Java control server  com.sun.net.httpserver on 127.0.0.1:8765           │
-│  ApiHandler (1151) · ModelManager (1176) · RuntimeManager (296)          │
-│  MemoryStore (496) · ProjectIndex (325) · OnlineService (783)           │
-│  ComplianceService (862) · AppSettings (251) · CoreBridge (194)         │
+│  ApiHandler · ModelManager · RuntimeManager · MemoryStore · ProjectIndex │
+│  OnlineService · AgentShell · ToolProvisioner · KeyStore · AppSettings   │
+│  CoreBridge                                                              │
 └───┬──────────────┬──────────────┬──────────────┬────────────────────────┘
     │ JSON command │ HTTPS        │ HTTPS        │ local files
 ┌───▼───────────┐ ┌▼────────────┐ ┌▼───────────┐ ┌▼─────────────────────┐
 │ C++ main core │ │ DeepSeek /  │ │ SearXNG ·  │ │ memory/ · workspace/ │
 │ CodeForgeCore │ │ OpenAI-     │ │ DuckDuckGo │ │ logs/ · models/      │
 │ status chat   │ │ compatible  │ │ 360 · Wiki │ │ (persistent brain,   │
-│ debug run     │ │ online LLM  │ │ ipwho.is   │ │ index, audit trail)  │
-│ selftest      │ │ (optional)  │ │ ipapi.co   │ └──────────────────────┘
+│ debug run     │ │ online LLM  │ │ 360 · Wiki │ │ index)               │
+│ selftest      │ │ (optional)  │ │            │ └──────────────────────┘
 └──┬──────────┬─┘ └─────────────┘ └────────────┘
    │ HTTP     │ CreateProcess / fork+exec
 ┌──▼────────┐ ┌▼─────────────────────────────────────────────────────────┐
@@ -118,7 +118,6 @@ CodeForge-AI/
 ├── memory/               persistent brain (created at first use)
 │   ├── memories.jsonl    chat lessons, facts, preferences, web notes
 │   ├── project-index.jsonl  workspace file index for retrieval
-│   └── compliance.log    tab-separated audit trail (length + hash, 512 KB rotation)
 ├── logs/                 server, core, llama-server logs
 ├── config.json           user configuration
 └── CMakeLists.txt        cross-platform build graph
@@ -161,15 +160,10 @@ model crash cannot take down the API server.
 ```
 console → POST /api/chat {messages}
         → ApiHandler reads JSON (8 MB cap)
-        → ComplianceService.check(text)
-             jurisdiction = config → env → locale → geo (cached 24 h)
-             local baseline prohibitions (never disableable)
-             jurisdiction pack + current-law sources (24 h freshness, in memory)
-             refuse? → {ok:false, blocked:true, notice, sources}; compliance.log
         → MemoryStore.search(text, retrieval_limit)  → ranked past lessons (default 5)
         → ProjectIndex.search(text, 3)               → relevant workspace files
         → OnlineService.research(text)               → web findings when warranted
-        → context = law notes + web findings + memory hits + workspace snippets
+        → context = web findings + memory hits + workspace snippets
         → route = online if configured and reachable else local
         → CoreBridge spawns: CodeForgeCore chat --root <root>
              stdin: {"messages":[...],"route":"online|local","context":"..."}
@@ -182,14 +176,14 @@ console → POST /api/chat {messages}
         → Java stores the turn in memory.jsonl
              local turn  → kind "chat"
              online turn → kind "lesson" (weight 1.3)
-        → Java returns reply + meta {brain, memory, workspace, compliance, online}
+        → Java returns reply + meta {brain, memory, workspace, online}
         → console renders Markdown plus provenance chips and sources
 ```
 
 While the turn is in flight the console polls
 `GET /api/chat/progress?request_id=…` every 700 ms. `ApiHandler` keeps a
 `ChatProgress` record per request with a stage list
-(`screen → memory → workspace → research → context → generate → verify`), the
+(`memory → workspace → research → context → generate → verify`), the
 generation start time, predicted output tokens, and an adaptive estimate. While
 the local runtime decodes, the progress handler reads
 `GET http://127.0.0.1:8080/slots` at most once per second to obtain the real
@@ -216,7 +210,7 @@ The dual brain is two different jobs, not two copies of the same model:
 
 | Brain | Job | Mechanism |
 | --- | --- | --- |
-| Online (DeepSeek-class) | Broadest world knowledge, fresh facts, hard reasoning | Large hosted model, current-law and web research |
+| Online (DeepSeek-class) | Broadest world knowledge, fresh facts, hard reasoning | Large hosted model and web research |
 | Offline (local GGUF) | Project-specific intelligence that survives disconnection | Persistent memory, online lesson distillation, workspace index, compile/run feedback |
 
 “Offline is smarter” is deliberately defined as *better informed about this
@@ -246,7 +240,6 @@ core never fabricates a reply.
 POST /api/debug {code, filename, language, iterations, model, route}
   → timeout = 240 + iterations×300 seconds
   → ApiHandler searches the workspace index for filename + language
-  → compliance check on the submitted code
   → CodeForgeCore debug (route is passed through like chat)
       1. language detect (extension hint → syntax heuristics → default cpp)
       2. session dir = workspace/debug-<stamp>-<token>/
@@ -334,15 +327,14 @@ The managed process is stopped on `/api/runtime/stop` and on server shutdown.
 An external server on 8080 is detected via the health probe and reported but
 never killed.
 
-### 5.6 Persistent brain, workspace index and law refresh
+### 5.6 Persistent brain and workspace index
 
-Three background services turn a stateless chat endpoint into something that
-accumulates context. All three keep their state under `memory/`, all three are
-optional in `config.json`, and all three fail open (a broken store never blocks
-a reply).
+Two background services turn a stateless chat endpoint into something that
+accumulates context. Both keep their state under `memory/`, both are optional
+in `config.json`, and both fail open (a broken store never blocks a reply).
 
 ```
-MemoryStore.add(text, kind, source, tags)
+MemoryStore.add(text, kind, source)
   → normalize kind (fact · preference · lesson · web · chat · note)
   → SHA-256 dedupe: identical normalized text replaces instead of appending
   → append JSONL line to memory/memories.jsonl
@@ -358,18 +350,41 @@ ProjectIndex.reindex()
   → walk the project root, skip secrets/config/build/models/memory/logs
   → store path, language, size, first 4 000 characters in project-index.jsonl
   → 130 files / ≈365 KB on the reference checkout
-
-ComplianceService.status(refresh)
-  → detect jurisdiction: request → config → env → locale → geo (ipwho.is, ipapi.co)
-  → pick a compiled-in pack (13 named regions + EU + international fallback)
-  → optionally refresh a law brief through the search chain (24 h freshness, in memory)
-  → audit every decision to memory/compliance.log (SHA-256 prefix, no plaintext)
 ```
 
 The index is rebuilt asynchronously at server start and on demand
 (`POST /api/workspace`); it is a retrieval aid, not a second copy of the
 repository. Model downloads never enter the index, so a 2.5 GB GGUF cannot
 pollute search results.
+
+### 5.7 Command agent loop
+
+```
+user turn
+  → ApiHandler builds memory/workspace/research context
+  → AgentShell.agentPrompt injects platform, shells, tools, applications,
+    software control reference, web tools and publishing policy
+  → model returns exactly one tool block
+      shell  → AgentShell.run
+                 → ToolProvisioner.ensureCommand when the command is missing
+                 → package manager / portable toolchain, PATH refresh
+                 → publish guard, bounded process tree, stdout/stderr logs
+                 → retry once after provisioning
+      search → OnlineService.research (all sources in parallel, ranked)
+      fetch  → OnlineService.fetchPage (bounded readable text)
+      learn  → research + official-doc fetch, returned as one lesson
+  → real result is appended as a user message
+  → compactMessages keeps system + newest results within max_feedback_chars
+  → repeat until the model answers without a block or max_steps is reached
+  → tool_calls, provisioning, learning evidence and blocked flags are returned
+```
+
+The agent is deliberately model-agnostic: an online or offline model only
+emits the same tags. All discovery, installation, execution and protection
+happen in Java, so a small local model cannot lose the execution capability.
+The publish guard rejects remote/public actions unless `agent.allow_publish`
+is true; it is a policy layer, not an OS sandbox, because the process runs
+with the user's privileges.
 
 ---
 
@@ -424,7 +439,6 @@ This is the part that keeps an AI that executes code from hanging the machine.
 | `workspace/run-*/` | runner | Source, binary, build artifacts | Yes |
 | `memory/memories.jsonl` | MemoryStore | Chat lessons, facts, preferences, web notes | Yes, but the offline brain forgets everything |
 | `memory/project-index.jsonl` | ProjectIndex | File paths, language, size, first 4 000 chars | Yes; rebuilt on demand |
-| `memory/compliance.log` | ComplianceService | Hashed allow/refuse audit lines (rotates at 512 KB) | Yes; audit history only |
 | `logs/llama-server.log` | RuntimeManager | Inference server output | Yes |
 | `logs/server.log` | ServerMain | Java server log | Yes |
 | `logs/core-*.out/.err` | CoreBridge | Last core stdout/stderr | Yes |
@@ -541,18 +555,26 @@ assumes a **local trust boundary** and does not pretend to be a sandbox.
   (`ssh -L 8765:127.0.0.1:8765`) and add an authenticating proxy.
 - Compilation and execution run as the current user — the same privilege as a
   terminal. Process-tree kill is a resource control, not a security boundary.
+- The command agent adds a publishing guard for `git push`, release creation,
+  registry/container pushes, remote copies, cloud deploys and outbound write
+  HTTP methods. It is a policy layer and is off by default; it does not stop a
+  locally executed program from reaching the network on its own.
+- Tool provisioning downloads binaries from the native package manager or a
+  portable source, refreshes PATH and retries. Installed application names and
+  command paths are only exposed on loopback, but the agent prompt can send
+  that inventory to the configured online model when online routing is active.
+- Auto-learning treats web pages as untrusted text; the agent is instructed
+  not to follow page instructions, but no content filter makes third-party text
+  trustworthy.
 - No telemetry, no analytics, no auto-update pings. Outbound requests happen
   only for: model downloads (domestic mirror with Hugging Face fallback),
   runtime downloads (GitHub releases), the optional online LLM you configure,
-  and law/geolocation research when `compliance.enabled` and
-  `online.enabled` are true.
+  opt-in web research when `online.enabled` is true, and explicit tool
+  provisioning or agent web tools.
 - The online brain is opt-in: an empty `llm.online.api_key` keeps every prompt
   on the local model. When configured, chat text plus the injected memory and
   workspace context leave the machine for that provider — treat it exactly like
   pasting the same context into that vendor's web UI.
-- Compliance is a guardrail, not a legal opinion. It applies a fixed baseline
-  plus the detected jurisdiction's cached pack and refuses clearly unlawful
-  requests; the user remains responsible for what they build.
 - The native helper's SHA-256 is used for integrity verification of downloads,
   not for signatures. Supply-chain trust comes from TLS plus the pinned
   repository file names in the registry.
@@ -563,22 +585,32 @@ assumes a **local trust boundary** and does not pretend to be a sandbox.
 
 ## 12. Performance characteristics
 
-Measured on the development machine (16-core x64 Windows, CPU-only inference,
+Measured on the development machine (16-core x64 Windows, RTX 4070 12 GB,
 Qwen3 4B Instruct 2507 Q4_K_M, 2.5 GB):
 
 | Operation | Observed |
 | --- | --- |
 | Core `version` command | < 50 ms |
 | Status (cached) | < 5 ms |
-| Chat, short reply | 3.2 s |
-| Chat, ~1 000 token table answer | ~1 min 56 s |
+| Chat, short reply (CPU) | 3.2 s |
+| Chat, ~1 000 token table answer (CPU) | ~1 min 56 s |
+| Chat, short reply (CUDA) | 1.2 s |
+| Decoding rate (CUDA, 4B Q4) | ~83.6 tok/s |
+| Decoding rate (CPU, 4B Q4) | ~4.5 tok/s |
+| Direct `add(a,b)` completion (CUDA) | code-only in 0.8 s |
+| Calculator request, capped reasoning (CUDA) | code in 4.6 s |
 | Debug loop, Python ZeroDivisionError, 2 rounds | 8.9 s |
 | Debug loop, C++ out-of-range `at()`, 2 rounds | ~19 s including model thinking |
 | Self-test (C, C++, Python, Java) | ~2 s after toolchain warm-up |
 | Model download 2.5 GB | network-bound; resumed across one drop |
 
-CPU inference speed dominates everything else. The control plane is not the
-bottleneck: JSON, process spawn, and file IO are all sub-100 ms.
+Inference speed dominates everything else. On CPU the control plane is not the
+bottleneck: JSON, process spawn, and file IO are all sub-100 ms. On CUDA the
+GPU build decodes roughly 18× faster for the same 4B model, so the runtime
+backend — not the HTTP layer — determines perceived latency. The backend is
+selected in the runtime panel (Auto/CPU/CUDA) and recorded in
+`runtime/selection.json`; CUDA adds `-ngl 99`, while both backends cap
+reasoning with `--reasoning-budget 256`.
 
 Memory: server ~150–250 MB JVM, llama-server ~3–5 GB for a 4B Q4 model
 depending on context, core ~10 MB per invocation.
@@ -633,9 +665,11 @@ for the two reference implementations.
 | `native-c/native_tool.c` | 300 | Hash/verify/sysinfo CLI |
 | `native-c/sha256.c` | 241 | SHA-256 implementation |
 | `server-java/.../ModelManager.java` | 1176 | Registry, downloads, extraction, runtime files |
-| `server-java/.../ApiHandler.java` | 1151 | Routes, chat/debug orchestration, progress/cancel, static serving |
-| `server-java/.../ComplianceService.java` | 849 | Baseline rules, jurisdiction packs, audit |
-| `server-java/.../OnlineService.java` | 783 | Geo, search chain, relevance filter, law refresh |
+| `server-java/.../ApiHandler.java` | 2438 | Routes, chat/agent/debug orchestration, progress/cancel, static serving |
+| `server-java/.../AgentShell.java` | 1211 | Cross-platform command execution, app discovery, software reference, publish guard |
+| `server-java/.../ToolProvisioner.java` | 1436 | Portable toolchains, package-manager mappings, PATH refresh, tool discovery |
+| `server-java/.../KeyStore.java` | 740 | Provider vault, active key mirroring, agent settings, token limit |
+| `server-java/.../OnlineService.java` | 1208 | Parallel search, page fetch, relevance filter, result persistence |
 | `server-java/.../MemoryStore.java` | 496 | Tokenizer, scoring, dedupe, pruning |
 | `server-java/.../ProjectIndex.java` | 325 | Workspace scan, search, context builder |
 | `server-java/.../RuntimeManager.java` | 296 | llama-server lifecycle |
@@ -679,14 +713,9 @@ for the two reference implementations.
   A 4B local model is not DeepSeek-V3 on open-domain reasoning; it becomes
   substantially better at *your* project and *your* recurring fixes, and it
   keeps working with the network unplugged.
-- Jurisdiction packs cover 13 named regions, the EU, and an international
-  fallback. Live law briefs are in-memory with a 24-hour freshness window
-  (`compliance.refresh_hours`) and are not written to disk, so a restart while
-  offline starts from the compiled pack. They are not a substitute for a lawyer.
-- Online law research depends on public search engines; rate limits or an
-  unreachable SearXNG instance degrade to DuckDuckGo/360/Wikipedia and finally
-  to the compiled pack. An empty or irrelevant result set is rejected rather
-  than injected into the prompt.
+- Online research depends on public search engines; rate limits or an
+  unreachable SearXNG instance degrade to DuckDuckGo/360/Wikipedia. An empty or
+  irrelevant result set is rejected rather than injected into the prompt.
 - There is no multi-process memory lock. Two server instances pointed at the
   same root would append to the same JSONL; run one server per checkout.
 

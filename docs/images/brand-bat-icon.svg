@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" aria-hidden="true">
+<defs>
+<radialGradient id="cfBatbadge" cx="50%" cy="34%" r="72%"><stop offset="0" stop-color="#10243c"/><stop offset=".42" stop-color="#081322"/><stop offset=".78" stop-color="#04080f"/><stop offset="1" stop-color="#010205"/></radialGradient>
+<radialGradient id="cfBathalo" cx="50%" cy="60%" r="55%"><stop offset="0" stop-color="#ff8a18" stop-opacity=".55"/><stop offset=".42" stop-color="#ff3d00" stop-opacity=".2"/><stop offset="1" stop-color="#ff3d00" stop-opacity="0"/></radialGradient>
+<radialGradient id="cfBatcore" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff8d8"/><stop offset=".35" stop-color="#ffd24a"/><stop offset=".7" stop-color="#ff6a00"/><stop offset="1" stop-color="#ff3d00" stop-opacity="0"/></radialGradient>
+<linearGradient id="cfBatflameOuter" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#5c0600"/><stop offset=".3" stop-color="#ff3d00"/><stop offset=".68" stop-color="#ff8a00"/><stop offset="1" stop-color="#ffd24a"/></linearGradient>
+<linearGradient id="cfBatflameInner" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff6a00"/><stop offset=".5" stop-color="#ffb300"/><stop offset="1" stop-color="#fff6c0"/></linearGradient>
+<linearGradient id="cfBatring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38f2ff" stop-opacity=".95"/><stop offset=".3" stop-color="#38f2ff" stop-opacity=".08"/><stop offset=".58" stop-color="#ff6a00" stop-opacity=".12"/><stop offset="1" stop-color="#ff8a00" stop-opacity=".95"/></linearGradient>
+<linearGradient id="cfBatbatMetal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101b2b"/><stop offset=".42" stop-color="#070c14"/><stop offset="1" stop-color="#010205"/></linearGradient>
+<linearGradient id="cfBatbatEdge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7af8ff"/><stop offset=".3" stop-color="#a06bff"/><stop offset=".6" stop-color="#ff6a00"/><stop offset="1" stop-color="#ffb300"/></linearGradient>
+<linearGradient id="cfBatscan" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#38f2ff" stop-opacity="0"/><stop offset=".5" stop-color="#c8fdff" stop-opacity=".9"/><stop offset="1" stop-color="#38f2ff" stop-opacity="0"/></linearGradient>
+<linearGradient id="cfBatsweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#38f2ff" stop-opacity=".22"/><stop offset="1" stop-color="#38f2ff" stop-opacity="0"/></linearGradient>
+<filter id="cfBatglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="cfBatsoft" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.8"/></filter>
+<filter id="cfBatstrong" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3.4"/></filter>
+<clipPath id="cfBatbadgeClip"><circle cx="80" cy="80" r="68"/></clipPath>
+<path id="cfBatbatShape" d="M64 22 73 7l6 19c9-2 20 0 31 6 7 4 11 7 14 9-4 1-8 3-11 7-3-2-6-2-9 1-3-3-7-3-10 1-3-3-7-2-10 2-4-3-9-1-12 4-3-3-5-2-8 2-3-4-5-5-8-2-3-5-8-7-12-4-3-4-7-5-10-2-3-4-7-4-10-1-3-3-6-3-9-1-3-4-7-6-11-7 3-2 7-5 14-9 11-6 22-8 31-6l6-19Z"/>
+<clipPath id="cfBatbatClip"><use href="#cfBatbatShape"/></clipPath>
+</defs>
+
+<g class="hud-b" opacity=".72">
+<circle cx="80" cy="80" r="77" fill="none" stroke="url(#cfBatring)" stroke-width="1" stroke-dasharray="46 12 3 12 72 18 5 14"/>
+<circle cx="80" cy="80" r="72.5" fill="none" stroke="#38f2ff" stroke-width=".45" stroke-dasharray="1 8" opacity=".5"/>
+</g>
+<g class="hud-a" opacity=".9">
+<circle cx="80" cy="80" r="79" fill="none" stroke="#38f2ff" stroke-width=".7" stroke-dasharray="1 14" opacity=".45"/>
+<path d="M80 2a78 78 0 0 1 68 40" fill="none" stroke="#38f2ff" stroke-width="1.6" stroke-linecap="round" filter="url(#cfBatglow)"/>
+<path d="M149 112a78 78 0 0 1-45 44" fill="none" stroke="#ff6a00" stroke-width="1.25" stroke-linecap="round" opacity=".8" filter="url(#cfBatglow)"/>
+<path d="M44 4l4 3-4 3-4-3Z" fill="#a8fbff" opacity=".9"/>
+<path d="M142 143l4 3-4 3-4-3Z" fill="#ffb300" opacity=".9"/>
+</g>
+<g opacity=".7" stroke="#38f2ff" stroke-width=".9">
+<path d="M80 0v6M80 154v6M0 80h6M154 80h6"/>
+<path d="M126 8l-3 5M31 148l3-5M34 8l3 5M129 148l-3-5" opacity=".55"/>
+</g>
+
+<circle cx="80" cy="80" r="68" fill="url(#cfBatbadge)" stroke="#38f2ff" stroke-opacity=".22" stroke-width=".8"/>
+<g clip-path="url(#cfBatbadgeClip)">
+  <circle cx="80" cy="80" r="54" fill="none" stroke="#38f2ff" stroke-width=".4" stroke-dasharray="2 9" opacity=".18"/>
+  <circle cx="80" cy="80" r="34" fill="none" stroke="#ff6a00" stroke-width=".4" stroke-dasharray="1 11" opacity=".18"/>
+  <path d="M12 80h136M80 12v136M80 80 22 22M80 80 138 22M80 80 22 138M80 80 138 138" stroke="#38f2ff" stroke-width=".35" opacity=".09"/>
+  <path d="M80 80 80 12A68 68 0 0 1 139 38Z" fill="url(#cfBatsweep)" class="hud-a" opacity=".5"/>
+
+  <g transform="translate(28.5 33) scale(.84 .98)">
+    <g transform="translate(6.4 9) scale(.9)">
+    <circle cx="64" cy="62" r="44" fill="url(#cfBathalo)"/>
+    <g filter="url(#cfBatsoft)" opacity=".5">
+      <path class="flame f1" fill="#ff3d00" d="M64 98C36 92 20 72 26 45c5 14 11 20 18 22-9-18-2-36 12-50-3 18 8 23 6 38 10-13 12-24 6-43 20 17 34 40 27 63 6-10 6-21 3-34 17 22 13 47-5 59-8 5-19 4-29-2Z"/>
+      <path class="flame f2" fill="#ff8a00" d="M64 95c-16-3-25-15-21-32 3 8 8 12 13 13-6-13-1-26 10-36-2 13 7 17 4 28 8-8 9-17 5-30 12 11 20 26 14 42 4-6 4-13 2-20 10 14 6 30-8 35-6 2-12 1-19 0Z"/>
+      <path class="flame f3" fill="#ffb300" d="M64 92c-8-3-12-10-10-20 3 7 7 9 10 10-4-9 0-15 5-21 0 8 5 11 3 18 5-4 6-9 3-16 7 7 10 16 7 24-2 3-5 5-9 5h-9Z"/>
+    </g>
+    <g opacity=".96">
+      <path class="flame f1" fill="url(#cfBatflameOuter)" filter="url(#cfBatglow)" d="M65 98C46 95 36 83 39 63c3 9 8 15 13 17-6-14-2-28 9-38-2 14 6 19 4 30 7-9 9-19 5-33 13 13 24 31 19 49 4-9 4-16 2-26 13 16 11 35-4 45-7 4-14 3-22-9Z"/>
+      <path class="flame f2" fill="#ffb300" opacity=".94" d="M65 95c-11-3-16-11-13-22 3 6 6 8 9 9-5-9-1-20 7-26-1 10 5 14 3 21 5-6 5-13 3-22 9 9 14 19 10 30 3-5 3-10 2-15 8 10 5 22-5 27-5 2-10 1-16-2Z"/>
+      <path class="flame f3" fill="#fff2b0" opacity=".95" d="M65 92c-5-2-7-6-5-11 2 4 4 5 5 5-2-5 0-9 3-12 0 5 3 7 2 10 3-2 3-6 2-9 4 4 6 9 3 13-1 2-3 3-5 3h-5Z"/>
+    </g>
+    <g filter="url(#cfBatsoft)" opacity=".62">
+      <path class="flame f3" fill="#ff2a00" d="M20 96c-7-16-3-32 6-45 0 12 5 18 3 28 5-6 6-13 3-21 8 13 8 30-1 39-3 4-7 3-11-1Z"/>
+      <path class="flame f2" fill="#ff6a00" d="M108 96c7-16 3-32-6-45 0 12-5 18-3 28-5-6-6-13-3-21-8 13-8 30 1 39 3 4 7 3 11-1Z"/>
+    </g>
+    <g filter="url(#cfBatsoft)" opacity=".75">
+      <path class="flame f2" fill="#ff3d00" d="M31 73c-6-9-4-18 2-25 0 8 4 12 8 14-3-8-1-15 4-21-1 9 4 13 1 21 3 4 2 9-2 12-4 3-9 2-13-1Z"/>
+      <path class="flame f3" fill="#ff8a00" d="M97 73c6-9 4-18-2-25 0 8-4 12-8 14 3-8 1-15-4-21 1 9-4 13-1 21-3 4-2 9 2 12 4 3 9 2 13-1Z"/>
+    </g>
+    <circle class="pulse" cx="64" cy="60" r="8" fill="url(#cfBatcore)" opacity=".8"/>
+    </g>
+
+    <use href="#cfBatbatShape" fill="#020409" stroke="#020409" stroke-width="5.5" stroke-linejoin="round"/>
+    <use href="#cfBatbatShape" fill="url(#cfBatbatMetal)" stroke="#ff6a00" stroke-width="2.6" stroke-linejoin="round" filter="url(#cfBatglow)"/>
+    <use href="#cfBatbatShape" fill="url(#cfBatbatMetal)"/>
+    <use href="#cfBatbatShape" fill="none" stroke="url(#cfBatbatEdge)" stroke-width="1.05" stroke-linejoin="round"/>
+    <use href="#cfBatbatShape" fill="none" stroke="#38f2ff" stroke-width=".5" stroke-dasharray="10 8 2 6" opacity=".65"/>
+    <path d="M60 55 64 66 68 55 64 58Z" fill="#020409" stroke="#ff6a00" stroke-width="1.3" stroke-linejoin="round" filter="url(#cfBatglow)"/>
+    <path d="M64 59v4" stroke="#38f2ff" stroke-width=".6" opacity=".8"/>
+
+    <g clip-path="url(#cfBatbatClip)">
+      <path d="M64 28 46 30 28 33 38 46 57 40Z" fill="#0b1626" opacity=".9"/>
+      <path d="M64 28 82 30 100 33 90 46 71 40Z" fill="#0b1626" opacity=".9"/>
+      <path d="M38 46 20 36 12 40 29 52 46 49Z" fill="#0e1c2e" opacity=".9"/>
+      <path d="M90 46 108 36 116 40 99 52 82 49Z" fill="#0e1c2e" opacity=".9"/>
+      <path d="M57 40 44 47 32 52 41 57 56 51Z" fill="#07111d" opacity=".95"/>
+      <path d="M71 40 84 47 96 52 87 57 72 51Z" fill="#07111d" opacity=".95"/>
+      <path d="M59 27 69 27 71 43 64 51 57 43Z" fill="#0c192a" opacity=".95"/>
+      <path d="M64 26V51M45 31 36 45M83 31l9 14M30 35 24 46M98 35l6 11M42 49l-9 5M86 49l9 5" stroke="#38f2ff" stroke-width=".5" opacity=".5" stroke-dasharray="5 4 1 4"/>
+      <path d="M64 32 52 34M64 32l12 2M52 34 47 43M76 34l5 9M47 43l-8 5M81 43l8 5" stroke="#ff8a00" stroke-width=".45" opacity=".65"/>
+      <path d="M64 28 46 30 28 33" stroke="#38f2ff" stroke-width=".7" opacity=".6"/>
+      <path d="M64 28 82 30 100 33" stroke="#38f2ff" stroke-width=".7" opacity=".6"/>
+      <g fill="#38f2ff">
+        <circle cx="46" cy="30" r=".8"/><circle cx="82" cy="30" r=".8"/><circle cx="28" cy="33" r=".6" opacity=".8"/>
+        <circle cx="100" cy="33" r=".6" opacity=".8"/><circle cx="47" cy="43" r=".7"/><circle cx="81" cy="43" r=".7"/>
+      </g>
+      <g fill="#ffb300">
+        <circle cx="36" cy="45" r=".55" opacity=".9"/><circle cx="92" cy="45" r=".55" opacity=".9"/>
+      </g>
+      <path d="M55.5 25.5c1.8-1.2 4.2-1.2 6 0-1.8 2-4.2 2-6 0Z" fill="#a8fbff" filter="url(#cfBatglow)" opacity=".95"/>
+      <path d="M72.5 25.5c-1.8-1.2-4.2-1.2-6 0 1.8 2 4.2 2 6 0Z" fill="#a8fbff" filter="url(#cfBatglow)" opacity=".95"/>
+      <circle cx="58.5" cy="26" r=".95" fill="#04121a"/>
+      <circle cx="69.5" cy="26" r=".95" fill="#04121a"/>
+      <g fill="none" stroke-linecap="round" opacity=".55">
+        <path d="M54 44Q40 38 23 35" stroke="#ffb300" stroke-width=".55"/>
+        <path d="M56 48Q42 46 28 46" stroke="#ff8a00" stroke-width=".5"/>
+        <path d="M58 52Q46 52 34 54" stroke="#ffb300" stroke-width=".45"/>
+        <path d="M74 44Q88 38 105 35" stroke="#ffb300" stroke-width=".55"/>
+        <path d="M72 48Q86 46 100 46" stroke="#ff8a00" stroke-width=".5"/>
+        <path d="M70 52Q82 52 94 54" stroke="#ffb300" stroke-width=".45"/>
+        <path d="M54 44Q40 38 23 35" stroke="#38f2ff" stroke-width=".2" stroke-dasharray="3 4"/>
+        <path d="M74 44Q88 38 105 35" stroke="#38f2ff" stroke-width=".2" stroke-dasharray="3 4"/>
+      </g>
+      <circle cx="64" cy="44" r="4.6" fill="none" stroke="#ff8a00" stroke-width=".7" opacity=".9" filter="url(#cfBatglow)"/>
+      <circle cx="64" cy="44" r="2.8" fill="none" stroke="#38f2ff" stroke-width=".45" stroke-dasharray="1 1.5" opacity=".8"/>
+      <path d="M64 40.5 67 44l-3 3.5-3-3.5Z" fill="#ffd24a" filter="url(#cfBatglow)"/>
+      <path d="M64 42 65.2 44 64 46 62.8 44Z" fill="#fff8d8"/>
+      <rect class="scan" x="2" y="22" width="124" height="1.7" fill="url(#cfBatscan)" opacity=".9"/>
+    </g>
+
+    <g fill="#ffca6a">
+      <circle class="ember" cx="42" cy="82" r="1.2"/><circle class="ember" cx="86" cy="79" r="1"/>
+      <circle class="ember" cx="54" cy="86" r=".9"/><circle class="ember" cx="76" cy="88" r="1"/>
+      <circle class="ember" cx="64" cy="91" r=".8"/><circle class="ember" cx="96" cy="91" r=".75"/>
+      <circle class="ember" cx="34" cy="94" r=".7"/><circle class="ember" cx="110" cy="96" r=".65"/>
+      <circle class="ember" cx="18" cy="58" r=".6"/><circle class="ember" cx="110" cy="54" r=".55"/>
+      <circle class="ember" cx="34" cy="50" r=".55"/><circle class="ember" cx="94" cy="47" r=".5"/>
+    </g>
+    <g fill="#38f2ff" opacity=".75">
+      <circle class="ember" cx="28" cy="72" r=".55"/><circle class="ember" cx="102" cy="68" r=".5"/>
+    </g>
+  </g>
+</g>
+<circle cx="80" cy="80" r="68" fill="none" stroke="url(#cfBatring)" stroke-width="1.35"/>
+<circle cx="80" cy="80" r="64.5" fill="none" stroke="#ff6a00" stroke-width=".5" opacity=".28" stroke-dasharray="18 7 2 7"/>
+<g opacity=".85">
+  <path d="M80 9v5" stroke="#38f2ff" stroke-width="1.2"/>
+  <path d="M80 146v5" stroke="#ff8a00" stroke-width="1.2"/>
+  <path d="M9 80h5" stroke="#ff8a00" stroke-width="1.2"/>
+  <path d="M146 80h5" stroke="#38f2ff" stroke-width="1.2"/>
+</g>
+</svg>

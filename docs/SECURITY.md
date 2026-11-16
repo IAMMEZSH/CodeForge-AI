@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.0.3 · Last reviewed 2026-11-16
+Version 1.0.4 · Last reviewed 2026-11-16
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:
@@ -40,7 +40,8 @@ Only the latest release receives fixes. There is no LTS branch.
 | API keys for external OpenAI-compatible gateways | High | `config.json` or environment |
 | Persistent memory (chat text, lessons, preferences) | High | `memory/memories.jsonl` |
 | Workspace index (your file names and opening lines) | High | `memory/project-index.jsonl` |
-| Compliance audit trail | Medium | `memory/compliance.log` |
+| Command/tool inventory and installed application names | Medium | generated at runtime, loopback API and agent prompt |
+| Tool installation logs | Medium | `logs/provision-*.log` |
 | Model files | Medium (large, re-downloadable) | `models/downloads/` |
 | Download and run logs | Medium | `logs/`, `workspace/*/report.json` |
 | Local ports 8765 and 8080 | High (code execution, inference) | loopback |
@@ -156,14 +157,14 @@ file. Keep llama.cpp current and prefer well-known repositories.
 - No analytics, crash reporting, telemetry, update checks, or fingerprinting.
 - No outbound request except: model downloads (domestic mirror with Hugging
   Face fallback), runtime downloads (GitHub), the configured LLM backend
-  (loopback by default), the optional online LLM you configure, and
-  law/geolocation research when enabled.
+  (loopback by default), the optional online LLM you configure, and opt-in web
+  research.
 - Chat history and code are not uploaded by CodeForge itself. They are written
   to `workspace/` and — by design, so the offline brain remembers — to
   `memory/memories.jsonl`.
 - Memory is plain JSONL, unencrypted, readable by anything running as you. It
-  contains user prompts, model replies, source tags and optional jurisdiction
-  codes. Treat it like a diary of your work.
+  contains user prompts, model replies and source tags. Treat it like a diary
+  of your work.
 - Debug outcomes are stored as `note` entries; online answers as `lesson`
   entries. There is no automatic expiry beyond the `max_entries` prune, so
   delete `memory/memories.jsonl` to erase the accumulated brain.
@@ -171,16 +172,13 @@ file. Keep llama.cpp current and prefer well-known repositories.
   contain fragments of your code if a compiler echoes it — treat `logs/` as
   sensitive.
 
-### 4.7 Persistent memory, online learning and compliance
+### 4.7 Persistent memory and online learning
 
 | Mechanism | What leaves the machine | Default |
 | --- | --- | --- |
 | Local chat | nothing | on |
 | Online brain | prompt + injected memory/workspace context + recent messages to your provider | off while `llm.online.api_key` is empty |
 | Web research | the search query (never the full prompt) to the search engine | on when `online.enabled` |
-| Geolocation | the public IP is seen by `ipwho.is` / `ipapi.co` | on; can be pinned with `compliance.jurisdiction` |
-| Law refresh | a country/year law query to the search chain | on when `online.refresh` |
-| Compliance audit | local only: timestamp, phase, verdict, flags, jurisdiction, text length, 8-byte SHA-256 prefix | on |
 
 Consequences worth stating plainly:
 
@@ -191,12 +189,6 @@ Consequences worth stating plainly:
   inserted under a “web findings” heading with an explicit instruction to treat
   them as evidence rather than commands; prompt injection is reduced, not
   eliminated.
-- Compliance screening runs before the model and again on its output. It is a
-  guardrail against clearly unlawful requests, not a guarantee: the verdict is
-  lexical and jurisdictional, and a lawful-looking request can still be harmful
-  in context. The user remains responsible.
-- The audit log stores a hash prefix of the screened text, not the text, so it
-  cannot be used to reconstruct prompts. It also rotates at 512 KB.
 
 ### 4.8 Desktop and mobile shells
 
@@ -208,13 +200,37 @@ Consequences worth stating plainly:
 - The iOS client has the same posture (ATS exceptions for local networking).
   Both thin clients are display layers; they do not store model data.
 
+### 4.9 Command agent and tool provisioning
+
+- Every command runs as the current user through PowerShell, cmd, bash, sh or
+  zsh. The process tree is bounded by the configured timeout and killed as a
+  tree; that is resource control, not a privilege boundary.
+- A missing command is downloaded from the native package manager or a
+  portable toolchain, PATH is refreshed, and the command is retried once.
+  Downloads use the same TLS and integrity expectations as model/runtime
+  downloads; package managers verify their own signatures where available.
+- The publish guard blocks remote/public actions by default: `git push`, release
+  and PR/issue creation, registry and container pushes, `scp`/`rsync`/`sftp`,
+  cloud deploys and outbound write HTTP methods. It is a policy layer that can
+  be disabled with `agent.allow_publish`; it does not sandbox an already-running
+  program, and a locally allowed script can still open network connections.
+- The agent receives an inventory of detected commands and installed
+  applications. That inventory stays on loopback unless online routing is
+  active, in which case the prompt (including the inventory) goes to the
+  configured provider.
+- Web pages returned by search, fetch and learn are untrusted data. The prompt
+  labels them as evidence and forbids following their instructions; prompt
+  injection is reduced, not eliminated.
+
 ---
 
 ## 5. What is NOT defended
 
 | Risk | Detail | Mitigation for you |
 | --- | --- | --- |
-| Arbitrary code execution | `/api/run`, `/api/debug` and the compiler run your code as you | Run untrusted code in a VM, Windows Sandbox, container, or dedicated low-privilege user |
+| Arbitrary code execution | `/api/run`, `/api/debug`, `/api/agent/run` and the compiler run your code as you | Run untrusted code in a VM, Windows Sandbox, container, or dedicated low-privilege user |
+| Guard bypass through an allowed program | The publish guard filters command text, but an already-running program can use the network directly | Keep `agent.allow_publish` off; review agent commands; use OS firewall rules for hard egress control |
+| Unreviewed tool installation | Auto-provisioning downloads and executes package-manager or portable installers as you | Keep `agent.auto_install_tools` off for sensitive work, or review the install log first |
 | Same-user malware | Any process under your account can call the API | Keep the machine clean; use a separate account for experiments |
 | Exposed ports | Binding is loopback, but tunnels/reverse proxies can expose it | If exposing, add authentication and TLS; never port-forward 8765 directly |
 | llama.cpp vulnerabilities | GGUF parsing is a native attack surface | Use official releases, keep the runtime updated |
@@ -225,7 +241,6 @@ Consequences worth stating plainly:
 | Memory poisoning | A wrong or malicious lesson is recalled later with high weight | Review `memory/memories.jsonl`, delete bad lines, or set `memory.enabled` to false |
 | Prompt injection via research | Untrusted snippets enter the prompt | Results are filtered and labelled as evidence; keep `online.research` off for sensitive work |
 | Online provider logging | Prompts, memory hits and snippets reach a third party | Leave `llm.online.api_key` empty for fully local operation |
-| Stale law pack | A jurisdiction summary can lag behind new legislation | Set `compliance.refresh_hours` low, or pin `compliance.jurisdiction` and verify with official sources |
 
 ---
 
@@ -316,14 +331,15 @@ icacls workspace /inheritance:r /grant:r "<user>:(OI)(CI)(F)"
 | `api.github.com`, `github.com`, `objects.githubusercontent.com` | runtime install | anonymous HTTPS GET |
 | Configured `openai_url` (default `127.0.0.1:8080`) | chat/debug | prompts and code |
 | Configured `ollama_url` (default `127.0.0.1:11434`) | chat/debug | prompts and code |
-| Configured `llm.online.base_url` (DeepSeek by default) | chat/debug when an online key is set | prompts, code, injected memory and workspace context |
-| `ipwho.is`, `ipapi.co` | jurisdiction detection | public IP as seen by the service |
-| Configured SearXNG endpoint, `duckduckgo.com`, `so.com`, `wikipedia.org` | research / law refresh | the search query only |
+| Configured `llm.online.base_url` (DeepSeek by default) | chat/debug when an online key is set | prompts, code, injected memory, workspace context and tool/application inventory |
+| Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360, Wikipedia | web research, agent search/fetch/learn | the search query or requested URL only |
+| Native package managers and their mirrors | automatic tool provisioning | package names and downloads |
+| Any host the agent is explicitly asked to fetch or publish to | agent web tools or an approved publish action | the command or content the task requires |
 
 If you point `openai_url` or `llm.online.base_url` at a cloud provider, **your
 code and prompts leave the machine**. That is a configuration decision, not a
-default. Set `CODEFORGE_ONLINE=0` to disable all research, geo lookup and law
-refresh while keeping the local model working.
+default. Set `CODEFORGE_ONLINE=0` to disable all research while keeping the
+local model working.
 
 ---
 
@@ -336,14 +352,13 @@ refresh while keeping the local model working.
 | Which model answered? | `report.json`, `logs/llama-server.log`, `/api/status`, chat `meta.brain` |
 | What does the offline brain remember? | `memory/memories.jsonl` |
 | Which files are indexed? | `memory/project-index.jsonl`, `GET /api/workspace?stats=1` |
-| Was a request refused? | `memory/compliance.log` (verdict, flags, jurisdiction, hash prefix) |
 | Who called the API? | Server does not log clients by default; enable OS-level connection auditing if needed |
 | Was a download verified? | `models/models.json` `sha256`, `runtime/runtime.json` `sha256` |
 | Is something listening? | `netstat -ano` / `ss -ltnp` |
 
-The server keeps a small in-memory job list. The compliance audit log is the
-only persistent event trail; it records decisions, not prompts or replies. For
-real auditing, ship `workspace/`, `logs/` and `memory/` to your own storage.
+The server keeps a small in-memory job list; no persistent event trail is kept
+beyond workspaces, logs and memory. For real auditing, ship `workspace/`,
+`logs/` and `memory/` to your own storage.
 
 ---
 
@@ -379,9 +394,6 @@ real auditing, ship `workspace/`, `logs/` and `memory/` to your own storage.
 - **Memory is local, plain and deletable** because a “brain” you cannot audit or
   erase is a liability. It is never uploaded by CodeForge, and packaging excludes
   it so a build never carries someone else's prompts.
-- **Compliance refuses rather than argues.** The baseline cannot be disabled by
-  configuration; jurisdiction packs add detail. The audit log stores hashes, not
-  text, so enforcement does not become a second copy of sensitive prompts.
 - **No telemetry** is a product promise and removes an entire class of data
   leakage.
 

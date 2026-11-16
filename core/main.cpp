@@ -27,7 +27,7 @@
 
 namespace {
 
-const char* kVersion = "1.0.3";
+const char* kVersion = "1.0.4";
 
 std::string arg_utf8(wchar_t* value) {
     if (value == nullptr) {
@@ -256,13 +256,24 @@ int command_chat(const std::filesystem::path& root) {
     }
     Json decorated = with_system_prompt(*messages, request.get_string("context"));
     std::string model = request.get_string("model");
-    cf::LlmReply reply = cf::llm_complete(active_config, backend, decorated, model);
+    std::filesystem::path stream_file;
+    std::string stream_arg = request.get_string("stream_log");
+    if (!stream_arg.empty()) {
+        stream_file = cf::path_from_utf8(stream_arg);
+        if (stream_file.is_relative()) {
+            stream_file = root / stream_file;
+        }
+    }
+    cf::LlmReply reply =
+        cf::llm_complete(active_config, backend, decorated, model, !use_online,
+                         cf::path_utf8(stream_file));
     if (!reply.ok && use_online) {
         route_error = "Online brain failed: " + reply.error;
         use_online = false;
         backend = cf::detect_backend(config.llm);
         if (backend.available) {
-            reply = cf::llm_complete(config.llm, backend, decorated, model);
+            reply = cf::llm_complete(config.llm, backend, decorated, model, true,
+                                     cf::path_utf8(stream_file));
         }
     }
     if (!reply.ok) {

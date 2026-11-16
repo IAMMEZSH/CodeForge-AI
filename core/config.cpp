@@ -139,7 +139,7 @@ AppConfig load_config(const std::filesystem::path& root) {
     config.llm.online.timeout_ms =
         std::clamp(config.llm.online.timeout_ms, 5000, 600000);
     config.llm.temperature = std::clamp(config.llm.temperature, 0.0, 2.0);
-    config.llm.max_tokens = std::clamp(config.llm.max_tokens, 64, 32768);
+    config.llm.max_tokens = std::clamp(config.llm.max_tokens, 64, 393216);
     config.llm.request_timeout_ms =
         std::clamp(config.llm.request_timeout_ms, 5000, 3600000);
     config.debug.max_iterations = std::clamp(config.debug.max_iterations, 1, 8);

@@ -1,5 +1,6 @@
 package codeforge.server;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -145,7 +146,7 @@ public final class ToolchainManager {
                     "Portable PHP CLI (Windows zip build). Linux and macOS use the system package manager.",
                     WINDOWS, 35, List.of("php")),
             new RuntimeDef("dotnet", ".NET SDK",
-                    "Microsoft .NET SDK for C#. The first install downloads roughly 200 MB.",
+                    "Full Microsoft .NET SDK for C# (compiler and templates, not the runtime-only host). The first install downloads roughly 220 MB.",
                     true, 220, List.of("csharp")),
             new RuntimeDef("browser", "HTML / CSS preview",
                     "Built into the console: generated pages render in a sandboxed preview frame.",
@@ -316,6 +317,50 @@ public final class ToolchainManager {
         result.put("message", job.message);
         result.put("progress", job.percent);
         return result;
+    }
+
+    /**
+     * Ensures a runtime and waits for a started download to finish. Used by the
+     * command agent when a tool is missing and must be provisioned before retry.
+     */
+    public Map<String, Object> ensureBlocking(String runtimeId,
+                                              boolean allowDownload,
+                                              long timeoutSeconds,
+                                              java.util.function.Consumer<Map<String, Object>> progress) {
+        long deadline = System.currentTimeMillis() + Math.max(30, timeoutSeconds) * 1000L;
+        Map<String, Object> current = ensure(runtimeId, allowDownload, true);
+        while (true) {
+            if (progress != null) {
+                progress.accept(current);
+            }
+            String state = Json.str(current, "state", "");
+            if ("ready".equals(state) || "failed".equals(state)
+                    || "unsupported".equals(state) || "missing".equals(state)) {
+                return current;
+            }
+            if (System.currentTimeMillis() >= deadline) {
+                current.put("state", "timeout");
+                current.put("timeout", true);
+                current.put("error", "toolchain install timed out after "
+                        + timeoutSeconds + " seconds");
+                return current;
+            }
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                current.put("state", "cancelled");
+                current.put("error", "toolchain install interrupted");
+                return current;
+            }
+            current = ensure(runtimeId, false, false);
+        }
+    }
+
+    /** Invalidates the detection cache so a freshly installed tool is visible. */
+    public void refreshDetection() {
+        detection = Map.of();
+        detectionAt = 0L;
     }
 
     public Resolved resolve(String runtimeId) {
@@ -498,10 +543,15 @@ public final class ToolchainManager {
                 return null;
             }
             String[] args = id.equals("go") ? new String[]{"version"}
+                    : id.equals("dotnet") ? new String[]{"--list-sdks"}
                     : id.equals("java") ? new String[]{"-version"}
                     : new String[]{"--version"};
             Map<String, String> env = buildEnvironment(id, exe.getParent(), home);
-            String version = probe(exe, args[0], env);
+            String raw = probeRaw(exe, args[0], env);
+            String version = versionLine(raw);
+            if (id.equals("dotnet") && !raw.matches("(?s).*\\d+\\.\\d+\\.\\d+.*")) {
+                return null;
+            }
             RuntimeDef def = def(id);
             return runtime(id, def == null ? id : def.name, exe, version, "managed", home);
         } catch (Exception ex) {
@@ -625,7 +675,7 @@ public final class ToolchainManager {
                 return "";
             }
             byte[] bytes = process.getInputStream().readAllBytes();
-            return new String(bytes, StandardCharsets.UTF_8);
+            return Encodings.decode(bytes);
         } catch (Exception ex) {
             return "";
         }
@@ -954,6 +1004,11 @@ public final class ToolchainManager {
         if (exe == null) {
             throw new IOException(".NET SDK archive did not contain dotnet" + EXE);
         }
+        String sdks = probeRaw(exe, "--list-sdks",
+                buildEnvironment("dotnet", exe.getParent(), staging));
+        if (!sdks.matches("(?s).*\\d+\\.\\d+\\.\\d+.*")) {
+            throw new IOException(".NET archive exposed no SDK; a runtime-only build was rejected");
+        }
         if (!WINDOWS) {
             try {
                 Files.setPosixFilePermissions(exe, EnumSet.of(
@@ -1022,19 +1077,43 @@ public final class ToolchainManager {
             Files.move(finalDir, backup, StandardCopyOption.REPLACE_EXISTING);
         }
         try {
-            Files.move(staging, finalDir, StandardCopyOption.REPLACE_EXISTING);
+            moveWithRetry(staging, finalDir);
             if (backup != null) {
                 deleteQuietly(backup);
             }
         } catch (IOException ex) {
             if (backup != null && !Files.exists(finalDir)) {
                 try {
-                    Files.move(backup, finalDir, StandardCopyOption.REPLACE_EXISTING);
+                    moveWithRetry(backup, finalDir);
                 } catch (IOException ignored) {
                 }
             }
             throw ex;
         }
+    }
+
+    // Windows Defender and indexers briefly hold handles on freshly written
+    // executables, which makes the promotion rename fail on the first attempt.
+    private static void moveWithRetry(Path source, Path target) throws IOException {
+        IOException last = null;
+        for (int attempt = 0; attempt < 6; attempt++) {
+            if (!Files.exists(source) && Files.exists(target)) {
+                return;
+            }
+            try {
+                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+                return;
+            } catch (IOException ex) {
+                last = ex;
+                try {
+                    Thread.sleep(200L * (attempt + 1));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw ex;
+                }
+            }
+        }
+        throw last;
     }
 
     private Map<String, Object> downloadWithFallback(List<String[]> candidates, Job job)
@@ -1380,13 +1459,13 @@ public final class ToolchainManager {
             return bytes + " B";
         }
         double value = bytes;
-        String[] units = {"KB", "MB", "GB"};
+        String[] units = {"B", "KB", "MB", "GB", "TB"};
         int index = 0;
         while (value >= 1024 && index < units.length - 1) {
             value /= 1024;
             index++;
         }
-        return String.format(Locale.ROOT, "%.1f %s", value, units[index - 1]);
+        return String.format(Locale.ROOT, "%.1f %s", value, units[index]);
     }
 
     private static String tail(String text, int max) {
@@ -1410,17 +1489,18 @@ public final class ToolchainManager {
                 .redirectErrorStream(true);
         builder.environment().putAll(env);
         Process process = builder.start();
-        StringBuilder output = new StringBuilder();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        int limitBytes = captureLimit * 3;
         Thread reader = new Thread(() -> {
-            try (InputStream input = process.getInputStream()) {
+            try {
                 byte[] buffer = new byte[8192];
                 int read;
-                while ((read = input.read(buffer)) != -1) {
-                    if (output.length() < captureLimit) {
-                        output.append(new String(buffer, 0, read, StandardCharsets.UTF_8));
-                    }
-                    if (job != null && !job.message.startsWith("running")) {
-                        // keep the visible message stable; installer output is logged on failure
+                while ((read = process.getInputStream().read(buffer)) != -1) {
+                    synchronized (output) {
+                        int room = limitBytes - output.size();
+                        if (room > 0) {
+                            output.write(buffer, 0, Math.min(room, read));
+                        }
                     }
                 }
             } catch (IOException ignored) {
@@ -1438,7 +1518,9 @@ public final class ToolchainManager {
         reader.join(3000);
         ProcessResult result = new ProcessResult();
         result.exitCode = process.exitValue();
-        result.output = output.toString();
+        synchronized (output) {
+            result.output = Encodings.decode(output.toByteArray());
+        }
         return result;
     }
 

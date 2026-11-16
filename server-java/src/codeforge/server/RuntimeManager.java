@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +27,7 @@ public final class RuntimeManager {
     public static final int INFERENCE_PORT = 8080;
 
     private final Path root;
+    private final Path pidFile;
     private final ModelManager models;
     private final AppSettings settings;
     private final HttpClient http;
@@ -37,9 +39,11 @@ public final class RuntimeManager {
     private Instant startedAt;
     private Path logFile;
     private String lastError = "";
+    private String activeBackend = "";
 
     public RuntimeManager(Path root, ModelManager models, AppSettings settings) {
         this.root = root;
+        this.pidFile = root.resolve("logs").resolve("llama-server.pid");
         this.models = models;
         this.settings = settings;
         this.http = HttpClient.newBuilder()
@@ -69,6 +73,11 @@ public final class RuntimeManager {
                 "context_min", AppSettings.MIN_CONTEXT_SIZE,
                 "context_max", AppSettings.MAX_CONTEXT_SIZE,
                 "parallel_max", AppSettings.MAX_PARALLEL_SLOTS,
+                "max_tokens", settings.maxTokens(),
+                "max_tokens_min", AppSettings.MIN_MAX_TOKENS,
+                "max_tokens_max", AppSettings.MAX_MAX_TOKENS,
+                "backend", alive ? activeBackend : models.resolvedRuntimeBackend(),
+                "backend_selected", models.runtimeBackend(),
                 "started_at", startedAt == null ? "" : startedAt.toString(),
                 "log", logFile == null ? "" : root.relativize(logFile).toString(),
                 "error", lastError);
@@ -99,9 +108,14 @@ public final class RuntimeManager {
                 return Json.map(
                         "processing", true,
                         "n_decoded", Json.integer(next, "n_decoded", 0),
-                        "n_remain", Json.integer(next, "n_remain", 0),
+                        "n_remain", Json.integer(next, "n_remain", -1),
                         "max_tokens", Json.integer(params, "max_tokens", 0),
-                        "n_prompt_tokens", Json.integer(slot, "n_prompt_tokens", 0));
+                        "n_ctx", Json.integer(slot, "n_ctx", 0),
+                        "n_prompt_tokens", Json.integer(slot, "n_prompt_tokens", 0),
+                        "n_prompt_tokens_processed",
+                        Json.integer(slot, "n_prompt_tokens_processed", 0),
+                        "n_prompt_tokens_cache",
+                        Json.integer(slot, "n_prompt_tokens_cache", 0));
             }
         } catch (Exception ignored) {
         }
@@ -125,10 +139,14 @@ public final class RuntimeManager {
         }
         Path server = models.runtimeServerPath();
         if (server == null) {
-            return Json.map("ok", false,
-                    "error", "llama.cpp runtime is not installed. Install it from the Models tab, "
-                            + "or set llm.llama_server in config.json to an existing llama-server binary.");
+            String error = "cuda".equals(models.resolvedRuntimeBackend())
+                    ? "The selected CUDA llama.cpp runtime is missing. "
+                            + "Install it into runtime/llama.cpp-cuda or switch the backend to CPU."
+                    : "llama.cpp runtime is not installed. Install it from the Models tab, "
+                            + "or set llm.llama_server in config.json to an existing llama-server binary.";
+            return Json.map("ok", false, "error", error);
         }
+        String backend = models.resolvedRuntimeBackend();
         String id = modelId == null ? "" : modelId.trim();
         if (id.isEmpty()) {
             id = pickInstalledModel();
@@ -161,17 +179,29 @@ public final class RuntimeManager {
             command.add("-t");
             command.add(Integer.toString(Math.max(2, Runtime.getRuntime().availableProcessors() / 2)));
             command.add("--no-webui");
+            if ("cuda".equals(backend)) {
+                command.add("-ngl");
+                command.add("99");
+            }
+            command.add("--reasoning");
+            command.add("off");
+            command.add("--reasoning-budget");
+            command.add("256");
 
             ProcessBuilder builder = new ProcessBuilder(command);
             builder.directory(root.toFile());
             builder.redirectErrorStream(true);
             builder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
             builder.environment().put("LLAMA_LOG_COLORS", "0");
+            builder.environment().put("LLAMA_ARG_CHAT_TEMPLATE_KWARGS",
+                    "{\"enable_thinking\":false}");
             process = builder.start();
+            writePid(process.pid(), server);
             activeModelId = id;
             activeModelPath = model.toString();
             activeContextSize = contextSize;
             activeParallelSlots = parallelSlots;
+            activeBackend = backend;
             startedAt = Instant.now();
             lastError = "";
 
@@ -199,6 +229,7 @@ public final class RuntimeManager {
         if (process == null || !process.isAlive()) {
             boolean external = probeHealth();
             process = null;
+            clearPid();
             return Json.map("ok", true,
                     "message", external
                             ? "The external inference service is not managed by CodeForge and cannot be stopped."
@@ -207,6 +238,123 @@ public final class RuntimeManager {
         }
         stopLocked();
         return Json.map("ok", true, "message", "Inference service stopped.");
+    }
+
+    /**
+     * A hard crash of the console can leave llama-server running with a huge
+     * model still mapped. Stop it on the next launch so the port is usable and
+     * the memory is returned, but only when the recorded PID still belongs to
+     * our own server under this root.
+     */
+    public synchronized Map<String, Object> cleanupStaleProcess() {
+        if (!Files.isRegularFile(pidFile)) {
+            return Json.map("ok", true, "cleaned", false);
+        }
+        long pid = 0;
+        long owner = 0;
+        String recordedServer = "";
+        try {
+            List<String> lines = Files.readAllLines(pidFile, StandardCharsets.UTF_8);
+            if (!lines.isEmpty()) {
+                pid = Long.parseLong(lines.get(0).trim());
+            }
+            if (lines.size() > 1) {
+                owner = Long.parseLong(lines.get(1).trim());
+            }
+            if (lines.size() > 2) {
+                recordedServer = lines.get(2).trim();
+            }
+        } catch (Exception ignored) {
+        }
+        // Another live console owns this runtime; leave its inference server alone.
+        if (owner > 0 && ProcessHandle.of(owner).map(ProcessHandle::isAlive).orElse(false)) {
+            return Json.map("ok", true, "cleaned", false, "pid", pid,
+                    "reason", "another CodeForge server owns the runtime");
+        }
+        boolean cleaned = false;
+        if (pid > 0) {
+            ProcessHandle handle = ProcessHandle.of(pid).orElse(null);
+            if (handle != null && handle.isAlive()) {
+                ProcessHandle.Info info = handle.info();
+                String commandLine = info.commandLine().orElse("");
+                String image = info.command().orElse("");
+                if (commandLine.isBlank() && image.isBlank()) {
+                    // Keep the record: a future launch may be allowed to inspect it.
+                    return Json.map("ok", true, "cleaned", false, "pid", pid,
+                            "reason", "runtime process could not be inspected");
+                }
+                if (looksLikeOurServer(commandLine, image, recordedServer)) {
+                    handle.descendants().forEach(ProcessHandle::destroyForcibly);
+                    handle.destroyForcibly();
+                    try {
+                        handle.onExit().get(8, TimeUnit.SECONDS);
+                    } catch (Exception ignored) {
+                    }
+                    cleaned = true;
+                }
+            }
+        }
+        clearPid();
+        return Json.map("ok", true, "cleaned", cleaned, "pid", pid);
+    }
+
+    private boolean looksLikeOurServer(String commandLine, String image,
+                                       String recordedServer) {
+        boolean fullCommandLine = commandLine != null && !commandLine.isBlank();
+        String text = fullCommandLine ? commandLine : image;
+        if (text == null) {
+            return false;
+        }
+        String command = normalizePath(text);
+        if (command.isEmpty() || !command.contains("llama-server")) {
+            return false;
+        }
+        String rootText = normalizePath(root.toAbsolutePath().normalize().toString());
+        if (fullCommandLine && (!command.contains("--port")
+                || !command.contains(Integer.toString(INFERENCE_PORT)))) {
+            return false;
+        }
+        // Windows can hide the full command line from ProcessHandle; the image
+        // path plus the path recorded at launch still identify our runtime.
+        if (!recordedServer.isBlank()) {
+            String recorded = normalizePath(recordedServer);
+            if (fullCommandLine ? command.contains(recorded) : command.equals(recorded)) {
+                return true;
+            }
+        }
+        Path expected = models.runtimeServerPath();
+        if (expected != null) {
+            String expectedText = normalizePath(
+                    expected.toAbsolutePath().normalize().toString());
+            if (fullCommandLine ? command.contains(expectedText) : command.equals(expectedText)) {
+                return true;
+            }
+        }
+        return command.contains(rootText);
+    }
+
+    private static String normalizePath(String value) {
+        return value.toLowerCase(Locale.ROOT).replace('\\', '/');
+    }
+
+    private void writePid(long pid, Path server) {
+        try {
+            Files.createDirectories(pidFile.getParent());
+            Files.writeString(pidFile,
+                    pid + System.lineSeparator() + ProcessHandle.current().pid()
+                            + System.lineSeparator()
+                            + server.toAbsolutePath().normalize() + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException ignored) {
+        }
+    }
+
+    private void clearPid() {
+        try {
+            Files.deleteIfExists(pidFile);
+        } catch (IOException ignored) {
+        }
     }
 
     public void shutdown() {
@@ -223,6 +371,7 @@ public final class RuntimeManager {
         activeContextSize = 0;
         activeParallelSlots = 0;
         startedAt = null;
+        clearPid();
         if (target == null) {
             return;
         }

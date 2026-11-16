@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(CodeForgeAI VERSION 1.0.3 LANGUAGES C CXX)
+project(CodeForgeAI VERSION 1.0.4 LANGUAGES C CXX)
 
 # The Java server and the Win32 client both resolve native binaries under
 # native/bin, so every build route (CMake and bootstrap.py) must agree.
@@ -48,6 +48,7 @@ endif()
 if(WIN32)
     add_executable(CodeForge WIN32
         client/main.cpp
+        client/app.rc
         core/http.cpp
         core/util.cpp)
     target_include_directories(CodeForge PRIVATE core)

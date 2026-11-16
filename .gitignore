@@ -19,7 +19,7 @@ logs/
 workspace/
 release/
 
-# Private user brain: lessons, indexed paths, compliance audit
+# Private user brain: lessons and indexed paths
 memory/
 
 # Python

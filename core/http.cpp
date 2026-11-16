@@ -21,11 +21,13 @@ static std::string winhttp_error(const char* stage, DWORD code) {
     return std::string(stage) + " failed (WinHTTP " + std::to_string(code) + ")";
 }
 
-HttpResult http_request(const std::string& method,
-                        const std::string& url,
-                        const std::string& body,
-                        const std::vector<std::pair<std::string, std::string>>& headers,
-                        int timeout_ms) {
+static HttpResult winhttp_request(
+        const std::string& method,
+        const std::string& url,
+        const std::string& body,
+        const std::vector<std::pair<std::string, std::string>>& headers,
+        int timeout_ms,
+        const HttpChunkCallback* on_chunk) {
     HttpResult result;
     if (url.empty()) {
         result.error = "empty url";
@@ -129,7 +131,9 @@ HttpResult http_request(const std::string& method,
                         WINHTTP_NO_HEADER_INDEX);
     result.status = (int)status;
 
-    const size_t max_body = 64u * 1024u * 1024u;
+    const size_t max_body = on_chunk != nullptr
+            ? 256u * 1024u : 64u * 1024u * 1024u;
+    bool truncated = false;
     while (true) {
         DWORD available = 0;
         if (!WinHttpQueryDataAvailable(request, &available)) {
@@ -150,10 +154,22 @@ HttpResult http_request(const std::string& method,
             result.ok = true;
             break;
         }
-        result.body.append(buffer.data(), read);
-        if (result.body.size() > max_body) {
-            result.error = "response body too large";
+        if (on_chunk != nullptr && !(*on_chunk)(buffer.data(), (size_t)read)) {
+            result.error = "stream aborted";
             break;
+        }
+        if (!truncated) {
+            size_t room = max_body - std::min(max_body, result.body.size());
+            if (room > 0) {
+                result.body.append(buffer.data(), std::min<size_t>(room, (size_t)read));
+            }
+            if ((size_t)read > room) {
+                truncated = true;
+                if (on_chunk == nullptr) {
+                    result.error = "response body too large";
+                    break;
+                }
+            }
         }
     }
 
@@ -163,28 +179,52 @@ HttpResult http_request(const std::string& method,
     return result;
 }
 
+HttpResult http_request(const std::string& method,
+                        const std::string& url,
+                        const std::string& body,
+                        const std::vector<std::pair<std::string, std::string>>& headers,
+                        int timeout_ms) {
+    return winhttp_request(method, url, body, headers, timeout_ms, nullptr);
+}
+
+HttpResult http_request_stream(const std::string& method,
+                               const std::string& url,
+                               const std::string& body,
+                               const std::vector<std::pair<std::string, std::string>>& headers,
+                               int timeout_ms,
+                               const HttpChunkCallback& on_chunk) {
+    return winhttp_request(method, url, body, headers, timeout_ms, &on_chunk);
+}
+
 #else  // POSIX
 
 namespace {
 
 struct BodySink {
     std::string* out = nullptr;
+    const HttpChunkCallback* on_chunk = nullptr;
+    size_t max_body = 64u * 1024u * 1024u;
     bool overflow = false;
 };
-
-constexpr size_t kMaxBody = 64u * 1024u * 1024u;
 
 size_t write_body(char* ptr, size_t size, size_t nmemb, void* userdata) {
     BodySink* sink = static_cast<BodySink*>(userdata);
     size_t bytes = size * nmemb;
-    if (sink->out->size() >= kMaxBody) {
-        sink->overflow = true;
+    if (sink->on_chunk != nullptr && !(*sink->on_chunk)(ptr, bytes)) {
+        return 0;
+    }
+    if (sink->out->size() >= sink->max_body) {
+        if (sink->on_chunk == nullptr) {
+            sink->overflow = true;
+        }
         return bytes;
     }
-    size_t room = kMaxBody - sink->out->size();
+    size_t room = sink->max_body - sink->out->size();
     sink->out->append(ptr, std::min(room, bytes));
     if (bytes > room) {
-        sink->overflow = true;
+        if (sink->on_chunk == nullptr) {
+            sink->overflow = true;
+        }
     }
     return bytes;
 }
@@ -194,13 +234,13 @@ struct CurlGlobal {
     ~CurlGlobal() { curl_global_cleanup(); }
 };
 
-}  // namespace
-
-HttpResult http_request(const std::string& method,
-                        const std::string& url,
-                        const std::string& body,
-                        const std::vector<std::pair<std::string, std::string>>& headers,
-                        int timeout_ms) {
+HttpResult curl_request(
+        const std::string& method,
+        const std::string& url,
+        const std::string& body,
+        const std::vector<std::pair<std::string, std::string>>& headers,
+        int timeout_ms,
+        const HttpChunkCallback* on_chunk) {
     static CurlGlobal global;
     (void)global;
 
@@ -230,6 +270,9 @@ HttpResult http_request(const std::string& method,
 
     BodySink sink;
     sink.out = &result.body;
+    sink.on_chunk = on_chunk;
+    sink.max_body = on_chunk != nullptr
+            ? 256u * 1024u : 64u * 1024u * 1024u;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -266,6 +309,25 @@ HttpResult http_request(const std::string& method,
         curl_slist_free_all(header_list);
     }
     return result;
+}
+
+}  // namespace
+
+HttpResult http_request(const std::string& method,
+                        const std::string& url,
+                        const std::string& body,
+                        const std::vector<std::pair<std::string, std::string>>& headers,
+                        int timeout_ms) {
+    return curl_request(method, url, body, headers, timeout_ms, nullptr);
+}
+
+HttpResult http_request_stream(const std::string& method,
+                               const std::string& url,
+                               const std::string& body,
+                               const std::vector<std::pair<std::string, std::string>>& headers,
+                               int timeout_ms,
+                               const HttpChunkCallback& on_chunk) {
+    return curl_request(method, url, body, headers, timeout_ms, &on_chunk);
 }
 
 #endif  // _WIN32

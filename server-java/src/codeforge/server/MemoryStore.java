@@ -45,7 +45,6 @@ public final class MemoryStore {
         public String kind = "fact";
         public String text = "";
         public String source = "";
-        public String jurisdiction = "";
         public String hash = "";
         public double score;
     }
@@ -97,7 +96,6 @@ public final class MemoryStore {
         entry.kind = Json.str(map, "kind", "fact");
         entry.text = Json.str(map, "text", "");
         entry.source = Json.str(map, "source", "");
-        entry.jurisdiction = Json.str(map, "jurisdiction", "");
         entry.hash = Json.str(map, "hash", "");
         return entry;
     }
@@ -109,12 +107,10 @@ public final class MemoryStore {
                 "kind", entry.kind,
                 "text", entry.text,
                 "source", entry.source,
-                "jurisdiction", entry.jurisdiction,
                 "hash", entry.hash);
     }
 
-    public synchronized Map<String, Object> add(String text, String kind, String source,
-                                                String jurisdiction) {
+    public synchronized Map<String, Object> add(String text, String kind, String source) {
         load();
         String clean = cleanText(text);
         if (clean.length() < 4) {
@@ -130,7 +126,6 @@ public final class MemoryStore {
         entry.kind = normalizeKind(kind);
         entry.text = clean;
         entry.source = source == null ? "" : source.trim();
-        entry.jurisdiction = jurisdiction == null ? "" : jurisdiction.trim();
         entry.hash = hash;
         entries.add(entry);
         hashes.add(hash);
@@ -237,7 +232,6 @@ public final class MemoryStore {
             copy.kind = entry.kind;
             copy.text = entry.text;
             copy.source = entry.source;
-            copy.jurisdiction = entry.jurisdiction;
             copy.hash = entry.hash;
             copy.score = score;
             ranked.add(copy);
@@ -264,7 +258,6 @@ public final class MemoryStore {
                 "kind", entry.kind,
                 "text", entry.text,
                 "source", entry.source,
-                "jurisdiction", entry.jurisdiction,
                 "score", Math.round(score * 100.0) / 100.0);
     }
 
@@ -311,8 +304,7 @@ public final class MemoryStore {
         return out.toString().trim();
     }
 
-    public synchronized void rememberExchange(String user, String assistant, String model,
-                                              String jurisdiction) {
+    public synchronized void rememberExchange(String user, String assistant, String model) {
         if (!settings.memoryEnabled() || !settings.autoCapture()) {
             return;
         }
@@ -320,7 +312,7 @@ public final class MemoryStore {
         if (!model.isBlank()) {
             note += "\nModel: " + model;
         }
-        add(note, "chat", "session", jurisdiction);
+        add(note, "chat", "session");
     }
 
     private void prune(int max) {

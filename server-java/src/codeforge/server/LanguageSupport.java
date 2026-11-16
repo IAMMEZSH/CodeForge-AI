@@ -199,8 +199,9 @@ public final class LanguageSupport {
     private static final Pattern PHP = word("php");
     private static final Pattern HTML = word("html5?|htm|xhtml");
     private static final Pattern CSS = word("css3?|stylesheet");
-    private static final Pattern GO_STRONG = word("golang|go\\s*语言|go\\s*(?:1\\.\\d+|code|program|程序|代码|版本|实现|编写)");
-    private static final Pattern GO_WEAK = word("go");
+    private static final Pattern GO_STRONG = word("golang|go\\s*语言|go\\s*(?:1\\.\\d+|code|program|程序|代码|版本|实现|编写|写|开发|重构|修复)");
+    private static final Pattern GO_CUE = Pattern.compile(
+            "(?i)(?:用|使用|以|改用|换成|改成|in|using|with|write(?:\\s+it)?\\s+in|code\\s+in)\\s*go(?![a-z0-9_])");
     private static final Pattern C_STRONG = word("c\\s*语言|c17|c11|c99|c\\s*(?:code|program|程序|代码)");
     private static final Pattern C_CUE = Pattern.compile(
             "(?i)(?:用|使用|以|改用|in|using|with|write(?:\\s+it)?\\s+in|code\\s+in)\\s*c(?![a-z0-9_#+])");
@@ -239,7 +240,7 @@ public final class LanguageSupport {
         collect(hits, HTML, byId("html"), text, false);
         collect(hits, CSS, byId("css"), text, false);
         collect(hits, GO_STRONG, byId("go"), text, false);
-        collect(hits, GO_WEAK, byId("go"), text, true);
+        collect(hits, GO_CUE, byId("go"), text, false);
         collect(hits, C_STRONG, byId("c"), text, false);
         collect(hits, C_CUE, byId("c"), text, false);
         if (hits.isEmpty()) {

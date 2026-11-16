@@ -38,12 +38,6 @@
     "timeout_ms": 12000,
     "max_results": 3
   },
-  "compliance": {
-    "enabled": true,
-    "jurisdiction": "auto",
-    "online_refresh": true,
-    "refresh_hours": 24
-  },
   "server": {
     "port": 8765
   },

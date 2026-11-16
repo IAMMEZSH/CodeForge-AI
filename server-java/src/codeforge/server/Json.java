@@ -9,12 +9,21 @@ public final class Json {
     private Json() {}
 
     public static Object parse(String text) {
+        if (text != null && !text.isEmpty() && text.charAt(0) == '\uFEFF') {
+            text = text.substring(1);
+        }
         return new Parser(text).parseValue();
     }
 
     public static String write(Object value) {
         StringBuilder out = new StringBuilder();
         writeValue(out, value);
+        return out.toString();
+    }
+
+    public static String writePretty(Object value) {
+        StringBuilder out = new StringBuilder();
+        writePrettyValue(out, value, 0);
         return out.toString();
     }
 
@@ -132,6 +141,45 @@ public final class Json {
             out.append(']');
         } else {
             writeString(out, String.valueOf(value));
+        }
+    }
+
+    private static void writePrettyValue(StringBuilder out, Object value, int depth) {
+        String pad = "  ".repeat(depth);
+        String innerPad = "  ".repeat(depth + 1);
+        if (value instanceof Map<?, ?> map) {
+            if (map.isEmpty()) {
+                out.append("{}");
+                return;
+            }
+            out.append("{\n");
+            boolean first = true;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (!first) out.append(",\n");
+                first = false;
+                out.append(innerPad);
+                writeString(out, String.valueOf(entry.getKey()));
+                out.append(": ");
+                writePrettyValue(out, entry.getValue(), depth + 1);
+            }
+            out.append('\n').append(pad).append('}');
+        } else if (value instanceof Iterable<?> iterable) {
+            java.util.Iterator<?> iterator = iterable.iterator();
+            if (!iterator.hasNext()) {
+                out.append("[]");
+                return;
+            }
+            out.append("[\n");
+            boolean first = true;
+            while (iterator.hasNext()) {
+                if (!first) out.append(",\n");
+                first = false;
+                out.append(innerPad);
+                writePrettyValue(out, iterator.next(), depth + 1);
+            }
+            out.append('\n').append(pad).append(']');
+        } else {
+            writeValue(out, value);
         }
     }
 

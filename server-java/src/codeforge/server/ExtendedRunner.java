@@ -1,5 +1,6 @@
 package codeforge.server;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -420,32 +421,43 @@ public final class ExtendedRunner {
 
     private static final class Capture extends Thread {
         private final InputStream input;
-        private final int limit;
-        private final StringBuilder text = new StringBuilder();
+        private final int limitBytes;
+        private final ByteArrayOutputStream kept = new ByteArrayOutputStream();
+        private String text = "";
 
-        Capture(InputStream input, int limit) {
+        Capture(InputStream input, int limitChars) {
             this.input = input;
-            this.limit = limit;
+            this.limitBytes = limitChars * 3;
             setDaemon(true);
             setName("run-output");
         }
 
         @Override
         public void run() {
-            try (InputStream stream = input) {
+            // Keep raw bytes and decode once: chunk boundaries can split multi-byte
+            // characters, and GBK output from localized tools needs a fallback.
+            try {
                 byte[] buffer = new byte[8192];
                 int read;
-                while ((read = stream.read(buffer)) != -1) {
-                    if (text.length() < limit) {
-                        text.append(new String(buffer, 0, read, StandardCharsets.UTF_8));
+                while ((read = input.read(buffer)) != -1) {
+                    synchronized (kept) {
+                        int room = limitBytes - kept.size();
+                        if (room > 0) {
+                            kept.write(buffer, 0, Math.min(room, read));
+                        }
                     }
                 }
             } catch (IOException ignored) {
             }
+            synchronized (kept) {
+                text = Encodings.decode(kept.toByteArray());
+            }
         }
 
-        synchronized String text() {
-            return text.toString();
+        String text() {
+            synchronized (kept) {
+                return text;
+            }
         }
     }
 

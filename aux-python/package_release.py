@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {
@@ -35,7 +35,8 @@ EXCLUDE_DIRS = {
     "toolchains", "jdk", "build", "classes", ".gradle", "DerivedData",
     "node_modules",
 }
-EXCLUDE_SUFFIXES = {".part", ".pyc", ".tmp", ".old"}
+EXCLUDE_SUFFIXES = {".part", ".pyc", ".tmp", ".old", ".prebuild",
+                    ".prebuild.exe", ".prebuild.jar", ".pre-stream-bak"}
 EXCLUDE_NAMES = {"installed.json", "runtime.json", ".env", "credentials.json", "secrets.json"}
 EXECUTABLE_FILES = {"build.sh", "mobile/android/gradlew"}
 # Wrapper jar ships with every source bundle so ./gradlew works without Gradle installed.
@@ -103,8 +104,11 @@ QUICKSTART_WINDOWS = """CodeForge AI {version} — Windows quick start
    win-cpu-arm64 instead of win-cpu-x64.
 
 3. In the Models tab:
-   - click "Install runtime" to fetch the llama.cpp CPU runtime;
-   - download a model that fits your RAM (Qwen3 4B needs about 6 GB);
+   - click "Install CPU runtime" to fetch the llama.cpp CPU build;
+   - for an NVIDIA GPU, extract the official CUDA 13.5 x64 build into
+     runtime\\llama.cpp-cuda\\ and choose "CUDA (NVIDIA GPU)" in Backend
+     (Auto selects it automatically once installed);
+   - download a model that fits your RAM or VRAM (Qwen3 4B needs about 6 GB);
    - the default context is 16,384 tokens; choose 2K-512K in the runtime
      panel. 256K with the 4B Q4 model needs about 40 GB of RAM; 512K needs
      about 76 GB and exceeds that model's native 256K limit;
@@ -148,6 +152,8 @@ def excluded(relative: Path, mode: str) -> bool:
     if relative.as_posix() in ROOT_QUICKSTARTS and mode in PLATFORM_QUICKSTARTS:
         return True
     if name.startswith("_") and relative.suffix.lower() == ".png":
+        return True
+    if any(name.lower().endswith(suffix) for suffix in EXCLUDE_SUFFIXES):
         return True
     if relative.suffix.lower() in EXCLUDE_SUFFIXES:
         return True
@@ -203,13 +209,24 @@ def add_quickstart_tar(tf: tarfile.TarFile, mode: str) -> None:
     tf.addfile(info, io.BytesIO(data))
 
 
+def entry_bytes(path: Path) -> bytes:
+    data = path.read_bytes()
+    if rel(path) == "config.json":
+        doc = json.loads(data.decode("utf-8"))
+        llm = doc.setdefault("llm", {})
+        llm["api_key"] = ""
+        llm.setdefault("online", {})["api_key"] = ""
+        data = (json.dumps(doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    return data
+
+
 def zip_write(zf: zipfile.ZipFile, path: Path, arcname: str) -> None:
     info = zipfile.ZipInfo.from_file(path, arcname)
     info.create_system = 3
     mode = 0o755 if rel(path) in EXECUTABLE_FILES else 0o644
     info.external_attr = (stat.S_IFREG | mode) << 16
     info.compress_type = zipfile.ZIP_DEFLATED
-    zf.writestr(info, path.read_bytes())
+    zf.writestr(info, entry_bytes(path))
 
 
 def tar_mode(info: tarfile.TarInfo) -> tarfile.TarInfo:
@@ -272,7 +289,11 @@ def build_tar(mode: str, target: Path) -> dict:
     with tarfile.open(target, "w:gz", compresslevel=9) as tf:
         for index, path in enumerate(files, start=1):
             arcname = "CodeForge-AI-" + VERSION + "/" + rel(path)
-            tf.add(path, arcname=arcname, recursive=False, filter=tar_mode)
+            info = tar_mode(tf.gettarinfo(str(path), arcname=arcname))
+            data = entry_bytes(path)
+            info.size = len(data)
+            with io.BytesIO(data) as payload:
+                tf.addfile(info, payload)
             total_bytes += path.stat().st_size
             if index % 40 == 0 or index == len(files):
                 log("package", f"  {index}/{len(files)} entries, "
@@ -349,7 +370,7 @@ def main() -> int:
             "Linux and macOS bundles use tar.gz so executable bits survive; each carries a platform QUICKSTART.txt.",
             "The mobile bundle covers Android via Termux, iOS via iSH, and the Kotlin/Swift thin clients.",
             "The source bundle builds on Windows, Linux, macOS, Termux and iSH.",
-            "Private user state (memory/, workspace/, logs/) and all API keys are excluded from every artifact.",
+            "Private user state (memory/, workspace/, logs/) is excluded and both API key fields in every shipped config.json are blanked.",
             "Verify downloads with: sha256sum -c SHA256SUMS.txt",
         ],
     }

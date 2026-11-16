@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.3 · 2026-11-16**
+**Version 1.0.4 · 2026-11-16**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -65,8 +65,8 @@ abilities:
 
 Models, prompts, source, diagnostics and local inference stay on the host.
 Outbound traffic happens only for actions you enable: model and runtime
-downloads, web research and current-law refreshes when online, the optional
-portable-JDK bootstrap, and the optional online brain when a key is configured.
+downloads, web research, the optional portable-JDK bootstrap, and the optional
+online brain when a key is configured.
 
 ![CodeForge console](images/console-chat.png)
 
@@ -122,7 +122,7 @@ each path appear in Chapters 5–8 and Chapter 12.
 - It does **not** authenticate API callers. Loopback binding is the security
   boundary; see [Security operations](#15-security-operations).
 
-### 1.5 Dual brain, persistent memory and compliance
+### 1.5 Dual brain, persistent memory and online research
 
 The **dual-brain router** prefers the online model only when `llm.online.api_key`
 is configured and the network probe succeeds. The Java server places
@@ -146,16 +146,10 @@ excludes secrets, configuration, builds, models, memory and workspaces. Chat
 and debug requests search the index and inject the best excerpts with their
 paths.
 
-The **compliance layer** applies 13 non-disableable baseline prohibitions
-before any model call and screens model output narrowly. It covers chat, the
-debug loop and one-shot run; code submissions additionally reject obvious
-malware artifacts unless an explicit defensive/analysis context is present.
-Jurisdiction is resolved from a request override, then `compliance.jurisdiction`,
-then network geolocation, then locale, then a safe default. Each of the 14 packs
-carries official legal portals, topics and summaries; stale briefs are refreshed
-from those portals when online. Refusals are bilingual. The prompt receives the
-applicable context plus an explicit “guardrail, not legal advice” notice, and
-every decision is appended to a hashed `memory/compliance.log`.
+When a question benefits from current information, the **online research**
+path searches the live web, injects the result titles, URLs and snippets into
+the prompt, and stores the findings in local memory. This path is independent
+of the model: it works with a local GGUF model or the optional online brain.
 
 ---
 
@@ -170,9 +164,13 @@ every decision is appended to a hashed `memory/compliance.log`.
 | Recommended | 24–32 GB | 8–12 cores | GPT-OSS 20B, DeepSeek-Coder V2 Lite, Devstral 24B, Gemma 3 27B | Large files and multi-iteration repairs |
 | Workstation | 48 GB+ | 12+ cores | Qwen3-Coder 30B-A3B, Seed-OSS 36B, Codestral 22B | Flagship agentic work |
 
-- The managed runtime is **CPU-only** in this release.
+- The managed runtime runs on **CPU or CUDA**, selectable in the Models panel.
+  CUDA requires an NVIDIA GPU with a driver matching the CUDA 13.5 build; CPU
+  remains the fallback on every other machine.
 - Model size on disk is approximately the Q4_K_M file size; runtime memory is
-  roughly file size plus 1–3 GB of context and compute overhead.
+  roughly file size plus 1–3 GB of context and compute overhead. With CUDA,
+  most weights and the KV cache move to VRAM, so system RAM use drops and a
+  12 GB GPU comfortably serves a 4B model at 16K context.
 - SSD/NVMe storage materially improves model load time (multi-GB mmap).
 
 ### 2.2 Software matrix
@@ -199,6 +197,7 @@ every decision is appended to a hashed `memory/compliance.log`.
 | Source + built binaries + jar | 8 MB |
 | Portable JDK 17 | 180–200 MB |
 | llama.cpp CPU runtime | 25–80 MB |
+| llama.cpp CUDA runtime (with CUDA 13.5 libraries) | 550–800 MB |
 | Qwen3 4B Q4_K_M | 2.5 GB |
 | 8–9B models | 5–6.5 GB |
 | 14–20B models | 9–12 GB |
@@ -591,15 +590,15 @@ chat/debug/run return a JSON error. Rebuild with `bootstrap.py --all`.
 
 | Area | Description |
 |---|---|
-| Left rail | Chat, Debug, Models, System. Click or press `Ctrl+1`…`Ctrl+4` |
+| Left rail | Chat, Debug, Models, Keys, System. Click or press `Ctrl+1`…`Ctrl+5` |
 | Top chips | Core (C++ core reachable), LLM (inference backend usable), Runtime (llama.cpp state) |
 | Clock | Local time |
 | Info button | Version and stack summary toast |
 | Status bar | Connection state, endpoint, core version, active model, uptime clock |
 
-View routing uses the URL hash (`#chat`, `#debug`, `#models`, `#env`), so a
-mobile client can deep-link into a specific tab. The browser polls
-`/api/status` every 20 seconds to refresh chips and telemetry.
+View routing uses the URL hash (`#chat`, `#debug`, `#models`, `#keys`,
+`#env`), so a mobile client can deep-link into a specific tab. The browser
+polls `/api/status` every 20 seconds to refresh chips and telemetry.
 
 ### 4.4 Status semantics
 
@@ -611,6 +610,40 @@ mobile client can deep-link into a specific tab. The browser polls
 
 A green Core with a grey LLM is normal before you install models. A green LLM
 with a grey Runtime means an external OpenAI-compatible service is being used.
+
+### 4.5 The Keys tab
+
+**Keys** manages every online provider key from the console — no hand-editing
+of `config.json`.
+
+| Element | Function |
+|---|---|
+| Active brain | Provider, model, base URL and masked key currently mirrored into `llm.online` |
+| ONLINE BRAIN switch | Master switch for online routing. **OFF** forces the local GGUF model even when a valid key is active; saved keys stay stored and idle. Start the bundled runtime in Models for offline chat |
+| Saved keys | One card per profile with **TEST**, **EDIT** and **DELETE**; the active profile also shows **ACTIVE**, and each card offers **TOP UP** when its host matches a known provider |
+| Preset | Fills base URL, model and label for DeepSeek, OpenAI, Moonshot Kimi, Zhipu GLM, Qwen / DashScope, SiliconFlow, OpenRouter, or any custom OpenAI-compatible endpoint |
+| API key | Write-only: saved keys are shown as `••••••••last4`, never returned by the API |
+| Use as active online brain | Mirrors the profile into `llm.online`; otherwise the key is stored but idle |
+| TEST | Sends a minimal completion to verify URL, model and key, and reports latency or the provider error |
+| Official top-up & billing | One-click external links for each provider: **TOP UP** (official recharge/billing), **CONSOLE** (API keys), **PRICING** (official price/docs). Links open in a new browser tab |
+
+Notes:
+
+- A key you save is written to `llm.keys` in `config.json`; deleting it removes
+  it from the file. The active profile is copied into `llm.online`, and the C++
+  core re-reads `config.json` on every chat call, so switching keys needs no
+  restart.
+- The **ONLINE BRAIN** switch writes `llm.online.enabled`. Turning it off keeps
+  every saved key, but chat is forced onto the local GGUF model. The OFF choice
+  survives adding or switching keys until you turn it back on.
+- With no saved key, chat stays on the offline GGUF model and the badge reads
+  **LOCAL ONLY**.
+- Keys only ever live on this machine. The console and local API disclose a
+  masked hint, and the key is sent only to the base URL you configure.
+- Official top-up links are provided for convenience only. CodeForge does not
+  process payments, does not proxy the provider page and never sends your key to
+  it. Always check the domain and the amount before paying; providers control
+  payment methods, minimums and regional availability.
 
 ---
 
@@ -633,8 +666,8 @@ The visible conversation lives in browser memory; completed turns are also
 appended to `memory/memories.jsonl` when persistent memory is enabled. Reloading
 the page clears the bubbles, while **New session** clears the bubbles without
 deleting the stored memory. Deleting memory is a separate action in the System
-tab. Online research, the online brain and current-law refreshes are the only
-paths that send data off the host; see the security chapter.
+tab. Online research and the online brain are the only paths that send data
+off the host; see the security chapter.
 
 ### 5.2 Sending and shortcuts
 
@@ -666,15 +699,13 @@ timeout.
 Every assistant turn carries a live trace built from
 `GET /api/chat/progress?request_id=…`:
 
-1. **Compliance screen** — verdict and jurisdiction, for example `allow · CN`.
-2. **Recall persistent memory** — hits and total stored entries.
-3. **Scan workspace index** — matching files and indexed total.
-4. **Research current sources** — the search engine and result count, or
+1. **Recall persistent memory** — hits and total stored entries.
+2. **Scan workspace index** — matching files and indexed total.
+3. **Research current sources** — the search engine and result count, or
    `not required for this question`.
-5. **Assemble context** — the exact number of context characters.
-6. **Generate answer** — `reading N-token context · on-device model`, then a
+4. **Assemble context** — the exact number of context characters.
+5. **Generate answer** — `reading N-token context · on-device model`, then a
    live counter such as `173/2048 tokens · 8.6 tok/s · on-device model`.
-7. **Screen output** — `passed`, `blocked`, or `skipped`.
 
 Completed stages show a green dot; the active stage pulses amber. For a local
 model the server reads llama-server's slot counters about once per second, so
@@ -689,12 +720,12 @@ the measured tokens-per-second and keeps a minimum runway so the bar cannot hit
 100% early. If the estimate is exceeded the label changes to
 `over estimate · still running` rather than showing a false zero. A thin bar
 tracks estimated progress, never moves backwards, and stops at 96% until the
-answer lands. The final `msg-meta` chips continue to report route, law pack,
-memory hits and workspace hits.
+answer lands. The final `msg-meta` chips continue to report route, memory hits
+and workspace hits.
 
 The trace explains **pipeline stages**, not hidden chain-of-thought: the model's
-internal token stream is never exposed, and the full reply is still screened
-after generation before it is rendered.
+internal token stream is never exposed, and the full reply is rendered only
+after generation completes.
 
 ![Live trace, token counter and INTERJECT while a local model is generating](images/console-interject.png)
 
@@ -735,7 +766,7 @@ after generation before it is rendered.
 | `The OpenAI-compatible service requires an API key (HTTP 401)` | Remote service needs a key | Set `llm.api_key` or `CODEFORGE_LLM_API_KEY` |
 | `No model selected` | Backend is up but exposes no model | Download a model or `ollama pull` one |
 | `AI service returned HTTP 500…` | Model failed to load (RAM, corrupt file) | Check `logs/llama-server.log` |
-| `C++ main core timed out after 900 seconds` | Extremely long generation | Reduce `max_tokens`, use a smaller model |
+| `C++ main core timed out after <N> seconds` | Generation exceeded the dynamic local budget (120 s + 0.5 s per token; 900 s floor, 48 h ceiling) | Wait, reduce the reply limit, or use a smaller/faster model |
 | `Link failure` bubble | Server not reachable | Check the control center / server log |
 
 ### 5.7 Compile, preview, save and local operations
@@ -751,6 +782,7 @@ model at all:
 | Save code anywhere | **SAVE**, `/save <path>`, or “save this to D:\path” | Exact path; missing folders are confirmed first; every block can target its own path |
 | Download a language runtime | **INSTALL** in System → Toolchains, `/install go`, or “install the Go environment” | Background download into `native/toolchains` with live progress |
 | Place the project anywhere | System → Place project anywhere, `/place <path>`, or “put the project in E:\apps” | Never copies models, runtime, workspace, logs, memory or build caches |
+| Place any file or folder | System → Place any file or folder, `/copy <source> <destination>`, `/move <source> <destination>`, or “把 C:\path\a.pdf 放到 D盘根目录” | Exact destination, `desktop`/`桌面`, or a bare drive (`D`, `D盘`, `D盘根目录`; C works too); copies or moves one file or a whole folder, retries locked files and asks before overwriting |
 | Create a launcher anywhere | System → Launcher anywhere, `/launcher <path>`, or “create a shortcut in D:\apps” | Windows `.lnk`, Linux `.desktop`, macOS `.command` |
 
 **AUTO COMPILE** is a toggle in the chat header. When enabled it compiles and
@@ -784,6 +816,53 @@ environment”. Because these commands never call the LLM, an offline model
 cannot lose them: even with inference stopped, the assistant still executes
 them and reports the real result. If a folder is missing it asks for
 confirmation (`确认创建` / “create”); the next message performs the action.
+
+### 5.8 Command agent, software control and publishing
+
+The Command Agent extends chat beyond programming. It is enabled by default and
+uses the following loop: the model emits one tool block, the host executes it,
+the real result returns to the model, and the model decides the next step.
+
+```text
+<codeforge_shell>{"command":"Get-ChildItem","cwd":"D:\\work","shell":"powershell","timeout":600}</codeforge_shell>
+<codeforge_search>{"query":"PostgreSQL 17 pg_dump flags","limit":6}</codeforge_search>
+<codeforge_fetch>{"url":"https://example.com/docs","max_chars":12000}</codeforge_fetch>
+<codeforge_learn>{"software":"qpdf","goal":"merge and encrypt PDFs"}</codeforge_learn>
+```
+
+| Capability | Behavior |
+|---|---|
+| Command execution | PowerShell, cmd, bash, sh or zsh; optional `cwd`; bounded `timeout`; stdout and stderr are logged and the tail is returned to the model |
+| Tool discovery | Windows: `Get-Command`, `where.exe`, WinGet and known install folders; Unix: PATH and package managers. The prompt lists detected commands with versions |
+| Application discovery | Windows `Get-StartApps` plus registry uninstall keys; macOS `/Applications` and `.app` bundles; Linux `.desktop` entries. This host reports 156 applications |
+| Software control | The prompt carries per-platform recipes for Office/WPS/LibreOffice COM and headless conversion, browser headless screenshot/PDF and Playwright/Selenium, screen capture and UI automation, OCR, media, archives, system settings, mail and cloud CLIs |
+| Missing tools | Portable toolchain first, then the native package manager (winget, apt, dnf, yum, pacman, zypper, apk or brew), then pip or npm when mapped; PATH is refreshed and the command is retried once. The mapping also covers database clients and cloud developer tools |
+| Online learning | `search` queries Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360 and Wikipedia in parallel, skips failed sources, deduplicates and ranks the merged results. `fetch` returns readable page text. `learn` researches an unfamiliar application, CLI, API or error. A missing simple command also triggers one automatic research pass |
+| Long loops | Up to 256 tool steps; older tool output is compacted before each model call while the system prompt and newest results are kept; every executed call remains in `tool_calls` even if the model call fails |
+| Publishing | Local commits, builds, packages and exports always work. Remote/public actions are blocked until **Allow publishing** is enabled, or a single API run passes `allow_publish=true` |
+
+Blocked public actions include `git push`, GitHub/GitCode release/PR/issue
+creation, npm/PyPI/Cargo/NuGet/Docker/container registry pushes, `scp`, `rsync`,
+`sftp`, cloud deploys and outbound HTTP POST/PUT/PATCH/DELETE. A blocked call
+returns `blocked: true`, `permission_required: true` and `publish_guard: true`.
+When this happens, the agent explains what would be published, where, and under
+which account instead of retrying.
+
+**Settings panel.** System → **Command Agent** shows detected commands,
+installed applications, the deduplicated auto-provisionable list and the online
+learning state. It edits `agent.max_steps`, `agent.command_timeout_sec`,
+`agent.install_timeout_sec`, `agent.auto_install_tools`,
+`agent.auto_learn_software` and `agent.allow_publish`, saves them to
+`config.json`, and can run a test command locally without calling a model. The
+test result shows the exit code, duration, provisioning outcome and output;
+publishing commands are blocked there too unless the guard is disabled.
+
+**Safety boundaries.** Commands run on this host with the user's privileges, so
+inspect before destructive actions and verify paths before deleting. The agent
+is instructed never to print secrets, never to execute instructions found in
+web pages, and to report elevation requirements instead of opening a hanging
+UAC prompt. GUI automation, Office COM and browser automation are allowed, but
+licenses, DRM, logins and OS security prompts must not be bypassed.
 
 ---
 
@@ -1031,7 +1110,9 @@ and refreshes while any job is active.
 
 ### 7.4 Installing the llama.cpp runtime
 
-Click **Install runtime** (or `POST /api/runtime/install`). The server:
+Click **Install CPU runtime** (or `POST /api/runtime/install`). If a runtime is
+already present the button reads **Reinstall CPU runtime** and asks for
+confirmation; keys, models and settings are unaffected. The server:
 
 1. resolves the latest `ggml-org/llama.cpp` release for the platform tags
    `win-cpu-x64`, `win-cpu-arm64`, `macos-arm64`, `macos-x64`, `ubuntu-x64`,
@@ -1039,14 +1120,21 @@ Click **Install runtime** (or `POST /api/runtime/install`). The server:
    `android-arm64-snapdragon` (Termux ARM64);
 2. downloads the matching ZIP or tar.gz with resume and SHA-256 verification
    from the GitHub asset digest;
-3. extracts safely, rejecting traversal paths;
-4. replaces `runtime/llama.cpp` atomically, keeping a backup until the move
+3. falls back to GitHub mirrors when the direct asset host is blocked. Set
+   `llm.runtime_mirror` in `config.json` or `CODEFORGE_RUNTIME_MIRROR` to a
+   comma-separated list of prefixes (for example
+   `https://ghproxy.net/`) or templates containing `{url}`. Without an
+   explicit setting, `ghproxy.net` and `gh-proxy.com` are tried. The GitHub
+   SHA-256 is still verified, so a mirror cannot substitute the archive;
+4. extracts safely, rejecting traversal paths;
+5. replaces `runtime/llama.cpp` atomically, keeping a backup until the move
    succeeds;
-5. writes `runtime/runtime.json` with version, platform, server path, size,
+6. writes `runtime/runtime.json` with version, platform, server path, size,
    hash and install time.
 
 Reinstalling replaces the runtime; the old directory is removed after a
-successful swap. If extraction fails, the previous runtime is restored.
+successful swap. If extraction fails, the previous runtime is restored. An
+installed runtime does not need to be downloaded again to start inference.
 
 If no release asset exists for the device architecture (32-bit ARM, 32-bit
 x86, iSH, musl without gcompat), build llama.cpp from source and set
@@ -1054,23 +1142,66 @@ x86, iSH, musl without gcompat), build llama.cpp from source and set
 override is checked before the managed `runtime/runtime.json` and lets the same
 UI start a locally built binary on any ABI.
 
+#### CUDA runtime
+
+The automatic installer ships the CPU build. To use an NVIDIA GPU, download the
+official Windows CUDA 13.5 x64 build from the same `ggml-org/llama.cpp` release
+(`llama-b<version>-bin-win-cuda-13.5-x64.zip`), extract all of its files into
+`runtime/llama.cpp-cuda/`, and make sure `runtime/llama.cpp-cuda/llama-server.exe`
+exists. Add `runtime/runtime-cuda.json` with the version, archive name, SHA-256
+and `"backend":"cuda"`; the Models panel then offers **CUDA (NVIDIA GPU)** and
+Auto resolves to CUDA. The CUDA build is roughly 776 MB unpacked because it
+carries the CUDA 13.5 runtime DLLs. No separate CUDA toolkit installation is
+needed; an up-to-date NVIDIA driver is enough.
+
+The Backend selector is persisted in `runtime/selection.json`:
+
+| Value | Behaviour |
+|---|---|
+| `auto` | Uses CUDA when `runtime/llama.cpp-cuda/llama-server.exe` exists, otherwise CPU. Default. |
+| `cpu` | Always uses the managed CPU runtime, even when a CUDA build is present. |
+| `cuda` | Requires the CUDA build; selection fails with a clear error if it is missing. |
+
+Switching the selector while inference is running stops the current server and
+starts it again with the chosen backend. The status object reports both
+`backend` (the resolved backend in use) and `backend_selected` (the saved
+choice).
+
 ### 7.5 Starting and stopping inference
 
 **Start inference** launches:
 
 ```text
-runtime/llama.cpp/llama-server[.exe]   (or llm.llama_server override)
+runtime/llama.cpp/llama-server[.exe]   (CPU, or llm.llama_server override)
+runtime/llama.cpp-cuda/llama-server.exe (CUDA)
   -m <model.gguf> --host 127.0.0.1 --port 8080 \
   -c <llm.context_size, default 16384> --parallel <llm.parallel, default 1> \
-  -t max(2, logical_cores / 2) --no-webui
+  -t max(2, logical_cores / 2) --no-webui \
+  --reasoning off --reasoning-budget 256
+  -ngl 99                          # CUDA backend only
 ```
 
 - The model defaults to the **recommended installed model**, then the first
   installed model. To choose a specific model, call the API with `model_id`.
+- **Backend** in the runtime panel selects Auto, CPU or CUDA before starting.
+  Auto uses CUDA when the CUDA runtime is installed. The server passes
+  `-ngl 99` only on CUDA and sets
+  `LLAMA_ARG_CHAT_TEMPLATE_KWARGS={"enable_thinking":false}` so reasoning
+  stays bounded and simple requests return code instead of a long monologue.
 - Choose **Context** (2K–512K total) and **Slots** (1–8) in the runtime panel
   before pressing Start. The browser remembers the selection; the API accepts
   the same values as `context_size` and `parallel`. llama.cpp divides the total
   window across the slots, so the per-slot window is `context_size / parallel`.
+- **Reply limit** in the runtime panel sets `llm.max_tokens` for **every**
+  offline model, from 64 to 393,216 tokens (the largest value accepted by the
+  active DeepSeek endpoint). It applies to the next reply without restarting
+  inference. The context window minus the prompt is still the real cap: a
+  131,072-token context cannot return 393,216 tokens, no matter how high the
+  limit is set.
+- Local generation uses a dynamic timeout of 120 seconds plus 500 ms per
+  requested token, with a 900-second floor and a 48-hour ceiling, so a large
+  reply limit is not cut off by the old fixed timeout. The core rejects a
+  request only if generation exceeds that budget.
 - Readiness is probed at `GET http://127.0.0.1:8080/health` every 750 ms for up
   to 180 seconds.
 - Output is appended to `logs/llama-server.log`; the UI can show the tail.
@@ -1151,9 +1282,10 @@ requires the server to reload its installed map to reflect the change.
 | Panel | Contents |
 |---|---|
 | Main core · C++17 | Backend kind, base URL, active model, available models, debug loop settings, project root |
-| Dual brain · memory · compliance | Brain route, online brain endpoint, memory entries/bytes, workspace files/index time, detected jurisdiction, cached legal brief, last research source; **Reindex workspace** and **Refresh law** buttons |
+| Dual brain · memory · research | Brain route, online brain endpoint, memory entries/bytes, workspace files/index time, last research source; **Reindex workspace** button |
 | Toolchains | Every runtime (Python, C/C++, Java, Node.js, Go, Rust, PHP, .NET) with state, version, path, download progress and **INSTALL** buttons; **Refresh** and **Run self-test** |
 | Place project anywhere | Exact destination path, optional portable JDK and toolchains, launcher creation; reports file count and size |
+| Place any file or folder | Source path, destination path, Desktop or bare drive (`D`, `D盘`, `D盘根目录`), optional new name and move/overwrite options; reports file count, size and elapsed time |
 | Launcher anywhere | Exact folder or launcher file path; missing folders are confirmed first |
 | Write any file | Exact file path and content; missing folders are confirmed first |
 | Local API | The most important endpoints |
@@ -1180,14 +1312,24 @@ type. `models/`, `runtime/`, `workspace/`, `logs/`, `memory/`, `build/`,
 and downloaded toolchains are opt-in checkboxes. A launcher is created inside
 the destination unless you clear the checkbox. The server rejects the project
 root itself and any folder inside the project, and reports a missing drive
-instead of guessing. **Launcher anywhere** creates only the launcher (Windows
-`.lnk`, Linux `.desktop`, macOS `.command`); **Write any file** writes exactly
-the path you type. Both show a confirmation button when the parent folder does
-not exist rather than creating it silently.
+instead of guessing. **Place any file or folder** copies or moves any source
+you type to an exact destination folder, an exact file path, or the Desktop
+(type `desktop` or leave the destination empty). A bare drive works too:
+`D`, `D盘` and `D盘根目录` all mean `D:\`, and `C`/`C盘` mean `C:\` (writing
+to the root of C: usually requires running CodeForge as administrator). Existing destinations are
+never overwritten without the checkbox; moving deletes the original only after
+the copy succeeds. Repeating a copy skips unchanged files, and locked files are
+retried with a clear hint instead of a generic failure. **Launcher anywhere**
+creates only the launcher (Windows `.lnk`, Linux `.desktop`, macOS `.command`);
+**Write any file** writes exactly the path you type. The save and launcher
+panels show a confirmation button when the parent folder does not exist rather
+than creating it silently.
 
-These three panels are also exposed through local ops in chat and through the
+These four panels are also exposed through local ops in chat and through the
 REST API (section 19 of the API reference), so they behave identically no
-matter which model is selected.
+matter which model is selected. Local placement phrases such as “把
+C:\Users\you\Downloads\report.pdf 放到 D:\archive” and “把整个文件夹复制到桌面”
+run instantly without calling a model.
 
 Host telemetry is collected by the C17 helper (`cforge_native sysinfo`) using
 native APIs, not shell commands. Memory and disk values are in MB/GB as
@@ -1267,11 +1409,11 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `model` | empty | — | Override the model name; empty uses the backend's first model |
 | `llama_server` | empty | — | Path to a source-built or distro `llama-server`; takes priority over the managed runtime |
 | `temperature` | `0.2` | 0.0–2.0 | Sampling temperature |
-| `max_tokens` | `2048` | 64–32768 | Response budget |
+| `max_tokens` | `2048` | 64–393216 | Reply budget shared by every offline model; also editable as **Reply limit** in the runtime panel and applied on the next reply without restarting inference. 393,216 is the largest value accepted by the active DeepSeek endpoint; the context window minus the prompt still caps the actual reply |
 | `context_size` | `16384` | 2048–524288 | Managed llama-server context window (`-c`), in tokens; also selectable in the runtime panel |
 | `parallel` | `1` | 1–8 | Concurrent llama-server slots; the total context is divided across them |
 | `model_mirror` | `https://hf-mirror.com` | — | Hugging Face-compatible metadata/file mirror for every offline model; comma-separated sources are tried in order and `https://huggingface.co` is appended as fallback |
-| `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core |
+| `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core; local chat requests are extended automatically to 120 s + 0.5 s per token (48 h ceiling) so large reply limits are not cut off |
 
 ### 10.2 `debug` section
 
@@ -1300,22 +1442,13 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 
 | Key | Default | Clamp | Meaning |
 |---|---|---|---|
-| `enabled` | `true` | — | Allow network probes, research and law refreshes |
+| `enabled` | `true` | — | Allow network probes and web research |
 | `research` | `auto` | `off`, `auto`, `always` | When to search the web before answering |
-| `search_endpoint` | empty | — | Optional SearXNG endpoint; empty uses DuckDuckGo → 360 Search → Wikipedia |
+| `search_endpoint` | empty | — | Optional SearXNG endpoint; empty queries Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360 Search and Wikipedia in parallel |
 | `timeout_ms` | `12000` | 3000–60000 | Per-request network timeout |
 | `max_results` | `3` | 1–8 | Result cap including the relevance filter |
 
-### 10.6 `compliance` section
-
-| Key | Default | Meaning |
-|---|---|---|
-| `enabled` | `true` | Inject jurisdiction context; baseline prohibitions remain active even when false |
-| `jurisdiction` | `auto` | Force a pack (`CN`, `US`, `EU`, `GB`, `DE`, `FR`, `JP`, `KR`, `IN`, `BR`, `CA`, `AU`, `SG`, `ZZ`) |
-| `online_refresh` | `true` | Refresh stale legal briefs from official portals |
-| `refresh_hours` | `24` | Brief freshness window |
-
-### 10.7 `llm.online` section
+### 10.6 `llm.online` section
 
 | Key | Default | Clamp | Meaning |
 |---|---|---|---|
@@ -1325,7 +1458,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `model` | `deepseek-chat` | — | Online model name |
 | `timeout_ms` | `120000` | 5000–600000 | Online completion timeout inside the core |
 
-### 10.8 Environment variables
+### 10.7 Environment variables
 
 | Variable | Overrides |
 |---|---|
@@ -1348,7 +1481,6 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `CODEFORGE_MEMORY` | `memory.enabled` |
 | `CODEFORGE_ONLINE` | `online.enabled` |
 | `CODEFORGE_RESEARCH` | `online.research` |
-| `CODEFORGE_JURISDICTION` | `compliance.jurisdiction` |
 | `CODEFORGE_ONLINE_LLM` | `llm.online.enabled` |
 | `CODEFORGE_ONLINE_LLM_URL` | `llm.online.base_url` |
 | `CODEFORGE_ONLINE_LLM_MODEL` | `llm.online.model` |
@@ -1359,6 +1491,26 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 
 Precedence: environment > `config.json` > built-in defaults. Values are
 clamped after both layers are applied.
+
+### 10.8 `agent` section
+
+The Command Agent reads and writes these keys through `GET/POST /api/agent`
+and the System → Command Agent panel.
+
+| Key | Default | Range | Meaning |
+|---|---|---|---|
+| `enabled` | `true` | boolean | Route chat through the command-agent loop. When false, chat is a plain completion |
+| `max_steps` | `64` | 1–256 | Maximum tool calls per answer |
+| `command_timeout_sec` | `3600` | 1–86400 | Default timeout for a shell command |
+| `max_feedback_chars` | `48000` | 4000–200000 | Size budget for tool output returned to the model; also drives context compaction |
+| `auto_install_tools` | `true` | boolean | Download a missing command, refresh PATH and retry once |
+| `install_timeout_sec` | `1800` | 60–86400 | Maximum time for one tool installation |
+| `auto_learn_software` | `true` | boolean | Research a missing simple command online and feed the sources back into the loop |
+| `allow_publish` | `false` | boolean | Allow public/remote publishing actions. Local builds, commits, packages and exports are never blocked |
+
+`allow_publish` is the only setting that changes the safety boundary; the
+console asks for confirmation before enabling it. The setting is stored in
+`config.json` in plain text, like every other non-secret agent option.
 
 ---
 
@@ -1461,11 +1613,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.3-source.zip`
-- `CodeForge-AI-1.0.3-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.3-docs.zip`
+- `CodeForge-AI-1.0.4-source.zip`
+- `CodeForge-AI-1.0.4-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.4-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.3.json`
+- `manifest-1.0.4.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -1503,15 +1655,18 @@ Full request/response schemas, status codes and examples are in
 | GET | `/api/runtime/logs?lines=160` | Runtime log tail |
 | GET | `/api/downloads` | Job snapshot |
 | GET | `/api/memory?q=&limit=` | Memory stats or search results |
-| POST | `/api/memory` | Add a memory entry (`text`, optional `kind`, `source`, `jurisdiction`) |
+| POST | `/api/memory` | Add a memory entry (`text`, optional `kind`, `source`) |
 | POST | `/api/memory/delete` | Delete one entry by `id` |
 | POST | `/api/memory/clear` | Clear the memory store |
 | GET | `/api/workspace?q=&limit=` | Workspace index stats or search hits |
 | POST | `/api/workspace` | Reindex the project tree |
-| GET | `/api/online?probe=1` | Network, geolocation, research and legal-brief status |
+| GET | `/api/online?probe=1` | Network and research status |
 | GET | `/api/online/research?q=` | Run web research and persist the results |
-| GET | `/api/compliance?jurisdiction=` | Detected pack, baseline rules, topics and official sources |
-| POST | `/api/compliance/refresh` | Refresh the legal brief from official portals |
+| GET | `/api/online/fetch?url=&max_chars=` | Fetch one page as readable text |
+| GET/POST | `/api/agent` | Read or update Command Agent settings |
+| GET | `/api/agent/software?refresh=1` | Installed applications |
+| POST | `/api/agent/run` | Execute one command with auto-install and the publish guard |
+| POST | `/api/agent/provision` | Install one tool without running a command |
 | POST | `/api/shutdown` | Graceful server shutdown (also stops inference) |
 | GET | `/console/` | Web console |
 
@@ -1718,6 +1873,8 @@ If you suspect the API was exposed:
 | Replies extremely slow | Dense model, low RAM, long prompt | Use a MoE/smaller model, reduce context |
 | `AI returned empty content` | Stop sequence or context overflow | Retry with a shorter prompt |
 | `AI request failed …` | llama-server crashed or timed out | Inspect the runtime log; restart inference |
+| `… receive response failed (WinHTTP 12030)` | The model service was stopped or restarted while it was replying, or the process ran out of memory | Send the request again; if it repeats, lower the context and restart inference |
+| `… WinHTTP 12002` | The model did not finish before the request timeout | Wait until the model finishes loading, lower the context, then retry |
 
 ### 16.4 Debug and execution
 
@@ -1840,16 +1997,20 @@ alive; on POSIX the server runs until you stop the process.
 
 ### Appendix E — verification record
 
-Reference machine: Windows 10 Pro (x64), CPU-only inference.
+Reference machine: Windows 10 Pro (x64), 16 logical cores, RTX 4070 12 GB.
 
 | Check | Result |
 |---|---|
 | Bootstrap (`--all`) | Native helper, C++ core, Win32 client, Java jar built |
 | Self-test | Python, C, C++, Java all compiled and executed |
-| Qwen3 4B chat (short) | `OK` returned in ~3.2 s |
-| Qwen3 4B chat (long tables) | Two markdown tables rendered, ~2 min |
+| Qwen3 4B chat (short, CPU) | `OK` returned in ~3.2 s |
+| Qwen3 4B chat (long tables, CPU) | Two markdown tables rendered, ~2 min |
+| Qwen3 4B short reply (CUDA) | `OK` in 1.2 s; ~83.6 tok/s measured decoding |
+| Direct `add(a,b)` completion (CUDA) | Code-only reply in 0.8 s |
+| Calculator request, capped reasoning (CUDA) | Code returned in 4.6 s |
 | Debug loop (`vector::at`) | Exit 3 → repaired → exit 0, report persisted |
-| Runtime | llama.cpp `b12412`, `win-cpu-x64`, SHA-256 verified |
+| Runtime | llama.cpp `b12428`, CPU `win-cpu-x64` and CUDA `win-cuda-x64`, SHA-256 verified |
+| Backend switch | Auto → CUDA, CPU → restart, Auto → CUDA; persisted in `runtime/selection.json` |
 | Model | Qwen3 4B Q4_K_M, 2,497,281,120 bytes, SHA-256 verified |
 | API guard | 415 without content type, 403 foreign origin, 200 same origin |
 | Static security check | No telemetry or cloud calls in source |

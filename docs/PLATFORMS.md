@@ -2,7 +2,7 @@
 
 Every command you need, for every supported platform.
 
-Version 1.0.3
+Version 1.0.4
 
 ---
 
@@ -306,7 +306,7 @@ curl.exe -s http://127.0.0.1:8765/api/status |
 
 A native ARM64 build of the C++ core requires an ARM64 C++17 toolchain and an
 ARM64 JDK 17; the runtime installer then prefers `win-cpu-arm64` and falls back
-to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.3;
+to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.4;
 the emulated x64 bundle is the supported route.
 
 Native build with MSYS2 CLANGARM64:
@@ -1105,7 +1105,7 @@ Environment overrides:
 | `CODEFORGE_LLM_API_KEY` | Bearer token for a gateway |
 | `CODEFORGE_LLM_MODEL` | Model name override |
 | `CODEFORGE_LLM_TEMPERATURE` | 0.0–2.0 |
-| `CODEFORGE_LLM_MAX_TOKENS` | 64–32768 |
+| `CODEFORGE_LLM_MAX_TOKENS` | 64–393216 |
 | `CODEFORGE_REQUEST_TIMEOUT_MS` | 5 000–3 600 000 |
 | `CODEFORGE_DEBUG_ITERATIONS` | 1–8 |
 | `CODEFORGE_RUN_TIMEOUT_MS` | 1 000–600 000 |

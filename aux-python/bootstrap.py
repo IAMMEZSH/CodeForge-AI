@@ -33,7 +33,7 @@ JDK_ROOT = ROOT / "native" / "jdk"
 BUILD = ROOT / "server-java" / "build"
 CLASSES = BUILD / "classes"
 JAR = BUILD / "CodeForgeServer.jar"
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 C_SOURCES = [
     ROOT / "native-c" / "native_tool.c",
@@ -51,13 +51,14 @@ CORE_SOURCES = [
 ]
 JAVA_SOURCES = [
     "Json.java",
+    "Encodings.java",
     "NativeTools.java",
     "CoreBridge.java",
     "AppSettings.java",
+    "KeyStore.java",
     "MemoryStore.java",
     "ProjectIndex.java",
     "OnlineService.java",
-    "ComplianceService.java",
     "ModelManager.java",
     "RuntimeManager.java",
     "FileService.java",
@@ -66,6 +67,8 @@ JAVA_SOURCES = [
     "LanguageSupport.java",
     "ToolchainManager.java",
     "ExtendedRunner.java",
+    "AgentShell.java",
+    "ToolProvisioner.java",
     "ApiHandler.java",
     "ServerMain.java",
 ]
@@ -336,11 +339,20 @@ def build_native() -> None:
              str(NATIVE_BIN / "CodeForgeCore.exe")]
             + [str(ROOT / item) for item in CORE_SOURCES]
             + ["-lwinhttp", "-lshell32"])
+        res_obj = []
+        windres = find_tool("windres")
+        if windres:
+            BUILD.mkdir(parents=True, exist_ok=True)
+            obj = BUILD / "codeforge-app-res.o"
+            run([windres, "-O", "coff", "-I", str(ROOT / "client"),
+                 "-i", str(ROOT / "client" / "app.rc"), "-o", str(obj)])
+            res_obj = [str(obj)]
         run([gxx, "-std=c++17", "-O2", "-Wall", "-Wextra", "-municode", "-I" + str(ROOT / "core"),
              "-static", "-static-libgcc", "-static-libstdc++", "-o",
              str(NATIVE_BIN / "CodeForge.exe")]
             + [str(ROOT / "client" / "main.cpp"),
                str(ROOT / "core" / "http.cpp"), str(ROOT / "core" / "util.cpp")]
+            + res_obj
             + ["-lwinhttp", "-lshell32", "-lgdi32", "-luser32", "-lcomctl32",
                "-ldwmapi", "-lole32"])
     else:
@@ -386,7 +398,8 @@ def call_selftest(jdk: Path) -> None:
         return
     log("selftest", "running native core self-test")
     result = subprocess.run([str(core), "selftest", "--root", str(ROOT)],
-                            capture_output=True, text=True, timeout=180)
+                            capture_output=True, text=True, encoding="utf-8",
+                            errors="replace", timeout=180)
     print(result.stdout.strip())
     if result.returncode != 0:
         log("selftest", f"core exited {result.returncode}: {result.stderr.strip()}")
@@ -419,6 +432,9 @@ def main() -> int:
                 raise RuntimeError("server jar missing; run --build first")
             command = java_command(jdk, args.port)
             log("server", " ".join(command))
+            if os.name == "nt":
+                # os.execv drops the quoting on Windows paths that contain spaces.
+                return subprocess.call(command)
             os.execv(command[0], command)
     except subprocess.CalledProcessError as exc:
         log("error", f"command failed with exit code {exc.returncode}")

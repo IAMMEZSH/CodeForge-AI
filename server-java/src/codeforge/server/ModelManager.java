@@ -50,6 +50,9 @@ public final class ModelManager {
             .map(ModelManager::runtimeAssetPattern).toList();
     private static final String RUNTIME_SERVER_NAME =
             IS_WINDOWS ? "llama-server.exe" : "llama-server";
+    private static final String RUNTIME_CUDA_DIR = "llama.cpp-cuda";
+    private static final String RUNTIME_CUDA_INFO = "runtime-cuda.json";
+    private static final String RUNTIME_SELECTION = "selection.json";
     private static final String DEFAULT_MODEL_MIRROR = "https://hf-mirror.com";
     private static final String MODEL_SOURCE_FALLBACK = "https://huggingface.co";
 
@@ -414,15 +417,23 @@ public final class ModelManager {
                     "installed", isModelInstalled(id));
             return result;
         } catch (Exception ex) {
-            return Json.map("ok", false, "error", "Failed to resolve model metadata: " + ex.getMessage());
+            return Json.map("ok", false, "error", "Failed to resolve model metadata: " + errorText(ex));
         }
     }
 
-    public Map<String, Object> startRuntimeInstall() {
+    public Map<String, Object> startRuntimeInstall(boolean force) {
         synchronized (this) {
             Job existing = jobs.get(RUNTIME_JOB_ID);
             if (existing != null && existing.isActive()) {
                 return Json.map("ok", false, "error", "The llama.cpp runtime is already being installed.");
+            }
+            Map<String, Object> installed = runtimeFiles();
+            boolean alreadyInstalled = Json.bool(installed, "installed", false);
+            if (alreadyInstalled && !force) {
+                return Json.map("ok", false, "installed", true,
+                        "version", Json.str(installed, "version", ""),
+                        "error", "llama.cpp runtime " + Json.str(installed, "version", "")
+                                + " is already installed. Use Reinstall to replace it.");
             }
             Job job = new Job(RUNTIME_JOB_ID, "runtime", "", "llama.cpp CPU runtime");
             jobs.put(RUNTIME_JOB_ID, job);
@@ -463,11 +474,120 @@ public final class ModelManager {
             return result;
         } catch (Exception ex) {
             return Json.map("ok", false, "installed", false,
-                            "error", "Cannot read runtime.json: " + ex.getMessage());
+                            "error", "Cannot read runtime.json: " + errorText(ex));
+        }
+    }
+
+    public synchronized Map<String, Object> runtimeCudaFiles() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Path infoFile = runtimeDir.resolve(RUNTIME_CUDA_INFO);
+        if (Files.isRegularFile(infoFile)) {
+            try {
+                result.putAll(Json.asObject(Json.parse(
+                        Files.readString(infoFile, StandardCharsets.UTF_8))));
+            } catch (Exception ignored) {
+            }
+        }
+        Path server = cudaRuntimeServerPath();
+        boolean exists = server != null;
+        result.put("ok", exists);
+        result.put("installed", exists);
+        result.put("available", exists);
+        result.put("backend", "cuda");
+        result.put("server_absolute", exists ? server.toString() : "");
+        if (exists && !result.containsKey("version")) {
+            result.put("version", "CUDA build detected");
+        }
+        return result;
+    }
+
+    private Path cudaRuntimeServerPath() {
+        Path infoFile = runtimeDir.resolve(RUNTIME_CUDA_INFO);
+        if (Files.isRegularFile(infoFile)) {
+            try {
+                Map<String, Object> info = Json.asObject(Json.parse(
+                        Files.readString(infoFile, StandardCharsets.UTF_8)));
+                String relative = Json.str(info, "server", "");
+                if (!relative.isEmpty()) {
+                    Path candidate = root.resolve(relative);
+                    if (Files.isRegularFile(candidate)) {
+                        return candidate;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        Path fallback = runtimeDir.resolve(RUNTIME_CUDA_DIR).resolve(RUNTIME_SERVER_NAME);
+        return Files.isRegularFile(fallback) ? fallback : null;
+    }
+
+    public synchronized String runtimeBackend() {
+        try {
+            Path file = runtimeDir.resolve(RUNTIME_SELECTION);
+            if (Files.isRegularFile(file)) {
+                String backend = Json.str(Json.asObject(Json.parse(
+                        Files.readString(file, StandardCharsets.UTF_8))), "backend", "auto");
+                if (backend.equals("cpu") || backend.equals("cuda")) {
+                    return backend;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "auto";
+    }
+
+    public synchronized String resolvedRuntimeBackend() {
+        String selected = runtimeBackend();
+        if ("cpu".equals(selected)) {
+            return "cpu";
+        }
+        if ("cuda".equals(selected)) {
+            return "cuda";
+        }
+        return cudaRuntimeServerPath() != null ? "cuda" : "cpu";
+    }
+
+    public synchronized Map<String, Object> runtimeVariants() {
+        return Json.map(
+                "selected", runtimeBackend(),
+                "resolved", resolvedRuntimeBackend(),
+                "cpu", runtimeFiles(),
+                "cuda", runtimeCudaFiles());
+    }
+
+    public synchronized Map<String, Object> selectRuntimeBackend(String rawBackend) {
+        String backend = rawBackend == null ? ""
+                : rawBackend.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!backend.equals("auto") && !backend.equals("cpu") && !backend.equals("cuda")) {
+            return Json.map("ok", false, "error", "Backend must be auto, cpu or cuda.");
+        }
+        if (backend.equals("cuda") && cudaRuntimeServerPath() == null) {
+            return Json.map("ok", false,
+                    "error", "The CUDA llama.cpp runtime is not installed in runtime/llama.cpp-cuda.");
+        }
+        try {
+            Files.createDirectories(runtimeDir);
+            Files.writeString(runtimeDir.resolve(RUNTIME_SELECTION),
+                    Json.write(Json.map("backend", backend)), StandardCharsets.UTF_8);
+            return Json.map("ok", true, "selected", backend,
+                    "resolved", resolvedRuntimeBackend());
+        } catch (IOException ex) {
+            return Json.map("ok", false,
+                    "error", "Cannot save the runtime selection: " + errorText(ex));
         }
     }
 
     public synchronized Path runtimeServerPath() {
+        String backend = resolvedRuntimeBackend();
+        if ("cuda".equals(backend)) {
+            Path cuda = cudaRuntimeServerPath();
+            if (cuda != null) {
+                return cuda;
+            }
+            if ("cuda".equals(runtimeBackend())) {
+                return null;
+            }
+        }
         Path configured = configuredRuntimeServer();
         if (configured != null) {
             return configured;
@@ -496,7 +616,7 @@ public final class ModelManager {
                 return null;
             }
             Map<String, Object> doc = Json.asObject(
-                    Json.parse(Files.readString(configFile, StandardCharsets.UTF_8)));
+                    Json.parse(AppSettings.readConfigText(configFile)));
             return existingRuntimeServer(
                     Json.str(Json.asObject(doc.get("llm")), "llama_server", ""));
         } catch (Exception ignored) {
@@ -626,7 +746,7 @@ public final class ModelManager {
             }
             job.complete("Download complete, SHA-256 verified.");
         } catch (Exception ex) {
-            job.fail("Download failed: " + ex.getMessage());
+            job.fail("Download failed: " + errorText(ex));
             System.err.println("[models] download " + id + " failed: " + ex);
         }
     }
@@ -657,7 +777,28 @@ public final class ModelManager {
             Path part = archivePath.resolveSibling("llama-runtime" + suffix + ".part");
 
             job.setStatus("downloading", "Downloading llama.cpp " + tag + "...");
-            String hash = downloadTo(url, part, job, size, expectedSha);
+            List<String> sources = runtimeDownloadSources(url);
+            List<String> failures = new ArrayList<>();
+            String hash = null;
+            for (int index = 0; index < sources.size() && hash == null; ++index) {
+                String source = sources.get(index);
+                String label = sourceLabel(source);
+                job.setStatus("downloading", "Downloading llama.cpp " + tag
+                        + " from " + label + "...");
+                try {
+                    hash = downloadTo(source, part, job, size, expectedSha, index == 0 ? 1 : 2);
+                } catch (Exception ex) {
+                    failures.add(label + ": " + errorText(ex));
+                    System.err.println("[runtime] download from " + label + " failed: "
+                            + errorText(ex));
+                    Files.deleteIfExists(part);
+                }
+            }
+            if (hash == null) {
+                throw new IOException("All download sources failed. "
+                        + String.join(" | ", failures)
+                        + ". Set llm.runtime_mirror in config.json to a reachable GitHub mirror.");
+            }
             Files.move(part, archivePath, StandardCopyOption.REPLACE_EXISTING);
 
             job.setStatus("extracting", "Extracting runtime...");
@@ -706,7 +847,7 @@ public final class ModelManager {
             job.complete("llama.cpp runtime " + tag + " installed.");
             staging = null;
         } catch (Exception ex) {
-            job.fail("Runtime installation failed: " + ex.getMessage());
+            job.fail("Runtime installation failed: " + errorText(ex));
             System.err.println("[runtime] install failed: " + ex);
         } finally {
             if (staging != null) {
@@ -744,8 +885,8 @@ public final class ModelManager {
         String configured = System.getenv("CODEFORGE_MODEL_MIRROR");
         if (configured == null || configured.isBlank()) {
             try {
-                Map<String, Object> doc = Json.asObject(Json.parse(Files.readString(
-                        root.resolve("config.json"), StandardCharsets.UTF_8)));
+                Map<String, Object> doc = Json.asObject(Json.parse(
+                        AppSettings.readConfigText(root.resolve("config.json"))));
                 configured = Json.str(Json.asObject(doc.get("llm")), "model_mirror", "");
             } catch (Exception ignored) {
             }
@@ -837,10 +978,79 @@ public final class ModelManager {
                 + ". " + runtimeHint());
     }
 
+    private List<String> runtimeDownloadSources(String direct) {
+        List<String> sources = new ArrayList<>();
+        if (direct == null || direct.isBlank()) {
+            return sources;
+        }
+        sources.add(direct);
+        if (!direct.startsWith("https://github.com/")
+                && !direct.startsWith("https://objects.githubusercontent.com/")) {
+            return sources;
+        }
+        for (String prefix : runtimeMirrorPrefixes()) {
+            String base = prefix.trim();
+            if (!base.contains("{url}") && !base.endsWith("/")) {
+                base = base + "/";
+            }
+            String candidate = base.contains("{url}")
+                    ? base.replace("{url}", direct) : base + direct;
+            if (!sources.contains(candidate)) {
+                sources.add(candidate);
+            }
+        }
+        return sources;
+    }
+
+    private List<String> runtimeMirrorPrefixes() {
+        String configured = System.getenv("CODEFORGE_RUNTIME_MIRROR");
+        if (configured == null || configured.isBlank()) {
+            try {
+                Map<String, Object> doc = Json.asObject(Json.parse(
+                        AppSettings.readConfigText(root.resolve("config.json"))));
+                configured = Json.str(Json.asObject(doc.get("llm")), "runtime_mirror", "");
+            } catch (Exception ignored) {
+            }
+        }
+        List<String> prefixes = new ArrayList<>();
+        if (configured != null && !configured.isBlank()) {
+            for (String part : configured.split("[,\\s]+")) {
+                if (!part.isBlank() && !prefixes.contains(part.trim())) {
+                    prefixes.add(part.trim());
+                }
+            }
+        }
+        if (prefixes.isEmpty()) {
+            prefixes.add("https://ghproxy.net/");
+            prefixes.add("https://gh-proxy.com/");
+        }
+        return prefixes;
+    }
+
+    private static String errorText(Throwable error) {
+        String message = error.getMessage();
+        return message == null || message.isBlank() ? error.toString() : message;
+    }
+
+    private static String sourceLabel(String url) {
+        try {
+            String host = URI.create(url).getHost();
+            return host == null || host.isBlank() ? url : host;
+        } catch (Exception ex) {
+            return url;
+        }
+    }
+
     private String downloadTo(String url, Path part, Job job,
                               long expectedSize, String expectedSha) throws Exception {
+        return downloadTo(url, part, job, expectedSize, expectedSha, 12);
+    }
+
+    private String downloadTo(String url, Path part, Job job,
+                              long expectedSize, String expectedSha,
+                              int maxAttempts) throws Exception {
         IOException last = null;
-        for (int attempt = 1; attempt <= 12; attempt++) {
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 return downloadAttempt(url, part, job, expectedSize, expectedSha);
             } catch (IOException ex) {
@@ -850,10 +1060,13 @@ public final class ModelManager {
                 }
                 long have = Files.isRegularFile(part) ? Files.size(part) : 0L;
                 long percent = expectedSize > 0 ? have * 100L / expectedSize : 0L;
-                job.setStatus("downloading", "Connection dropped (" + ex.getMessage() +
-                        ") — resuming at " + percent + "%, attempt " + attempt + "/12");
+                job.setStatus("downloading", "Connection dropped (" + errorText(ex) +
+                        ") — resuming at " + percent + "%, attempt " + attempt +
+                        "/" + maxAttempts);
                 job.progress(have, expectedSize > 0 ? expectedSize : have);
-                Thread.sleep(Math.min(20000L, 2000L * attempt));
+                if (attempt < maxAttempts) {
+                    Thread.sleep(Math.min(20000L, 2000L * attempt));
+                }
             }
         }
         throw last;

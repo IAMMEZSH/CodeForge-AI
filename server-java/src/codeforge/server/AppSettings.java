@@ -1,5 +1,9 @@
 package codeforge.server;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,12 +11,14 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Reads memory/online/compliance settings from config.json and the environment.
+ * Reads memory, online and runtime settings from config.json and the environment.
  * Reloads automatically when config.json changes on disk.
  */
 public final class AppSettings {
     public static final int MIN_CONTEXT_SIZE = 2048;
     public static final int MAX_CONTEXT_SIZE = 524288;
+    public static final int MIN_MAX_TOKENS = 64;
+    public static final int MAX_MAX_TOKENS = 393216;
     public static final int MAX_PARALLEL_SLOTS = 8;
 
     private final Path root;
@@ -30,10 +36,6 @@ public final class AppSettings {
     private int onlineTimeoutMs = 12000;
     private int maxResults = 3;
 
-    private boolean complianceEnabled = true;
-    private String jurisdiction = "auto";
-    private boolean onlineRefresh = true;
-    private int refreshHours = 24;
     private boolean autoToolchain = true;
 
     private boolean onlineLlmEnabled = true;
@@ -42,6 +44,7 @@ public final class AppSettings {
     private String onlineLlmKey = "";
     private int contextSize = 16384;
     private int parallelSlots = 1;
+    private int maxTokens = 2048;
 
     public AppSettings(Path root) {
         this.root = root;
@@ -64,7 +67,7 @@ public final class AppSettings {
         }
         lastModified = mtime;
         try {
-            String text = Files.readString(configFile, StandardCharsets.UTF_8);
+            String text = readConfigText(configFile);
             Map<String, Object> doc = Json.asObject(Json.parse(text));
             Map<String, Object> mem = Json.asObject(doc.get("memory"));
             if (!mem.isEmpty()) {
@@ -84,19 +87,13 @@ public final class AppSettings {
             Map<String, Object> llm = Json.asObject(doc.get("llm"));
             contextSize = Json.integer(llm, "context_size", contextSize);
             parallelSlots = Json.integer(llm, "parallel", parallelSlots);
+            maxTokens = Json.integer(llm, "max_tokens", maxTokens);
             Map<String, Object> onlineLlm = Json.asObject(llm.get("online"));
             if (!onlineLlm.isEmpty()) {
                 onlineLlmEnabled = Json.bool(onlineLlm, "enabled", onlineLlmEnabled);
                 onlineLlmUrl = Json.str(onlineLlm, "base_url", onlineLlmUrl);
                 onlineLlmModel = Json.str(onlineLlm, "model", onlineLlmModel);
                 onlineLlmKey = Json.str(onlineLlm, "api_key", onlineLlmKey);
-            }
-            Map<String, Object> compliance = Json.asObject(doc.get("compliance"));
-            if (!compliance.isEmpty()) {
-                complianceEnabled = Json.bool(compliance, "enabled", complianceEnabled);
-                jurisdiction = Json.str(compliance, "jurisdiction", jurisdiction);
-                onlineRefresh = Json.bool(compliance, "online_refresh", onlineRefresh);
-                refreshHours = Json.integer(compliance, "refresh_hours", refreshHours);
             }
             Map<String, Object> toolchains = Json.asObject(doc.get("toolchains"));
             if (!toolchains.isEmpty()) {
@@ -107,6 +104,22 @@ public final class AppSettings {
         }
         applyEnv();
         clamp();
+    }
+
+    // Notepad on Chinese Windows saves ANSI/GBK by default. Fall back instead of
+    // silently discarding a hand-edited config.json.
+    static String readConfigText(Path file) throws Exception {
+        byte[] bytes = Files.readAllBytes(file);
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(bytes)).toString();
+        } catch (CharacterCodingException ignored) {
+            boolean windows = System.getProperty("os.name", "")
+                    .toLowerCase(Locale.ROOT).contains("win");
+            return new String(bytes, Charset.forName(windows ? "GBK" : "ISO-8859-1"));
+        }
     }
 
     private void applyEnv() {
@@ -121,10 +134,6 @@ public final class AppSettings {
         value = System.getenv("CODEFORGE_RESEARCH");
         if (value != null && !value.isBlank()) {
             researchMode = value;
-        }
-        value = System.getenv("CODEFORGE_JURISDICTION");
-        if (value != null && !value.isBlank()) {
-            jurisdiction = value;
         }
         value = System.getenv("CODEFORGE_ONLINE_LLM");
         if (value != null && !value.isBlank()) {
@@ -160,6 +169,13 @@ public final class AppSettings {
             } catch (NumberFormatException ignored) {
             }
         }
+        value = System.getenv("CODEFORGE_LLM_MAX_TOKENS");
+        if (value != null && !value.isBlank()) {
+            try {
+                maxTokens = Integer.parseInt(value.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
     }
 
     private void clamp() {
@@ -167,17 +183,13 @@ public final class AppSettings {
         retrievalLimit = Math.max(0, Math.min(20, retrievalLimit));
         onlineTimeoutMs = Math.max(2000, Math.min(60000, onlineTimeoutMs));
         maxResults = Math.max(1, Math.min(6, maxResults));
-        refreshHours = Math.max(1, Math.min(24 * 30, refreshHours));
         contextSize = Math.max(MIN_CONTEXT_SIZE, Math.min(MAX_CONTEXT_SIZE, contextSize));
         parallelSlots = Math.max(1, Math.min(MAX_PARALLEL_SLOTS, parallelSlots));
+        maxTokens = Math.max(MIN_MAX_TOKENS, Math.min(MAX_MAX_TOKENS, maxTokens));
         researchMode = researchMode.toLowerCase(Locale.ROOT);
         if (!researchMode.equals("off") && !researchMode.equals("auto")
                 && !researchMode.equals("always")) {
             researchMode = "auto";
-        }
-        jurisdiction = jurisdiction.trim().toUpperCase(Locale.ROOT);
-        if (jurisdiction.isEmpty()) {
-            jurisdiction = "auto";
         }
         onlineLlmUrl = onlineLlmUrl.trim();
         while (onlineLlmUrl.endsWith("/")) {
@@ -243,33 +255,18 @@ public final class AppSettings {
         return maxResults;
     }
 
-    public boolean complianceEnabled() {
-        ensure();
-        return complianceEnabled;
-    }
-
-    public String jurisdiction() {
-        ensure();
-        return jurisdiction;
-    }
-
-    public boolean onlineRefresh() {
-        ensure();
-        return onlineRefresh;
-    }
-
     public boolean autoToolchain() {
         ensure();
         return autoToolchain;
     }
 
-    public int refreshHours() {
-        ensure();
-        return refreshHours;
-    }
-
     public Path stateDir() {
         return root.resolve("memory");
+    }
+
+    public boolean onlineLlmEnabled() {
+        ensure();
+        return onlineLlmEnabled;
     }
 
     public boolean onlineLlmConfigured() {
@@ -295,5 +292,10 @@ public final class AppSettings {
     public int parallelSlots() {
         ensure();
         return parallelSlots;
+    }
+
+    public int maxTokens() {
+        ensure();
+        return maxTokens;
     }
 }

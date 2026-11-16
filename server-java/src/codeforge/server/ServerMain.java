@@ -43,7 +43,6 @@ public final class ServerMain {
         MemoryStore memory = new MemoryStore(settings);
         ProjectIndex projectIndex = new ProjectIndex(settings);
         OnlineService online = new OnlineService(settings, memory);
-        ComplianceService compliance = new ComplianceService(settings, online);
         projectIndex.refreshAsync();
         if (!core.available()) {
             System.err.println("[codeforge] warning: C++ core not found at " + core.coreExe());
@@ -61,7 +60,7 @@ public final class ServerMain {
 
         final HttpServer boundServer = server;
         handler = new ApiHandler(root, core, models, runtime, nativeTools,
-                settings, memory, projectIndex, online, compliance, () -> {
+                settings, memory, projectIndex, online, () -> {
             new Thread(() -> {
                 try {
                     Thread.sleep(120);
@@ -84,6 +83,7 @@ public final class ServerMain {
         }, "codeforge-shutdown"));
 
         server.start();
+        runtime.cleanupStaleProcess();
         String base = "http://127.0.0.1:" + port;
         System.out.println("[codeforge] web console : " + base + "/console/");
         System.out.println("[codeforge] api         : " + base + "/api/status");

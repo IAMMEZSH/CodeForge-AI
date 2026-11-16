@@ -1,19 +1,18 @@
 # CodeForge AI — API Reference
 
-Version 1.0.3 · Java 17 HTTP server · C++ core bridge
+Version 1.0.4 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
 control server, which layers memory, workspace retrieval, optional online
-research, jurisdiction compliance and dual-brain routing on top of the C++
-main core.
+research and dual-brain routing on top of the C++ main core.
 
 ```
 Browser / curl / mobile thin client
         │  HTTP 1.1, JSON
         ▼
 Java 17 server  ──  memory · workspace index · online research
- 127.0.0.1:8765  ──  compliance · dual-brain routing
+ 127.0.0.1:8765  ──  dual-brain routing
         │  CodeForgeCore <command> --root <root>  (stdin JSON → stdout JSON)
         ▼
 C++17 main core  ──  runner, debugger, LLM client, process supervisor
@@ -84,6 +83,7 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | POST | `/api/files/write` | Write one file to an exact user-provided path |
 | POST | `/api/files/write-batch` | Write many files, each to its own path |
 | POST | `/api/files/reveal` | Open the containing folder in the OS file manager |
+| POST | `/api/files/place` | Copy or move any file or folder to a chosen path or the Desktop |
 | POST | `/api/desktop/install` | Create a launcher at any folder or file path |
 | POST | `/api/project/place` | Copy the runnable project tree to any folder |
 | GET | `/preview/<session>/<file>` | Sandboxed preview of generated HTML/CSS |
@@ -94,15 +94,26 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | POST | `/api/runtime/install` | Download and extract llama.cpp runtime |
 | POST | `/api/runtime/start` | Start llama-server with an installed model |
 | POST | `/api/runtime/stop` | Stop the managed llama-server |
+| POST | `/api/runtime/select` | Choose the runtime backend: `auto`, `cpu` or `cuda` |
 | GET | `/api/runtime/logs` | Tail the inference server log |
 | GET | `/api/downloads` | Download job list |
 | GET/POST | `/api/memory` | Memory stats/search or add an entry |
 | POST | `/api/memory/delete`, `/api/memory/clear` | Delete one entry or clear the store |
 | GET/POST | `/api/workspace` | Workspace index stats/search or reindex |
-| GET | `/api/online` | Network, geolocation, research and legal-brief status |
+| GET | `/api/online` | Network and research status |
 | GET | `/api/online/research` | Web research persisted into memory |
-| GET | `/api/compliance` | Jurisdiction pack, baseline rules, sources |
-| POST | `/api/compliance/refresh` | Refresh the current legal brief |
+| GET | `/api/online/fetch` | Fetch one page as readable text |
+| GET/POST | `/api/agent` | Read or update Command Agent settings and capabilities |
+| GET | `/api/agent/software` | Discovered installed applications |
+| POST | `/api/agent/run` | Execute one command with auto-provisioning and the publish guard |
+| POST | `/api/agent/provision` | Install one missing tool |
+| GET | `/api/keys` | List saved online-provider keys (masked hints only) |
+| POST | `/api/keys` | Add or update a provider key; mirrors the active one into `llm.online` |
+| POST | `/api/keys/activate` | Switch the active online brain |
+| POST | `/api/keys/delete` | Remove a saved key from `config.json` |
+| POST | `/api/keys/test` | Send a minimal completion to verify endpoint, model and key |
+| POST | `/api/brain/enabled` | Turn the online brain on or off; saved keys stay stored |
+| GET/POST | `/api/settings/llm` | Read or set the shared reply-token limit (64–393,216) |
 | POST | `/api/shutdown` | Graceful server shutdown |
 | GET | `/console/` | Web console (static assets) |
 
@@ -122,7 +133,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -171,7 +182,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -229,9 +240,14 @@ The native helper reports the same numbers as `cforge_native sysinfo`.
   "base_url": "http://127.0.0.1:8080",
   "model_id": "qwen3-4b-instruct-2507",
   "model_path": "C:\\...\\Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
-  "started_at": "2026-11-15T11:19:49.048Z",
+  "started_at": "2026-11-16T12:19:49.048Z",
   "log": "logs\\llama-server.log",
-  "error": ""
+  "error": "",
+  "max_tokens": 8192,
+  "max_tokens_min": 64,
+  "max_tokens_max": 393216,
+  "backend": "cuda",
+  "backend_selected": "auto"
 }
 ```
 
@@ -242,6 +258,10 @@ The native helper reports the same numbers as `cforge_native sysinfo`.
 | `healthy` | `GET /v1/models` on 8080 answered within the probe timeout |
 | `pid` | OS process id, `0` when not managed |
 | `model_id`, `model_path` | Active model when managed |
+| `max_tokens` | Shared reply budget for every offline model |
+| `max_tokens_min`, `max_tokens_max` | Accepted reply-limit range |
+| `backend` | Resolved backend actually used by the running server: `cpu` or `cuda`; empty before first start |
+| `backend_selected` | Saved choice: `auto`, `cpu` or `cuda` |
 | `error` | Last startup/probe error, empty on success |
 
 #### `runtime` object
@@ -278,7 +298,6 @@ runtime is installed: `{"ok": false, "installed": false, "platform": "...",
 ### POST `/api/chat`
 
 Sends an OpenAI-style message array through the dual-brain router. The server
-screens the request against the compliance baseline, detects the jurisdiction,
 searches persistent memory and the workspace index, optionally researches the
 web, composes a bounded context block, and calls the C++ core. The core asks the
 online brain first when the server requested `online`, then falls back to the
@@ -292,7 +311,6 @@ Request:
 | `model` | string | no | Override the configured model name |
 | `temperature` | number | no | Backend default when omitted |
 | `max_tokens` | number | no | Backend default when omitted |
-| `jurisdiction` | string | no | Force a pack (`CN`, `US`, `EU`, …) for this request |
 | `request_id` | string | no | Caller-chosen id (≤ 80 chars) used by the progress and cancel endpoints; generated when omitted |
 
 ```bash
@@ -330,20 +348,16 @@ Response:
   "backend": "openai",
   "model": "deepseek-chat",
   "route": "online",
-  "jurisdiction": "CN",
   "sources": [
     { "title": "Official source title", "url": "https://example.gov/..." }
   ],
   "meta": {
-    "jurisdiction": "CN",
-    "jurisdiction_source": "geo:ipwho.is",
-    "verdict": "allow",
-    "flags": [],
     "memory": { "enabled": true, "entries": 42, "hits": 3 },
     "workspace": { "enabled": true, "files": 130, "hits": 2 },
     "brain": {
       "requested": "online",
       "route": "online",
+      "online_enabled": true,
       "online_configured": true,
       "online_model": "deepseek-chat",
       "online_url": "https://api.deepseek.com",
@@ -362,33 +376,13 @@ Response:
 | `backend` | Backend family actually used (`openai`, `ollama`, ...) |
 | `model` | Model actually used |
 | `route` | `online` or `local` after fallback |
-| `jurisdiction` | Detected or forced pack code |
 | `sources` | Web sources used for the answer |
 | `meta.brain` | Requested route, actual route, configuration and fallback reason |
 | `meta.memory` | Store state and retrieval hit count |
 | `meta.workspace` | Index size and hit count |
 | `meta.online` | Whether research ran, the search engine and result count |
-| `meta.verdict` | `allow`, `caution` or `block` |
 | `meta.estimated_ms` | Total-duration estimate when generation started |
 | `request_id` | Id that ties the response to progress and cancel calls |
-
-A blocked request returns HTTP 200 with:
-
-```json
-{
-  "ok": false,
-  "blocked": true,
-  "reply": "This request cannot be carried out...",
-  "error": "Blocked by the universal compliance rule",
-  "jurisdiction": "CN",
-  "sources": [],
-  "meta": { "verdict": "block", "flags": ["malware"] }
-}
-```
-
-The console renders the refusal as a guardrail message rather than a network
-error. The same screening runs on model output with a narrower instructional
-pattern, so a model cannot be used to launder a prohibited request.
 
 Error example (no model loaded):
 
@@ -433,7 +427,6 @@ curl -s "http://127.0.0.1:8765/api/chat/progress?request_id=my-request-1"
     "measured": true
   },
   "steps": [
-    { "id": "screen", "label": "Compliance screen", "detail": "allow · CN", "status": "done", "at_ms": 8 },
     { "id": "memory", "label": "Recall persistent memory", "detail": "4 hits / 11 stored", "status": "done", "at_ms": 41 },
     { "id": "workspace", "label": "Scan workspace index", "detail": "3 matches / 638 files", "status": "done", "at_ms": 58 },
     { "id": "research", "label": "Research current sources", "detail": "360-search · 3 results", "status": "done", "at_ms": 7030 },
@@ -488,8 +481,7 @@ The original `/api/chat` call then returns promptly with:
   "reply": "",
   "error": "Interrupted by user",
   "request_id": "my-request-1",
-  "jurisdiction": "CN",
-  "meta": { "verdict": "allow", "elapsed_ms": 14438, "cancelled": true }
+  "meta": { "elapsed_ms": 14438, "cancelled": true }
 }
 ```
 
@@ -498,9 +490,9 @@ no online `lesson` are stored. Web results fetched before the interruption may
 already have been captured as `web` memory by the research stage; those are
 ordinary knowledge entries, not a record of the cancelled exchange.
 
-Cancellation is cooperative at stage boundaries (compliance, memory, research,
-context assembly, output screening) and immediate during model generation,
-where the core process is terminated. If the id is unknown the endpoint still
+Cancellation is cooperative at stage boundaries (memory, research, context
+assembly) and immediate during model generation, where the core process is
+terminated. If the id is unknown the endpoint still
 returns `ok: true` so clients can fire it defensively.
 
 ---
@@ -651,7 +643,6 @@ Response:
   "stdout": "hello\n",
   "stderr": "",
   "error": "",
-  "jurisdiction": "CN",
   "session_dir": "workspace\\run-20261115-193000-1a2b3c4d"
 }
 ```
@@ -665,9 +656,6 @@ Behavior:
 - `timed_out: true` means the process tree was killed; `exit_code` is `124` on
   timeout on all platforms.
 - `session_dir` keeps the source and build artifacts for inspection.
-- The source is screened by the compliance layer before execution. A refusal
-  returns `200` with `ok:false`, `blocked:true`, `notice` and `jurisdiction`,
-  and no process is started.
 
 ---
 
@@ -687,7 +675,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -718,6 +706,32 @@ list, and runtime information.
 | `runtime` | same object as `/api/status` → `runtime` |
 | `downloads` | same array as `/api/downloads` → `jobs` |
 | `llm_runtime` | same object as `/api/status` → `llm_runtime` |
+| `runtime_variants` | backend selection and install state for both builds |
+
+`runtime_variants`:
+
+```json
+{
+  "selected": "auto",
+  "resolved": "cuda",
+  "cpu": {
+    "installed": true,
+    "version": "b12428",
+    "platform": "win-cpu-x64",
+    "server_absolute": "C:\\...\\runtime\\llama.cpp\\llama-server.exe"
+  },
+  "cuda": {
+    "installed": true,
+    "version": "b12428",
+    "platform": "win-cuda-x64",
+    "server_absolute": "C:\\...\\runtime\\llama.cpp-cuda\\llama-server.exe"
+  }
+}
+```
+
+`selected` is the saved choice from `runtime/selection.json`; `resolved` is
+the backend Auto currently maps to. Each backend object is the corresponding
+`runtime/*.json` plus `installed` and `server_absolute`.
 
 Model entry:
 
@@ -830,11 +844,14 @@ If resolution fails: `{"ok": false, "error": "..."}`.
 
 ### POST `/api/runtime/install`
 
-Downloads the matching llama.cpp release for the host CPU and OS:
+Downloads the matching CPU llama.cpp release for the host CPU and OS:
 `win-cpu-x64`, `win-cpu-arm64`, `macos-arm64`, `macos-x64`, `ubuntu-x64`,
 `ubuntu-arm64`, `ubuntu-s390x`, `android-arm64` or
 `android-arm64-snapdragon` (Termux ARM64). It extracts `llama-server`, writes
-`runtime/runtime.json`, and verifies the binary SHA-256.
+`runtime/runtime.json`, and verifies the binary SHA-256. CUDA is not downloaded
+by this endpoint: extract the official CUDA build into
+`runtime/llama.cpp-cuda/`, add `runtime/runtime-cuda.json`, then select it with
+`POST /api/runtime/select`.
 
 When no asset exists for the ABI (32-bit ARM/x86, Alpine/musl, iSH), build
 llama.cpp from source and set `llm.llama_server` in `config.json` or export
@@ -850,10 +867,17 @@ curl -s -X POST http://127.0.0.1:8765/api/runtime/install \
 { "ok": true, "job": { "id": "llama-runtime", "kind": "runtime", "status": "queued" } }
 ```
 
-An active install is rejected with `{"ok": false, "error": "..."}`.
+An active install is rejected with `{"ok": false, "error": "..."}`. If the
+runtime is already installed, the request is rejected unless the body includes
+`{"force": true}`; the console asks for confirmation before sending `force`.
 Progress appears in `GET /api/downloads` under the runtime job id.
-Installation requires network access to GitHub releases (office/home firewall
-rules apply).
+
+The installer tries the GitHub asset first, then falls back to the mirrors in
+`llm.runtime_mirror` (`config.json`) or `CODEFORGE_RUNTIME_MIRROR`, and finally
+to the built-in `ghproxy.net` and `gh-proxy.com` prefixes. A mirror entry is
+either a prefix such as `https://ghproxy.net/` or a template containing
+`{url}`. The SHA-256 published by GitHub is verified after every source, so a
+tampered mirror download is rejected.
 
 ### POST `/api/runtime/start`
 
@@ -894,11 +918,14 @@ Failure cases (all `200` with `ok:false`):
 | Startup timeout (180 s) | `... did not become ready within 180 seconds...` plus `log` and `tail` |
 
 The server is started with `--host 127.0.0.1 --port 8080 -c <context_size>
---parallel <parallel> -t <half the cores> --no-webui`. Defaults are 16,384
-tokens and one slot; both values are clamped to 2,048–524,288 and 1–8.
-llama.cpp divides the total context across the slots. The runtime panel sends
-the same fields; the model's native context remains the effective ceiling.
-Logs are appended to `logs/llama-server.log`.
+--parallel <parallel> -t <half the cores> --no-webui --reasoning off
+--reasoning-budget 256`. The CUDA backend adds `-ngl 99` and runs
+`runtime/llama.cpp-cuda/llama-server.exe`; the CPU backend runs
+`runtime/llama.cpp/llama-server.exe` (or the `llm.llama_server` override).
+Defaults are 16,384 tokens and one slot; both values are clamped to
+2,048–524,288 and 1–8. llama.cpp divides the total context across the slots.
+The runtime panel sends the same fields; the model's native context remains the
+effective ceiling. Logs are appended to `logs/llama-server.log`.
 
 ### POST `/api/runtime/stop`
 
@@ -912,6 +939,38 @@ curl -s -X POST http://127.0.0.1:8765/api/runtime/stop \
 ```json
 { "ok": true, "message": "Inference service stopped." }
 ```
+
+### POST `/api/runtime/select`
+
+Saves the preferred llama.cpp backend. The console calls this before restarting
+inference; a running server keeps its current backend until stopped.
+
+Request:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `backend` | string | yes | `auto`, `cpu` or `cuda` |
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/runtime/select \
+  -H "Content-Type: application/json" -d '{"backend":"cuda"}'
+```
+
+```json
+{ "ok": true, "selected": "cuda", "resolved": "cuda" }
+```
+
+| Situation | Response |
+| --- | --- |
+| Invalid value | `{"ok": false, "error": "Backend must be auto, cpu or cuda."}` |
+| `cuda` without a CUDA build | `{"ok": false, "error": "The CUDA llama.cpp runtime is not installed in runtime/llama.cpp-cuda."}` |
+
+The selection is written atomically to `runtime/selection.json` as
+`{"backend":"<value>"}`. With `auto`, the resolver picks CUDA when
+`runtime/llama.cpp-cuda/llama-server.exe` exists and CPU otherwise. With
+`cuda`, startup uses `-ngl 99`; the CPU path also passes `--reasoning off
+--reasoning-budget 256` and the server environment sets
+`LLAMA_ARG_CHAT_TEMPLATE_KWARGS={"enable_thinking":false}`.
 
 When nothing is managed but an external server answers on 8080:
 
@@ -990,7 +1049,7 @@ Jobs live in memory; completed jobs are retained until the server restarts.
 
 ---
 
-## 12. Memory, workspace, research and compliance
+## 12. Memory, workspace and research
 
 ### GET / POST `/api/memory`
 
@@ -1002,9 +1061,9 @@ curl -s -X POST http://127.0.0.1:8765/api/memory \
 ```
 
 `GET` without `q` returns `stats()` plus `recent`; with `q` it returns ranked
-`hits` with `id`, `kind`, `source`, `jurisdiction`, `ts`, `score` and `text`.
+`hits` with `id`, `kind`, `source`, `ts`, `score` and `text`.
 `POST` accepts `text`, optional `kind` (`fact`, `preference`, `web`, `chat`,
-`lesson`, `note`), `source` and `jurisdiction`.
+`lesson`, `note`) and `source`.
 
 `POST /api/memory/delete` deletes one entry by `id`; `POST /api/memory/clear`
 empties the store. Both are explicit user actions; there is no automatic
@@ -1013,7 +1072,7 @@ deletion of recent knowledge.
 ### GET / POST `/api/workspace`
 
 ```bash
-curl -s "http://127.0.0.1:8765/api/workspace?q=compliance&limit=3"
+curl -s "http://127.0.0.1:8765/api/workspace?q=server&limit=3"
 curl -s -X POST http://127.0.0.1:8765/api/workspace \
   -H "Content-Type: application/json" -d "{}"
 ```
@@ -1025,33 +1084,232 @@ models, runtime, logs, workspaces and the memory directory are skipped.
 
 ### GET `/api/online`
 
-Returns network state, geolocation, research settings, last research source
-and cached legal briefs. `?probe=0` skips the live network/geo probe.
+Returns network state, research settings, last research source and research
+timestamps. `?probe=0` skips the live network probe.
 
 ### GET `/api/online/research?q=<query>`
 
-Runs the search chain (optional SearXNG → DuckDuckGo → 360 Search → Wikipedia),
-filters results for token relevance, persists each result as a `web` memory and
-returns `results` plus a bounded `context` block. When offline it returns
-`"online": false` with an error and does not overwrite memory.
+Queries Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360 Search and
+Wikipedia in parallel. Unreachable, blocked or captcha-walled sources are
+skipped and retried after a ten-minute cooldown; results are deduplicated by
+URL, filtered for token relevance, ranked by relevance, source trust,
+cross-source agreement and executable snippets, and the strongest candidate is
+marked. Each useful result is persisted as a `web` memory. The response
+contains `results`, per-source diagnostics and a bounded `context` block. When
+offline it returns `"online": false` with an error and does not overwrite
+memory.
 
-### GET `/api/compliance?jurisdiction=<code>`
+### GET `/api/online/fetch?url=<url>&max_chars=<n>`
 
-Returns the resolved pack (`jurisdiction`, `name`, `country`, `legal_system`,
-`summary`), the 13 baseline categories, jurisdiction topics, official source
-URLs, refresh policy and the “guardrail, not legal advice” notice. The
-`jurisdiction_source` field is `request`, `config`, `geo:<provider>`, `locale`
-or `default`.
+Downloads one page, follows redirects, strips scripts and navigation, and
+returns readable text plus title, final URL, content type, byte size and
+`duration_ms`. `max_chars` defaults to 12,000. The fetch is bounded by timeout
+and size limits; failed schemes, private addresses and non-text responses are
+rejected. Web content is untrusted data and is never executed.
 
-### POST `/api/compliance/refresh`
+Memory, online research and online-brain routing are controlled by `memory`,
+`online` and `llm.online` in `config.json`; environment overrides are listed in
+[MANUAL.md](MANUAL.md#107-environment-variables).
 
-Forces a synchronous refresh of the current legal brief from the official
-portals in the pack. Returns the same shape as the refresh pipeline:
-`jurisdiction`, `source`, `fetched_at`, `context`, `ok` and `error`.
+### GET `/api/agent`
 
-All four subsystems are controlled by `memory`, `online`, `compliance` and
-`llm.online` in `config.json`; environment overrides are listed in
-[MANUAL.md](MANUAL.md#108-environment-variables).
+Returns the saved Command Agent settings and a live capability snapshot:
+platform, default and available shells, workspace/root/home, detected command
+names with versions, installed applications, deduplicated auto-provisionable
+tools, publishing policy and detection timestamp. `?refresh=1` bypasses the
+capability cache and rescans tools and applications.
+
+```json
+{
+  "ok": true,
+  "enabled": true,
+  "max_steps": 64,
+  "command_timeout_sec": 3600,
+  "max_feedback_chars": 48000,
+  "auto_install_tools": true,
+  "install_timeout_sec": 1800,
+  "auto_learn_software": true,
+  "allow_publish": false,
+  "capabilities": {
+    "os": "Windows 11",
+    "shell": "powershell",
+    "tool_count": 28,
+    "software_count": 156,
+    "provisionable": [{"id":"qpdf","name":"QPDF","available":true,"path":"…","method":"package"}],
+    "publishing": {"supported": true, "requires_permission": true, "allow_publish_setting": "agent.allow_publish"}
+  }
+}
+```
+
+### POST `/api/agent`
+
+Updates one or more settings. Boolean fields must be booleans; numeric values
+are clamped to the documented ranges. The response has the same shape as
+`GET /api/agent`, including the refreshed capability snapshot.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/agent \
+  -H "Content-Type: application/json" \
+  -d '{"max_steps":96,"auto_install_tools":true,"auto_learn_software":true}'
+```
+
+`allow_publish` is the safety boundary: when false (default), remote/public
+actions such as `git push`, release creation, registry/container pushes,
+remote copies, cloud deploys and outbound write HTTP methods are blocked.
+Local commits, builds, packages and exports remain available.
+
+### GET `/api/agent/software?refresh=1`
+
+Returns discovered installed applications (`name`, launch identifier or path,
+version when available) from Start-menu entries and registry uninstall keys on
+Windows, `.app` bundles on macOS, and `.desktop` entries on Linux. `refresh=1`
+forces a rescan.
+
+### POST `/api/agent/run`
+
+Executes one command through the selected shell with the same provisioning and
+publishing protections as the chat loop. It does not call a model.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/agent/run \
+  -H "Content-Type: application/json" \
+  -d '{"command":"git status --short","cwd":"D:\\work","shell":"powershell","timeout":120,"auto_install":true,"install_timeout":1800,"allow_publish":false}'
+```
+
+Fields: `command` (required), optional `cwd`, `shell`
+(`powershell|cmd|bash|sh|zsh`), `timeout` in seconds (default
+`agent.command_timeout_sec`), `auto_install`, `install_timeout` and
+`allow_publish`. The response includes `ok`, `exit_code`, `duration_ms`,
+`timed_out`, `cancelled`, `shell`, `cwd`, `stdout_tail`, `stderr_tail`,
+`stdout_log`, `stderr_log`, `provisioning` (tool, availability, method, path,
+message, error, duration) and, for blocked commands, `blocked`,
+`permission_required` and `publish_guard`.
+
+A missing command is provisioned as follows: portable toolchain first, then
+the native package manager (winget, apt, dnf, yum, pacman, zypper, apk or
+brew), then pip or npm when mapped; PATH is refreshed and the command is
+retried once. yt-dlp prefers pip on Windows and falls back to winget with
+`--skip-dependencies`, so its optional FFmpeg bundle is not downloaded.
+
+### POST `/api/agent/provision`
+
+Installs one tool without executing a command.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/agent/provision \
+  -H "Content-Type: application/json" -d '{"tool":"qpdf","timeout":1800}'
+```
+
+Returns the same provisioning object as `/api/agent/run`, plus
+`install_log` and `install_output`. A tool that is already available returns
+`method: "already-present"` without reinstalling.
+
+### GET `/api/keys`
+
+Returns the saved provider profiles. Secrets are never returned: each entry has
+`key_hint` (for example `••••••••a764`) and `has_key` instead of `api_key`.
+`active_id` names the profile mirrored into `llm.online`.
+
+```json
+{
+  "ok": true,
+  "config": "…/config.json",
+  "active_id": "deepseek-1a2b3c",
+  "online_enabled": true,
+  "providers": [
+    {
+      "id": "deepseek-1a2b3c",
+      "name": "DeepSeek",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-chat",
+      "key_hint": "••••••••a764",
+      "has_key": true,
+      "active": true
+    }
+  ]
+}
+```
+
+If `llm.keys` is absent but `llm.online.api_key` exists (an older hand-edited
+config), the existing key is shown as an active `default` entry.
+
+### POST `/api/keys`
+
+Add a profile, or update one when `id` is supplied. `api_key` may be omitted on
+update to keep the stored secret. Set `activate` to true to make it the online
+brain immediately; the first saved key is always activated.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/keys \
+  -H "Content-Type: application/json" \
+  -d '{"name":"DeepSeek","base_url":"https://api.deepseek.com","model":"deepseek-chat","api_key":"sk-…","activate":true}'
+```
+
+Profiles live in `llm.keys`; the active one is copied into
+`llm.online.base_url`, `llm.online.model` and `llm.online.api_key` so the C++
+core picks it up on its next call. Writes are atomic and preserve every other
+setting in `config.json`.
+
+### POST `/api/keys/activate`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/keys/activate \
+  -H "Content-Type: application/json" -d '{"id":"deepseek-1a2b3c"}'
+```
+
+### POST `/api/keys/delete`
+
+Removes the profile. Deleting the active profile promotes the next saved key;
+deleting the last one clears `llm.online.api_key`, so chat falls back to the
+offline GGUF model.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/keys/delete \
+  -H "Content-Type: application/json" -d '{"id":"deepseek-1a2b3c"}'
+```
+
+### POST `/api/keys/test`
+
+Sends a minimal `chat/completions` request using the saved profile (or the
+supplied `base_url`, `model`, `api_key` for an unsaved form) and returns
+`ok`, `status`, `latency_ms`, `model` and `reply`, or the provider error text.
+Test requests never modify `config.json`.
+
+### POST `/api/brain/enabled`
+
+Sets the online-brain master switch by writing `llm.online.enabled`; the body
+must contain a boolean.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/brain/enabled \
+  -H "Content-Type: application/json" -d '{"enabled":false}'
+```
+
+When `false`, `/api/chat` stays on the offline GGUF model even if a valid key is
+saved and active. The key profiles and the mirror in `llm.online` are preserved,
+so switching back to `true` restores online routing without re-entering the key.
+The response is the same snapshot returned by `GET /api/keys`, including the new
+`online_enabled` field. `/api/status` and chat/debug `meta.brain` expose the same
+flag.
+
+### GET / POST `/api/settings/llm`
+
+Reads or updates the reply-token limit shared by every offline model. The value
+is stored as `llm.max_tokens` in `config.json`; it applies to the next request
+and does not require restarting llama-server.
+
+```bash
+curl -s http://127.0.0.1:8765/api/settings/llm
+curl -s -X POST http://127.0.0.1:8765/api/settings/llm \
+  -H "Content-Type: application/json" -d '{"max_tokens":8192}'
+```
+
+Accepted range is `64`–`393216`. The response includes `ok`, `max_tokens`,
+`min` and `max`. Values outside the range are rejected. 393,216 is the largest
+value accepted by the active DeepSeek endpoint; the context window still limits
+the actual reply, and local generation time grows with the budget; cancel with
+`/api/chat/cancel` if needed. The C++ core extends the local HTTP timeout for
+large reply budgets (up to a two-day safety cap).
 
 ---
 
@@ -1110,7 +1368,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.3", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.4", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1178,6 +1436,10 @@ public repositories are used. If a private mirror is needed, point
 | `llama.cpp runtime is not installed` | RuntimeManager | `POST /api/runtime/install` |
 | Compile timeout | Core runner | Raise `config.json → debug.compile_timeout_ms` |
 | Run timeout (`exit_code: 124`) | Core runner | Raise `debug.run_timeout_ms`; look for infinite loops |
+| `blocked: true` with `publish_guard: true` | Command agent | The command is a public/remote action; enable `agent.allow_publish` or run that one command through the API with `allow_publish=true` |
+| `No automatic installer is mapped for '<tool>'` | Tool provisioning | Install the tool manually or extend `ToolProvisioner`; the command itself is valid |
+| Tool install timeout | Tool provisioning | Raise `agent.install_timeout_sec`; check the install log under `logs/provision-*.log` |
+| `No usable AI backend` after many tool steps | Chat agent | Older builds exhausted the context; current builds compact tool output, keep `tool_calls`, and return them even on model failure. Check `/api/chat/progress` for the failed step |
 
 ---
 
@@ -1450,15 +1712,57 @@ curl -s -X POST http://127.0.0.1:8765/api/project/place \
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `path` | string | Empty means `Desktop/CodeForge-AI`; a missing drive returns an explicit error |
+| `path` | string | Empty means `Desktop/CodeForge-AI`; `D`, `D盘` or `D盘根目录` mean that drive root (C works too); a missing drive returns an explicit error |
 | `include_jdk` | boolean | Copy `native/jdk` (about 305 MB) |
 | `include_toolchains` | boolean | Copy `native/toolchains` |
 | `shortcut` | boolean | Create a launcher inside the destination (default `true`) |
 
-Response: `ok`, `path`, `files`, `bytes`, `skipped`, `duration_ms`,
-`include_jdk`, `include_toolchains`, `shortcut`, `message`. The exporter
-refuses to copy the project onto itself or into a folder inside the project,
-and never overwrites the source tree.
+Response: `ok`, `path`, `files`, `bytes`, `skipped`, `unchanged`, `duration_ms`,
+`include_jdk`, `include_toolchains`, `shortcut`, `message`. Files already present
+with the same size and modification time are counted in `unchanged` and are not
+rewritten, so repeating a placement is fast and does not touch files locked by a
+running copy. The exporter refuses to copy the project onto itself or into a
+folder inside the project, and never overwrites the source tree.
+
+### POST `/api/files/place`
+
+Copies or moves one file or an entire folder tree to an exact path the user
+chooses, including the Desktop. Use `/api/project/place` for the running
+project tree; this endpoint refuses the project root so models, runtime and
+logs are never copied by accident.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/files/place \
+  -H "Content-Type: application/json" \
+  -d '{"source":"C:\\Users\\you\\Downloads\\report.pdf","destination":"D:\\archive","mode":"copy"}'
+```
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `source` | string | yes | File or folder to place; `desktop`/`desktop\...` aliases are also accepted |
+| `destination` | string | no | Target folder or exact file path; empty means the current user's Desktop; `D`, `D盘` and `D盘根目录` mean the drive root (C works too) |
+| `name` | string | no | New name inside the destination folder |
+| `mode` | string | no | `copy` (default) or `move`; move deletes the source only after a successful copy |
+| `overwrite` | boolean | no | Replace existing files; without it a conflict returns `ok:false` and `can_overwrite:true` |
+| `create_dirs` | boolean | no | Create missing destination folders (default `true`) |
+
+Destination rules: an existing folder receives the source inside it (or under
+`name`); an existing file is an exact target and must match the source type; a
+missing destination is the target folder itself for a folder source (a
+trailing slash means "inside this new folder") and is treated as an exact
+file when the path looks like a file name, otherwise as a folder for a file
+source. On Windows a bare drive target may be written as `D`, `D盘`,
+`D盘根目录` or `D:` (any letter, including C); writing to `C:\` itself usually
+requires administrator rights. Repeating a copy skips files with the same size
+and modification time, so an unchanged tree returns quickly and does not touch
+files locked by a running process. Locked files are retried and reported with a
+clear hint; the source and destination cannot be the same path, a folder cannot
+be placed inside itself, and the project root is rejected.
+
+Response: `ok`, `source`, `path`, `kind` (`file`/`folder`), `mode`, `moved`,
+`files`, `bytes`, `unchanged`, `overwritten`, `created_directory`,
+`duration_ms`, `directory`, `message`. A conflict returns `ok:false`,
+`error`, `path` and `can_overwrite:true`.
 
 ### GET `/preview/<session>/<file>`
 
@@ -1480,6 +1784,17 @@ allow-forms allow-modals allow-popups allow-pointer-lock`, `nosniff`,
 - `/api/run` and `/api/debug` execute arbitrary code as your user. That is the
   product's purpose, but it means any local process can do the same through
   the port.
+- `/api/agent/run` executes arbitrary shell commands with the same privileges
+  and can download tools. The chat agent adds a publishing guard for remote
+  and public actions, but the guard is a safety default, not an OS sandbox:
+  code that is allowed to run can still perform network and file operations
+  directly. Review commands before approving elevated or destructive work.
+- `/api/agent` exposes installed application names and tool paths. They stay
+  on the loopback interface and are not uploaded; the agent prompt may send
+  the list to the configured online model when online routing is active.
+- Auto-learning retrieves web pages as untrusted text. The agent is instructed
+  not to execute page instructions, but no content filter can make third-party
+  text trustworthy.
 - The server never reads environment secrets or sends telemetry. Downloads are
   anonymous HTTPS requests to the configured model mirror (`hf-mirror.com` by
   default, `huggingface.co` fallback) and GitHub.

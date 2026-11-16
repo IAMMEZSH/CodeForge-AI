@@ -6,7 +6,7 @@
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
-**Version 1.0.3 · 2026-11-16**
+**Version 1.0.4 · 2026-11-16**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
 [![Core](https://img.shields.io/badge/core-C%2B%2B17%20%2F%20C17-7c5cff.svg)](#architecture)
@@ -18,18 +18,18 @@ C/C++ core · Java server · Python automation · Windows · Linux · macOS · A
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.3-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.3-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-windows-x64.zip).
+**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.4-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.4-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-windows-x64.zip).
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.3-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-windows-x64.zip) |
-| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.3-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-linux-source.tar.gz) |
-| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.3-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-macos-source.tar.gz) |
-| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.3-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-mobile-source.zip) |
-| All platforms, source only | `CodeForge-AI-1.0.3-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-source.zip) |
-| Documentation set | `CodeForge-AI-1.0.3-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.3/CodeForge-AI-1.0.3-docs.zip) |
+| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.4-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-windows-x64.zip) |
+| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.4-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-linux-source.tar.gz) |
+| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.4-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-macos-source.tar.gz) |
+| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.4-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-mobile-source.zip) |
+| All platforms, source only | `CodeForge-AI-1.0.4-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-source.zip) |
+| Documentation set | `CodeForge-AI-1.0.4-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.4/CodeForge-AI-1.0.4-docs.zip) |
 
-Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.3.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.3) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.3). Every archive contains the source, the English manual in `docs/MANUAL.md`, and the deployment checklists.
+Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.4.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.4) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.4). Every archive contains the source, the English manual in `docs/MANUAL.md`, and the deployment checklists.
 
 <div align="center">
 
@@ -43,7 +43,7 @@ Both mirrors carry the same eight release assets: the six archives above, `SHA25
 
 CodeForge AI is a self-contained programming assistant that runs on your own machine. It chats about code, executes programs in isolated workspaces, and **automatically repairs failing code** by combining compiler diagnostics with a large language model. Models are downloaded as GGUF files and served locally by `llama.cpp`.
 
-Local inference stays on the machine. When you configure an **online brain** (any DeepSeek-compatible OpenAI API) and the device is connected, the router sends that request to the online model for maximum capability; if the network or the API fails, the request automatically falls back to the local model. Everything learned online — answers, web snippets, current legal sources — is written into a persistent local memory store, so the offline brain keeps the knowledge after the connection drops.
+Local inference stays on the machine. When you configure an **online brain** (any DeepSeek-compatible OpenAI API) and the device is connected, the router sends that request to the online model for maximum capability; if the network or the API fails, the request automatically falls back to the local model. Everything learned online — answers, web snippets and research findings — is written into a persistent local memory store, so the offline brain keeps the knowledge after the connection drops.
 
 **Core capabilities**
 
@@ -54,14 +54,17 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **Multi-language execution** — Python, C, C++, Java, JavaScript, TypeScript, Go, Rust, PHP and C# are compiled and executed inside per-run workspaces with captured stdout/stderr. Missing runtimes are downloaded on demand from the official sources into `native/toolchains/<runtime>`, with live progress and no system PATH changes.
 - **HTML/CSS live preview** — generated pages render in a sandboxed iframe served from a per-run session folder with a strict CSP.
 - **Model-independent workbench** — compile/run buttons, **AUTO COMPILE**, save-to-any-path, language downloads, project placement and launcher creation are executed by the local server and the LOCAL OPS chat layer. A 4B offline model, a 30B model or an online API all get the same execution and placement capabilities; only the prose differs.
-- **Any file, any path** — code blocks can be saved to the exact path you type (one path per file), missing folders are confirmed before creation, and nothing is silently renamed. The whole project can be copied to any folder, and a real launcher can be created anywhere (Windows `.lnk`, Linux `.desktop`, macOS `.command`).
-- **Current-law compliance layer** — 13 non-disableable baseline prohibitions, 14 jurisdiction packs, network geolocation, automatic refreshes from official legal portals, bilingual refusals, a hashed audit log, and a guardrail (not legal advice) injected into every model prompt.
+- **Any command, any installed application, any platform** — the Command Agent runs PowerShell, cmd, bash, sh or zsh commands on Windows, macOS and Linux, not only programming tasks. It discovers installed tools and 156 applications on this host, carries per-platform control references for Office/WPS/LibreOffice, browsers, media, archives, OCR, cloud CLIs and databases, and can download 70 missing tools automatically through portable toolchains, the native package manager, pip or npm. If it meets unfamiliar software it searches, reads official documentation and then uses it.
+- **Publishing with a guard** — the agent can prepare commits, builds, packages, release assets and site deploys. Public actions (`git push`, release/PR/issue creation, registry/container pushes, remote copies, cloud deploys and write HTTP methods) stay blocked until **Allow publishing** is enabled in the Command Agent settings or the run is started through the API with `allow_publish=true`; blocked calls identify themselves instead of failing silently.
+- **Any file, any path** — code blocks can be saved to the exact path you type (one path per file), missing folders are confirmed before creation, and nothing is silently renamed. The whole project can be copied to any folder, any file or folder can be copied or moved to a chosen path, the Desktop, or a bare drive (`D`, `D盘`, `D盘根目录`), and a real launcher can be created anywhere (Windows `.lnk`, Linux `.desktop`, macOS `.command`).
 - **12 curated offline models** — a mix of Chinese and international models including Qwen3-Coder, DeepSeek, Seed-OSS, GPT-OSS, Devstral, Gemma, Phi and Codestral.
 - **Domestic model downloads** — every offline model resolves through `hf-mirror.com` by default, with automatic `huggingface.co` fallback, resumable transfers and mandatory upstream SHA-256 verification. Override the source with `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
-- **Managed llama.cpp runtime** — the server downloads the correct CPU runtime for your OS and CPU (Windows x64/ARM64, macOS arm64/x64, Linux x64/ARM64/s390x, Android ARM64), verifies SHA-256, and controls `llama-server` for you with a user-selectable 2K–512K context window (16K default).
+- **CPU or CUDA llama.cpp runtime** — install the managed CPU build (Windows x64/ARM64, macOS arm64/x64, Linux x64/ARM64/s390x, Android ARM64), or add the official CUDA build and let CodeForge detect it. The runtime panel offers **Auto / CPU / CUDA**; Auto uses the GPU build when present, CUDA offloads all 99 layers, and CPU remains the fallback for machines without an NVIDIA GPU. The server verifies SHA-256, retries through GitHub mirror fallbacks when the asset host is blocked, and controls `llama-server` with a user-selectable 2K–512K context window (16K default).
+- **Faster answers on NVIDIA hardware** — the CUDA build measured ~83.6 tok/s on an RTX 4070 12 GB versus ~4.5 tok/s on CPU for the same Qwen3 4B model, while a direct `add(a,b)` completion returned code in 0.8 s. Short prompts and cap-limited reasoning reach code quickly instead of deliberating.
+- **Adjustable reply limit for every offline model** — one shared 64–393,216-token reply budget, editable in the runtime panel and applied to the next reply without restarting inference; local generation timeouts scale with the requested budget, up to 288 hours (12 days). The model's context window minus the prompt remains the real cap on the actual reply.
 - **Native control center** — a Win32 C++ app that starts the server, shows live readiness, and opens the console in an Edge app window.
 - **One web console everywhere** — the same responsive futuristic UI works on desktop browsers, Android WebView, and iOS WKWebView.
-- **Interruptible chat with a live reasoning trace** — every turn shows stage-by-stage execution (compliance screen, memory recall, workspace scan, live research, context assembly, generation, output screen), a live token counter with the measured decoding rate on the local runtime, a remaining-time estimate, and a progress bar. The send key becomes **INTERJECT** while the model is working: press it to stop the answer and send your correction immediately, or **STOP** to cancel with an empty box. Cancellation kills the core process on the server, frees the model, and does not write the aborted turn to memory.
+- **Interruptible chat with a live reasoning trace** — every turn shows stage-by-stage execution (memory recall, workspace scan, live research, context assembly, generation), a live token counter with the measured decoding rate on the local runtime, a remaining-time estimate, and a progress bar. The send key becomes **INTERJECT** while the model is working: press it to stop the answer and send your correction immediately, or **STOP** to cancel with an empty box. Cancellation kills the core process on the server, frees the model, and does not write the aborted turn to memory.
 
 ## Architecture
 
@@ -80,7 +83,7 @@ Deeper dives: [Architecture](docs/ARCHITECTURE.md) · [API reference](docs/API.m
 
 Every action is a bounded subprocess call with a JSON contract. Chat, debug, model download, runtime installation, and the four-language self-test all pass through the same loopback control plane. Timeouts, size caps, and on-disk state are listed in the diagram; exact request and response examples are in the [API reference](docs/API.md).
 
-## Dual brain, memory and compliance
+## Dual brain, memory and online research
 
 ```jsonc
 {
@@ -95,24 +98,42 @@ Every action is a bounded subprocess call with a JSON contract. Chat, debug, mod
     }
   },
   "memory": { "enabled": true, "retrieval_limit": 5, "max_entries": 4000 },
-  "online": { "enabled": true, "research": "auto", "max_results": 3 },
-  "compliance": { "enabled": true, "jurisdiction": "auto", "refresh_hours": 24 }
+  "online": { "enabled": true, "research": "auto", "max_results": 3 }
 }
 ```
 
-- **Routing** — the Java server asks for `online` only when a key is configured and the network probe succeeds; the C++ core probes the endpoint again and silently falls back to local inference on any failure. `meta.brain` returns the requested route, the actual route and the failure reason.
+- **Key vault** — the **Keys** tab adds, tests, switches and deletes any OpenAI-compatible provider key (DeepSeek, OpenAI, Moonshot, Zhipu, Qwen, SiliconFlow, OpenRouter or a custom base URL). An **ONLINE BRAIN** master switch forces offline-only operation while keeping every saved key, and one-click official **TOP UP / CONSOLE / PRICING** links cover each provider. Keys stay in the local `config.json`; the UI only ever shows a masked hint, and no manual file editing or restart is needed.
+- **Routing** — the Java server asks for `online` only when a key is configured, the master switch is on, and the network probe succeeds; the C++ core probes the endpoint again and silently falls back to local inference on any failure. `meta.brain` returns the requested route, the actual route, the `online_enabled` switch state and the failure reason.
 - **Learning loop** — online answers are distilled into `memory/memories.jsonl` as `lesson` entries, web findings as `web` entries, and debug outcomes as `note` entries. Retrieval combines token overlap, kind weights, recency and deduplication, then injects the top hits into the local system prompt.
 - **Offline recall** — with the network disabled, the same questions still retrieve prior lessons and project facts. Verified in testing: a query answered online was recalled with 3 memory hits after switching the server to offline mode.
-- **Law awareness** — every request detects the jurisdiction (request override → config → IP geolocation → locale → safe default), injects the applicable pack plus cached official sources, and refreshes stale briefs from official portals when online. The prompt includes an explicit “guardrail, not legal advice” notice.
-- **Environment overrides** — `CODEFORGE_ONLINE_LLM`, `CODEFORGE_ONLINE_LLM_URL`, `CODEFORGE_ONLINE_LLM_MODEL`, `CODEFORGE_ONLINE_LLM_KEY`, `CODEFORGE_ONLINE_LLM_TIMEOUT_MS`, `CODEFORGE_ONLINE`, `CODEFORGE_RESEARCH`, `CODEFORGE_JURISDICTION`, `CODEFORGE_MEMORY`.
+- **Live research** — when a question benefits from current sources, the server queries Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360 Search and Wikipedia in parallel. Blocked or captcha-walled engines are skipped, results are deduplicated and relevance-filtered, and the strongest candidate is marked for the local model. Findings with URLs are injected into the prompt and stored in local memory.
+- **Environment overrides** — `CODEFORGE_ONLINE_LLM`, `CODEFORGE_ONLINE_LLM_URL`, `CODEFORGE_ONLINE_LLM_MODEL`, `CODEFORGE_ONLINE_LLM_KEY`, `CODEFORGE_ONLINE_LLM_TIMEOUT_MS`, `CODEFORGE_ONLINE`, `CODEFORGE_RESEARCH`, `CODEFORGE_MEMORY`.
 
-**Honest limits.** A 4B–36B GGUF model running on one machine cannot literally out-reason a frontier online model. “Smarter offline” means the local brain keeps durable project memory, distilled online lessons, workspace context, current-law retrieval and compile/run feedback that a stateless chat window does not have. When maximum raw reasoning matters, configure the online brain; when privacy or connectivity matters, the offline brain keeps working with everything it has learned.
+**Honest limits.** A 4B–36B GGUF model running on one machine cannot literally out-reason a frontier online model. “Smarter offline” means the local brain keeps durable project memory, distilled online lessons, workspace context, current web research and compile/run feedback that a stateless chat window does not have. When maximum raw reasoning matters, configure the online brain; when privacy or connectivity matters, the offline brain keeps working with everything it has learned.
 
 ## Agentic debug loop
 
 <img src="docs/images/diagram-debug-loop.png" alt="The debug loop: detect language, compile, execute, observe, ask the model for a full-file patch, re-run, and persist evidence" width="100%">
 
 Paste failing source, choose a language (or let the extension decide), and run **Auto-debug**. The core compiles and executes it, captures exit code, stderr, and timeout diagnostics, then asks the local model for a complete corrected file inside a fenced block. The loop repeats up to eight times (default three) and stops as soon as the program exits cleanly. `workspace/<job>/report.json` and the final source stay on disk for inspection.
+
+## Command agent and software control
+
+The chat agent is not limited to code. It can emit one tool block per step and receives the real result before deciding what to do next:
+
+```text
+<codeforge_shell>{"command":"Get-ChildItem","cwd":"D:\\work","shell":"powershell","timeout":600}</codeforge_shell>
+<codeforge_search>{"query":"SQLite JSON functions","limit":6}</codeforge_search>
+<codeforge_fetch>{"url":"https://example.com/docs","max_chars":12000}</codeforge_fetch>
+<codeforge_learn>{"software":"qpdf","goal":"merge and encrypt PDFs"}</codeforge_learn>
+```
+
+- **Commands** — PowerShell, cmd, bash, sh and zsh are supported. The host runs each command with a bounded timeout, streams stdout/stderr to logs, and applies the publish guard before execution.
+- **Software** — Windows uses `Get-StartApps`, WinGet and registry uninstall keys; macOS scans `.app` bundles; Linux reads `.desktop` entries. The prompt includes the discovered applications plus launch, Office/COM, browser headless, screen, media, archive, system-settings and cloud-CLI recipes for the current platform.
+- **Missing tools** — a missing command is resolved from a portable toolchain, the native package manager, pip or npm; PATH is refreshed, and the command is retried. The same mapping covers database clients (`psql`, `mysql`, `sqlite3`, `mongosh`, `redis-cli`, `clickhouse-client`, `sqlcmd`, `cypher-shell`, `duckdb`, `influx`) and cloud/developer tools (`gh`, `aws`, `az`, `gcloud`, `kubectl`, `helm`, `rclone`, `pandoc`, `tesseract`, `yt-dlp`, `qpdf`, `gs`, `exiftool`).
+- **Learning** — search, fetch and learn are first-class tools. When the agent meets an unknown command, version, API or error, it researches before guessing and treats page content as untrusted data.
+- **Publishing** — local builds, commits, packages and exports always work. Remote/public actions need the **Allow publishing** switch (with a confirmation dialog), or a direct API run with `allow_publish=true` for that one action; the agent must state what will be published, where, and under which account.
+- **Long loops** — the agent allows up to 256 steps, compacts old tool output before each model call, and keeps every executed call in the final `tool_calls` list even if the model fails.
 
 ## Offline model library
 
@@ -143,11 +164,11 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 
 | Platform | Release artifact | Route | Build and launch |
 |---|---|---|---|
-| Windows 10/11 x64 | `CodeForge-AI-1.0.3-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
-| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.3-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.3-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.3-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
-| iOS / iPadOS 15+ | `CodeForge-AI-1.0.3-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
+| Windows 10/11 x64 | `CodeForge-AI-1.0.4-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
+| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.4-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.4-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.4-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
+| iOS / iPadOS 15+ | `CodeForge-AI-1.0.4-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
 
 **Same-platform device coverage**
 
@@ -157,7 +178,7 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 - **Android** — ARM64 phones and tablets run the full stack in Termux and install the official `android-arm64` runtime. Other ABIs build llama.cpp locally, and every Android 8+ device can use the Kotlin APK as a client.
 - **iOS / iPadOS** — the Swift app and iSH console are clients/control hosts; inference can stay on a PC, Mac or phone over the LAN via `llm.openai_url`.
 
-Each platform bundle carries a `QUICKSTART.txt` written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.3.json` sit beside the archives.
+Each platform bundle carries a `QUICKSTART.txt` written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.4.json` sit beside the archives.
 
 ## Quick start
 
@@ -212,12 +233,18 @@ Every command, package list, and limitation is documented in [Platform guide](do
 <td align="center"><em>Curated offline model library with region filters</em></td>
 <td align="center"><em>Native control center with live readiness</em></td>
 </tr>
+<tr>
+<td colspan="2"><img src="docs/images/console-runtime-cuda.png" alt="Inference runtime panel with Auto, CPU and CUDA backend selection, CUDA runtime online"></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><em>Inference runtime: select Auto, CPU or CUDA, with the CUDA build detected and serving on the GPU</em></td>
+</tr>
 </table>
 
-- **Chat** — ask about code, paste snippets, and get markdown answers with copyable code blocks, per-block RUN/PREVIEW/SAVE buttons, an **AUTO COMPILE** toggle, a provenance strip (brain route, jurisdiction, memory/workspace hits, web sources) and clickable citations. Say “run it”, “save this to D:\path”, “place the project in E:\apps”, “install the Go environment” or `/help` — local ops execute without needing any model.
+- **Chat** — ask about code, paste snippets, and get markdown answers with copyable code blocks, per-block RUN/PREVIEW/SAVE buttons, an **AUTO COMPILE** toggle, a provenance strip (brain route, memory/workspace hits, web sources) and clickable citations. Say “run it”, “save this to D:\path”, “place the project in E:\apps”, “install the Go environment” or `/help` — local ops execute without needing any model.
 - **Debug** — paste code, choose the language, and let the agent compile, run, diagnose, and repair it.
 - **Models** — filter by region or size, download with resume, install the llama.cpp runtime, start/stop inference, inspect logs.
-- **Environment** — verify the C/C++ core, toolchains (with INSTALL buttons and live download progress), local API, host telemetry, dual-brain route, memory store, workspace index and cached legal brief; place the project anywhere, create a launcher anywhere and write any file to any path.
+- **Environment** — verify the C/C++ core, toolchains (with INSTALL buttons and live download progress), local API, host telemetry, dual-brain route, memory store and workspace index; place the project anywhere, create a launcher anywhere and write any file to any path. The **Command Agent** panel shows detected commands, installed applications and auto-provisionable tools, edits step/timeout/auto-download/auto-learn/publish settings, and runs a command locally without involving a model.
 
 Step-by-step walkthrough: [User manual](docs/MANUAL.md).
 
@@ -236,7 +263,7 @@ QUICKSTART-*.txt per-platform checklists (Windows, Linux, macOS, mobile)
 runtime/         installed llama.cpp runtime (generated)
 models/          downloaded GGUF models (generated)
 workspace/       per-run compile/execute workspaces (generated)
-memory/          persistent memory, workspace index and compliance audit (generated)
+memory/          persistent memory and workspace index (generated)
 ```
 
 ## Documentation
@@ -272,8 +299,7 @@ C/C++ compilation requires GCC/Clang/C++17 and libcurl on POSIX. The Java server
 <img src="docs/images/diagram-security.png" alt="Threat model: host zone, loopback services, on-demand download egress, eight defenses, and honest sandbox boundaries" width="100%">
 
 - The server binds to **127.0.0.1 only** by default.
-- No analytics, no accounts. Outbound traffic happens only for actions you enable: model/runtime downloads, web research, law refreshes, and the optional online brain. Inference prompts are sent to the online API only when it is configured and reachable.
-- When online, CodeForge automatically checks the current law of the detected jurisdiction and refreshes cached official sources. The compliance layer is a guardrail, not legal advice.
+- No analytics, no accounts. Outbound traffic happens only for actions you enable: model/runtime downloads, web research, and the optional online brain. Inference prompts are sent to the online API only when it is configured and reachable.
 - Executed code runs as your user with process-tree timeouts; it is **not** an OS-level sandbox. Review [Security](docs/SECURITY.md) before running untrusted code.
 - LAN access requires an explicit reverse proxy or tunnel and is your responsibility.
 

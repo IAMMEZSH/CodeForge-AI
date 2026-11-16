@@ -29,6 +29,8 @@ BackendInfo detect_backend(const LlmConfig& config);
 LlmReply llm_complete(const LlmConfig& config,
                       const BackendInfo& backend,
                       const Json& messages,
-                      const std::string& model_override = "");
+                      const std::string& model_override = "",
+                      bool extend_timeout = false,
+                      const std::string& stream_path = "");
 
 }  // namespace cf

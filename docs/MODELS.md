@@ -23,7 +23,7 @@ All models are served locally by `llama.cpp`'s `llama-server` on `127.0.0.1:8080
 | 11 | Gemma 3 27B IT | Google | Global | Generalist | 27B | 128K | ≈ 16.6 GB | 22 GB | Gemma License |
 | 12 | Codestral 22B | Mistral AI | Global | Code completion | 22B | 32K | ≈ 13.3 GB | 18 GB | Mistral Non-Production |
 
-Sizes are Q4-class quantizations resolved through the `hf-mirror.com` metadata mirror at download time and rounded; the exact byte count is shown in the console before and during download. RAM figures are practical guidance for CPU inference (model + KV cache + runtime overhead), not hard limits.
+Sizes are Q4-class quantizations resolved through the `hf-mirror.com` metadata mirror at download time and rounded; the exact byte count is shown in the console before and during download. RAM figures are practical guidance for CPU inference (model + KV cache + runtime overhead), not hard limits. With the CUDA backend most weights and the KV cache live in VRAM instead: a 4B Q4 model plus 16K context fits comfortably in 12 GB, while the larger 20–30B models need 24 GB or more of VRAM. Choose **CPU** in the runtime panel when the GPU is smaller than the model's working set.
 
 ---
 
@@ -165,7 +165,7 @@ models/
 
 ## Running a model
 
-1. **Models → Install runtime** downloads the matching `llama.cpp` CPU release (see below).
+1. **Models → Install runtime** downloads the matching `llama.cpp` CPU release (see below). Once installed, the button reads **Reinstall runtime**. If the GitHub asset host is unreachable, the installer falls back to `ghproxy.net`, `gh-proxy.com`, or the prefixes in `llm.runtime_mirror` / `CODEFORGE_RUNTIME_MIRROR`; the GitHub SHA-256 is always verified.
 2. **Models → Start inference** launches:
 
 ```text

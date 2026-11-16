@@ -95,8 +95,12 @@ public final class CoreBridge {
                 return cancelledResult();
             }
 
-            String outText = Files.readString(stdout, StandardCharsets.UTF_8).trim();
-            String errText = Files.readString(stderr, StandardCharsets.UTF_8).trim();
+            // Decode leniently: a stray non-UTF-8 byte in a child's diagnostics must
+            // not abort the whole call. The core sanitizes known code pages upstream.
+            String outText = new String(Files.readAllBytes(stdout),
+                    StandardCharsets.UTF_8).trim();
+            String errText = new String(Files.readAllBytes(stderr),
+                    StandardCharsets.UTF_8).trim();
             if (outText.isEmpty()) {
                 return Json.map("ok", false,
                         "error", "C++ main core returned no data",

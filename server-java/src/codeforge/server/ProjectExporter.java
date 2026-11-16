@@ -41,8 +41,11 @@ public final class ProjectExporter {
         boolean includeToolchains = Json.bool(request, "include_toolchains", false);
         boolean shortcut = Json.bool(request, "shortcut", true);
         String raw = Json.str(request, "path", "").trim();
+        String driveRoot = FileService.driveRootAlias(raw);
+        if (driveRoot != null) raw = driveRoot;
+        Path target = null;
+        long started = System.currentTimeMillis();
         try {
-            Path target;
             if (raw.isEmpty()) {
                 target = desktop.desktopDir().resolve("CodeForge-AI");
             } else {
@@ -79,7 +82,9 @@ public final class ProjectExporter {
                         "path", target.toString());
             }
             Files.createDirectories(target);
-            long started = System.currentTimeMillis();
+            System.out.println("[place] start path=" + target
+                    + " include_jdk=" + includeJdk
+                    + " include_toolchains=" + includeToolchains);
             Counter counter = new Counter();
             final Path destination = target;
             Files.walkFileTree(root, new SimpleFileVisitor<>() {
@@ -94,7 +99,7 @@ public final class ProjectExporter {
                             Files.createDirectories(destination.resolve(relative));
                         } catch (IOException ex) {
                             counter.error = "Cannot create " + destination.resolve(relative)
-                                    + ": " + ex.getMessage();
+                                    + ": " + reason(ex) + lockHint(ex, destination);
                             return FileVisitResult.TERMINATE;
                         }
                     }
@@ -110,12 +115,28 @@ public final class ProjectExporter {
                     Path output = destination.resolve(relative);
                     try {
                         Files.createDirectories(output.getParent());
-                        Files.copy(file, output, StandardCopyOption.REPLACE_EXISTING,
-                                StandardCopyOption.COPY_ATTRIBUTES);
+                        if (Files.isRegularFile(output)) {
+                            try {
+                                BasicFileAttributes existing = Files.readAttributes(
+                                        output, BasicFileAttributes.class);
+                                if (existing.size() == attrs.size()
+                                        && Math.abs(existing.lastModifiedTime().toMillis()
+                                        - attrs.lastModifiedTime().toMillis()) < 2000L) {
+                                    counter.files++;
+                                    counter.bytes += attrs.size();
+                                    counter.unchanged++;
+                                    return FileVisitResult.CONTINUE;
+                                }
+                            } catch (IOException ignored) {
+                                // fall through to the normal copy
+                            }
+                        }
+                        copyWithRetry(file, output);
                         counter.files++;
                         counter.bytes += attrs.size();
                     } catch (IOException ex) {
-                        counter.error = "Cannot copy " + relative + ": " + ex.getMessage();
+                        counter.error = "Cannot copy " + relative + " to " + output
+                                + ": " + reason(ex) + lockHint(ex, destination);
                         return FileVisitResult.TERMINATE;
                     }
                     return FileVisitResult.CONTINUE;
@@ -128,6 +149,8 @@ public final class ProjectExporter {
                 }
             });
             if (counter.error != null) {
+                System.err.println("[place] failed path=" + target + " files=" + counter.files
+                        + ": " + counter.error);
                 return Json.map("ok", false, "error", counter.error,
                         "path", target.toString(),
                         "files", counter.files,
@@ -141,13 +164,18 @@ public final class ProjectExporter {
                     shortcutPath = String.valueOf(created.get("path"));
                 }
             }
+            long duration = System.currentTimeMillis() - started;
+            System.out.println("[place] done path=" + target + " files=" + counter.files
+                    + " bytes=" + counter.bytes + " unchanged=" + counter.unchanged
+                    + " ms=" + duration);
             return Json.map(
                     "ok", true,
                     "path", target.toString(),
                     "files", counter.files,
                     "bytes", counter.bytes,
                     "skipped", counter.skipped,
-                    "duration_ms", System.currentTimeMillis() - started,
+                    "unchanged", counter.unchanged,
+                    "duration_ms", duration,
                     "include_jdk", includeJdk,
                     "include_toolchains", includeToolchains,
                     "shortcut", shortcutPath,
@@ -155,9 +183,48 @@ public final class ProjectExporter {
                             + " files · " + human(counter.bytes)
                             + (shortcutPath.isBlank() ? "" : " · launcher " + shortcutPath));
         } catch (Exception ex) {
+            String where = target == null ? raw : target.toString();
+            System.err.println("[place] failed path=" + where + ": " + reason(ex));
             return Json.map("ok", false,
-                    "error", ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+                    "error", "Cannot place the project at " + where + ": " + reason(ex)
+                            + lockHint(ex, target));
         }
+    }
+
+    private static void copyWithRetry(Path file, Path output) throws IOException {
+        IOException last = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                Files.copy(file, output, StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.COPY_ATTRIBUTES);
+                return;
+            } catch (IOException ex) {
+                last = ex;
+                try {
+                    Thread.sleep(80L * attempt);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw ex;
+                }
+            }
+        }
+        throw last;
+    }
+
+    private static String reason(Exception ex) {
+        String message = ex.getMessage();
+        return message == null || message.isBlank() ? ex.getClass().getSimpleName() : message;
+    }
+
+    private static String lockHint(Exception ex, Path destination) {
+        String message = reason(ex).toLowerCase(Locale.ROOT);
+        boolean locked = ex instanceof java.nio.file.AccessDeniedException
+                || message.contains("used by another process")
+                || message.contains("being used by another process")
+                || message.contains("sharing violation");
+        return locked && destination != null
+                ? ". Close CodeForge if it is running from " + destination + ", then try again."
+                : "";
     }
 
     private boolean skipDirectory(Path dir, boolean includeJdk, boolean includeToolchains) {
@@ -224,19 +291,20 @@ public final class ProjectExporter {
             return bytes + " B";
         }
         double value = bytes;
-        String[] units = {"KB", "MB", "GB"};
+        String[] units = {"B", "KB", "MB", "GB", "TB"};
         int index = 0;
         while (value >= 1024 && index < units.length - 1) {
             value /= 1024;
             index++;
         }
-        return String.format(Locale.ROOT, "%.1f %s", value, units[index - 1]);
+        return String.format(Locale.ROOT, "%.1f %s", value, units[index]);
     }
 
     private static final class Counter {
         long files;
         long bytes;
         long skipped;
+        long unchanged;
         String error;
     }
 }

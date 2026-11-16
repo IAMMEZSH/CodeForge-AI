@@ -26,8 +26,14 @@ using namespace std::chrono_literals;
 namespace {
 
 constexpr int kPort = 8765;
+constexpr int kAppIcon = 101;
 constexpr wchar_t kWindowClass[] = L"CodeForgeControlCenter";
 constexpr UINT WM_APP_STATUS = WM_APP + 1;
+
+HICON AppIcon() {
+    static HICON icon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(kAppIcon));
+    return icon ? icon : LoadIconW(nullptr, MAKEINTRESOURCEW(32512));
+}
 constexpr UINT WM_APP_TRAY = WM_APP + 2;
 constexpr int kTimerAnim = 1;
 
@@ -63,7 +69,7 @@ struct UiStatus {
     int installed_models = 0;
     std::wstring model = L"—";
     std::wstring endpoint = L"http://127.0.0.1:8765";
-    std::wstring version = L"1.0.3";
+    std::wstring version = L"1.0.4";
     std::wstring message = L"Booting local stack…";
 };
 
@@ -191,7 +197,7 @@ UiStatus FetchStatus() {
     const Json* core = doc.find("core");
     if (core != nullptr) {
         status.core = core->get_bool("ok", false);
-        status.version = JsonW(*core, "version", L"1.0.3");
+        status.version = JsonW(*core, "version", L"1.0.4");
         const Json* llm = core->find("llm");
         if (llm != nullptr) {
             status.llm = llm->get_bool("available", false);
@@ -409,7 +415,7 @@ void TrayAdd(HWND hwnd) {
     g_tray.uID = 1;
     g_tray.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     g_tray.uCallbackMessage = WM_APP_TRAY;
-    g_tray.hIcon = LoadIconW(nullptr, MAKEINTRESOURCEW(32512));
+    g_tray.hIcon = AppIcon();
     lstrcpynW(g_tray.szTip, L"CodeForge AI — local intelligence", 128);
     g_tray_added = Shell_NotifyIconW(NIM_ADD, &g_tray) != FALSE;
 }
@@ -452,34 +458,24 @@ void DrawChip(HDC dc, int x, int y, int w, const wchar_t* label, bool on, COLORR
 }
 
 void DrawLogo(HDC dc, int cx, int cy, int radius) {
-    POINT points[6];
-    for (int i = 0; i < 6; ++i) {
-        double angle = (3.14159265358979323846 / 3.0) * i - 3.14159265358979323846 / 2.0;
-        points[i].x = cx + (int)(radius * std::cos(angle));
-        points[i].y = cy + (int)(radius * std::sin(angle));
+    static HICON logo = static_cast<HICON>(LoadImageW(
+        GetModuleHandleW(nullptr), MAKEINTRESOURCEW(kAppIcon),
+        IMAGE_ICON, 64, 64, LR_DEFAULTCOLOR));
+    if (logo) {
+        const int size = radius * 2 + 8;
+        DrawIconEx(dc, cx - size / 2, cy - size / 2, logo, size, size,
+                   0, nullptr, DI_NORMAL);
+        return;
     }
     HBRUSH fill = CreateSolidBrush(RGB(8, 20, 34));
     HPEN pen = CreatePen(PS_SOLID, 1, C_CYAN);
     HGDIOBJ ob = SelectObject(dc, fill);
     HGDIOBJ op = SelectObject(dc, pen);
-    Polygon(dc, points, 6);
+    Ellipse(dc, cx - radius, cy - radius, cx + radius, cy + radius);
     SelectObject(dc, ob);
     SelectObject(dc, op);
     DeleteObject(fill);
     DeleteObject(pen);
-
-    HPEN inner = CreatePen(PS_SOLID, 2, C_CYAN);
-    op = SelectObject(dc, inner);
-    MoveToEx(dc, cx - 9, cy - 7, nullptr);
-    LineTo(dc, cx - 15, cy);
-    LineTo(dc, cx - 9, cy + 7);
-    MoveToEx(dc, cx + 9, cy - 7, nullptr);
-    LineTo(dc, cx + 15, cy);
-    LineTo(dc, cx + 9, cy + 7);
-    MoveToEx(dc, cx + 3, cy - 10, nullptr);
-    LineTo(dc, cx - 3, cy + 10);
-    SelectObject(dc, op);
-    DeleteObject(inner);
 }
 
 void DrawStatusRow(HDC dc, int x, int y, const wchar_t* label,
@@ -880,7 +876,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = instance;
     wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-    wc.hIcon = LoadIconW(nullptr, MAKEINTRESOURCEW(32512));
+    wc.hIcon = AppIcon();
+    wc.hIconSm = AppIcon();
     wc.hbrBackground = nullptr;
     wc.lpszClassName = kWindowClass;
     RegisterClassExW(&wc);
