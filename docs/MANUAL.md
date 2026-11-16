@@ -44,12 +44,13 @@ software can produce. It assumes no prior knowledge of the codebase.
 
 ## 1. What CodeForge AI is
 
-CodeForge AI is a self-contained programming workbench. Local inference,
-execution and repair all happen on the machine it is installed on. When an
-optional online brain and network access are available, the same request can
-be served by a DeepSeek-compatible API for maximum capability, and everything
-learned online is persisted locally for offline recall. It combines three
-abilities:
+CodeForge AI is a self-contained, action-first programming workbench. Local
+inference, execution and repair all happen on the machine it is installed on.
+Simple calculator, command and code requests return executable code first;
+deeper reasoning is reserved for tasks that need it. When an optional online
+brain and network access are available, the same request can be served by a
+DeepSeek-compatible API for maximum capability, and everything learned online
+is persisted locally for offline recall. It combines three abilities:
 
 1. **Conversation** — a chat interface backed by an offline large language
    model, with code-aware markdown rendering, workspace context, persistent
@@ -74,6 +75,10 @@ online brain when a key is configured.
 
 - **Local-first.** No account, no cloud key, no telemetry. The server binds to
   `127.0.0.1`; inference binds to `127.0.0.1:8080`.
+- **Action-first.** Short commands and code requests produce runnable output
+  before prose. Managed inference caps reasoning and disables the chat
+  template's thinking mode so a calculator request cannot turn into a long
+  monologue; longer deliberation remains available for genuinely complex work.
 - **Native core.** Orchestration, process supervision, HTTP and the debug loop
   are written in C++17; the hash and host-telemetry helper is C17. There is no
   interpreter in the execution path.
@@ -693,6 +698,16 @@ bubble is replaced by an `INTERRUPTED BY YOU` divider, and the new message is
 sent as a fresh turn with the previous question still in history. The request
 timeout in the browser is 900 seconds, matching the server-side `/api/chat`
 timeout.
+
+**Action-first behavior.** Short commands, calculator requests and code
+snippets are answered with runnable code before commentary. The managed
+runtime passes `--reasoning off --reasoning-budget 256` and
+`LLAMA_ARG_CHAT_TEMPLATE_KWARGS={"enable_thinking":false}` to `llama-server`,
+so the model does not spend a long preamble on a task that needs one line of
+output. The cap is a ceiling, not a requirement: complex debugging, design and
+multi-file tasks still receive a full answer. In measured runs, a direct
+`add(a,b)` completion returned code only in 0.8 s and a capped-reasoning
+calculator request returned code in 4.6 s.
 
 ### 5.3 Live reasoning trace and remaining time
 

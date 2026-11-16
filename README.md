@@ -2,7 +2,7 @@
 
 # CodeForge AI
 
-**A local-first intelligent programming workbench — dual-brain reasoning, agentic debugging, and memory that survives disconnection.**
+**A local-first, action-first intelligent programming workbench — executable code first, deeper reasoning only when needed, and memory that survives disconnection.**
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
@@ -41,12 +41,13 @@ Both mirrors carry the same eight release assets: the six archives above, `SHA25
 
 ## What it is
 
-CodeForge AI is a self-contained programming assistant that runs on your own machine. It chats about code, executes programs in isolated workspaces, and **automatically repairs failing code** by combining compiler diagnostics with a large language model. Models are downloaded as GGUF files and served locally by `llama.cpp`.
+CodeForge AI is a self-contained, action-first programming assistant that runs on your own machine. Short calculator, command and code requests return runnable code instead of a long deliberation; deeper reasoning is reserved for tasks that need it. It executes programs in isolated workspaces and **automatically repairs failing code** by combining compiler diagnostics with a large language model. Models are downloaded as GGUF files and served locally by `llama.cpp`.
 
 Local inference stays on the machine. When you configure an **online brain** (any DeepSeek-compatible OpenAI API) and the device is connected, the router sends that request to the online model for maximum capability; if the network or the API fails, the request automatically falls back to the local model. Everything learned online — answers, web snippets and research findings — is written into a persistent local memory store, so the offline brain keeps the knowledge after the connection drops.
 
 **Core capabilities**
 
+- **Action-first replies** — simple calculator, command and code requests return executable code in seconds instead of disappearing into a long monologue. The managed runtime caps reasoning with `--reasoning off --reasoning-budget 256` and disables the chat template's thinking mode; the model still reasons when the task genuinely needs it. A capped-reasoning calculator request returned code in 4.6 s.
 - **Dual-brain routing** — online DeepSeek-class capability when configured and reachable, local offline inference otherwise, with automatic fallback and `route`/`route_error` reported on every request.
 - **Persistent memory** — append-only JSONL memory with CJK bigram + Latin tokenization, SHA-256 deduplication, relevance scoring, kind weights, recency decay and pruning. Chat turns, web findings, debug outcomes and distilled online lessons are recalled offline.
 - **Workspace index** — the server indexes project sources (up to 1,500 files, secret/config/build directories excluded) into `memory/project-index.jsonl`, so questions about your own repository are answered with real paths and excerpts.
