@@ -87,11 +87,11 @@ All notable changes to CodeForge AI are documented here. Versions follow
 - Documentation, diagrams and console copy were refreshed to match: the
   manual, API reference, architecture notes, model guide and rendered diagrams
   now describe CPU/CUDA selection instead of CPU-only inference. Five
-  remaining v1.0.3 screenshots (debug, model library, control center and two
-  mobile views) were regenerated at 1.0.4, and the native C helper now reports
-  version 1.0.4.
+  remaining earlier-release screenshots (debug, model library, control center
+  and two mobile views) were regenerated at 1.0.4, and the native C helper now
+  reports version 1.0.4.
 
-## 1.0.3 — 2026-11-16
+## 2026-11-16 — earlier release
 
 ### Changed
 
@@ -104,14 +104,14 @@ All notable changes to CodeForge AI are documented here. Versions follow
 - Fixed SHA-256 extraction for Hugging Face metadata that reports
   `lfs.sha256` instead of the legacy `lfs.oid`.
 - Version, native binaries, server jar, web console, mobile projects,
-  documentation and diagrams updated to 1.0.3.
+  documentation and diagrams updated together.
 
 ### Notes
 
 - A mirror-only metadata response that omits size or SHA-256 is rejected and
   the next source is tried, so an unverified model is never registered.
 
-## 1.0.2 — 2026-11-16
+## 2026-11-16 — earlier release
 
 ### Added
 
@@ -127,7 +127,7 @@ All notable changes to CodeForge AI are documented here. Versions follow
 - The software ceiling is raised from 262,144 to 524,288 tokens. The published
   default remains 16,384 tokens and one slot so 8 GB machines still work.
 - Version, native binaries, server jar, web console, mobile projects,
-  documentation and diagrams updated to 1.0.2.
+  documentation and diagrams updated together.
 
 ### Notes
 
@@ -136,7 +136,7 @@ All notable changes to CodeForge AI are documented here. Versions follow
   runtime panel keeps the choice but the model architecture remains the
   effective ceiling.
 
-## 1.0.1 — 2026-11-16
+## 2026-11-16 — earlier release
 
 ### Fixed
 
@@ -151,11 +151,11 @@ All notable changes to CodeForge AI are documented here. Versions follow
 
 ### Changed
 
-- Version, documentation and diagrams updated to 1.0.1.
+- Version, documentation and diagrams updated together.
 - `CODEFORGE_CONTEXT_SIZE` and `CODEFORGE_PARALLEL` environment overrides added.
 - The managed runtime now passes an explicit `--parallel` slot count.
 
-## 1.0.0 — 2026-11-15
+## 2026-11-15 — first release
 
 First public release. A complete local-first programming workbench written in
 C17, C++17, Java 17 and Python 3.
