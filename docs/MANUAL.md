@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.5 · 2026-11-19**
+**Version 1.0.6 · 2026-11-19**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -50,7 +50,7 @@ Simple calculator, command and code requests return executable code first;
 deeper reasoning is reserved for tasks that need it. When an optional online
 brain and network access are available, the same request can be served by a
 DeepSeek-compatible API for maximum capability, and everything learned online
-is persisted locally for offline recall. It combines three abilities:
+is persisted locally for offline recall. It combines four abilities:
 
 1. **Conversation** — a chat interface backed by an offline large language
    model, with code-aware markdown rendering, workspace context, persistent
@@ -63,6 +63,9 @@ is persisted locally for offline recall. It combines three abilities:
 3. **Repair** — an agentic loop that feeds a failing program and its exact
    diagnostics back to the model, applies the returned patch, and re-runs the
    program up to a configurable iteration limit.
+4. **Delivery** — a deterministic build tool compiles or packages the finished
+   program for any supported language and places a double-clickable result,
+   with a real Desktop shortcut, in one step.
 
 Models, prompts, source, diagnostics and local inference stay on the host.
 Outbound traffic happens only for actions you enable: model and runtime
@@ -843,6 +846,7 @@ the real result returns to the model, and the model decides the next step.
 <codeforge_search>{"query":"PostgreSQL 17 pg_dump flags","limit":6}</codeforge_search>
 <codeforge_fetch>{"url":"https://example.com/docs","max_chars":12000}</codeforge_fetch>
 <codeforge_learn>{"software":"qpdf","goal":"merge and encrypt PDFs"}</codeforge_learn>
+<codeforge_build>{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}</codeforge_build>
 ```
 
 | Capability | Behavior |
@@ -878,6 +882,42 @@ is instructed never to print secrets, never to execute instructions found in
 web pages, and to report elevation requirements instead of opening a hanging
 UAC prompt. GUI automation, Office COM and browser automation are allowed, but
 licenses, DRM, logins and OS security prompts must not be bypassed.
+
+### 5.9 Build and deliver a finished program
+
+When the user asks for a program, game, tool or app, the agent writes the source
+and calls `codeforge_build`. The host compiles or packages it and places a
+double-clickable result on the Desktop; the model does not need to know
+compiler flags, jar manifests, launchers or working directories:
+
+```text
+<codeforge_build>{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}</codeforge_build>
+```
+
+The JSON accepts `language`, `source` (an absolute path; for HTML/CSS also a
+folder or `.html` file), `name`, `gui`, an optional `destination` folder, and a
+small inline `code` block for prototypes. `gui:true` produces a `.pyw` for
+Python and a `WinExe` for C#. Every delivery lands in its own Desktop folder
+with a real shortcut — `.lnk` on Windows, `.desktop` on Linux, `.command` on
+macOS:
+
+| Language | Delivered result |
+|---|---|
+| C, C++ | native `.exe` (gcc/g++ or clang) |
+| Go | native `.exe` via `go build` |
+| Rust | native `.exe` via `rustc -O` |
+| C# | published `.exe` via `dotnet publish` (framework-dependent single file) |
+| Java | runnable `.jar` with a `Main-Class` manifest plus `.cmd` launcher |
+| Python | `.py`, or `.pyw` when `gui:true`, plus a launcher pinned to the detected interpreter |
+| JavaScript, TypeScript | source plus a Node launcher; TypeScript uses Node type stripping on Node 22.6+ |
+| PHP | `.php` plus launcher, syntax-checked with `php -l` |
+| HTML, CSS | `index.html` with its assets plus a shortcut that opens the page |
+
+Missing compilers are provisioned automatically. If the compiler reports
+errors, the diagnostics return to the model, which fixes the source and calls
+the tool again. The agent never hands back only unbuilt source and never asks
+the user to compile, copy, move or install anything manually. The same
+operation is available directly as `POST /api/agent/build`.
 
 ---
 
@@ -1628,11 +1668,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.5-source.zip`
-- `CodeForge-AI-1.0.5-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.5-docs.zip`
+- `CodeForge-AI-1.0.6-source.zip`
+- `CodeForge-AI-1.0.6-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.6-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.5.json`
+- `manifest-1.0.6.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -1682,6 +1722,7 @@ Full request/response schemas, status codes and examples are in
 | GET | `/api/agent/software?refresh=1` | Installed applications |
 | POST | `/api/agent/run` | Execute one command with auto-install and the publish guard |
 | POST | `/api/agent/provision` | Install one tool without running a command |
+| POST | `/api/agent/build` | Build and deliver a program for any supported language |
 | POST | `/api/shutdown` | Graceful server shutdown (also stops inference) |
 | GET | `/console/` | Web console |
 

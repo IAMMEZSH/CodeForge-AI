@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.0.5";
+    public static final String VERSION = "1.0.6";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private static final class BadRequest extends IOException {
@@ -57,6 +57,7 @@ public final class ApiHandler implements HttpHandler {
     private final OnlineService online;
     private final ToolchainManager toolchains;
     private final ExtendedRunner extendedRunner;
+    private final BuildDelivery buildDelivery;
     private final AgentShell agentShell;
     private final FileService files;
     private final DesktopIntegration desktop;
@@ -86,6 +87,20 @@ public final class ApiHandler implements HttpHandler {
             "(?is)<codeforge_fetch>\\s*(.*?)\\s*</codeforge_fetch>");
     private static final Pattern AGENT_LEARN = Pattern.compile(
             "(?is)<codeforge_learn>\\s*(.*?)\\s*</codeforge_learn>");
+    private static final Pattern AGENT_BUILD = Pattern.compile(
+            "(?is)<codeforge_build>\\s*(.*?)\\s*</codeforge_build>");
+    private static final Pattern NATIVE_INVOKE = Pattern.compile(
+            "(?is)<([^>]{0,40}?)invoke\\s+name\\s*=\\s*[\"']?"
+                    + "([A-Za-z0-9_.:-]+)[\"']?[^>]*>(.*?)"
+                    + "</([^>]{0,40}?)invoke\\s*>");
+    private static final Pattern NATIVE_PARAM = Pattern.compile(
+            "(?is)<([^>]{0,40}?)parameter\\s+name\\s*=\\s*[\"']?"
+                    + "([A-Za-z0-9_.:-]+)[\"']?[^>]*>(.*?)"
+                    + "</([^>]{0,40}?)parameter\\s*>");
+    private static final Pattern NATIVE_CALLS = Pattern.compile(
+            "(?is)</?[^>]{0,40}?calls?\\s*>");
+    private static final Pattern NATIVE_MARKUP = Pattern.compile(
+            "(?is)</?[^>]{0,40}?(?:parameters?|invoke|calls?)[^>]*>");
 
     private static final class ChatStep {
         final String id;
@@ -175,6 +190,7 @@ public final class ApiHandler implements HttpHandler {
         this.online = online;
         this.toolchains = new ToolchainManager(root);
         this.extendedRunner = new ExtendedRunner(root, toolchains);
+        this.buildDelivery = new BuildDelivery(root, toolchains);
         this.agentShell = new AgentShell(root, toolchains);
         this.files = new FileService(root);
         this.desktop = new DesktopIntegration(root, files);
@@ -415,6 +431,12 @@ public final class ApiHandler implements HttpHandler {
                 Map<String, Object> result = agentShell.runJson(request, null);
                 result.put("requested_at", System.currentTimeMillis());
                 sendJson(exchange, 200, result);
+                return;
+            }
+            case "/api/agent/build": {
+                requirePost(method);
+                Map<String, Object> request = readJsonObject(exchange);
+                sendJson(exchange, 200, buildDelivery.build(request));
                 return;
             }
             case "/api/agent/provision": {
@@ -1091,22 +1113,28 @@ public final class ApiHandler implements HttpHandler {
                     case "learn" -> Json.str(tool, "software", "")
                             + (Json.str(tool, "goal", "").isBlank()
                             ? "" : " · " + Json.str(tool, "goal", ""));
+                    case "build" -> (Json.str(tool, "language", "")
+                            + " " + Json.str(tool, "name", "")).trim();
                     default -> "";
                 };
-                ChatStep webStep = new ChatStep("web-" + number,
-                        "Web " + kind + " #" + number, cap(target, 200), "active",
-                        started - progress.startedMs);
+                boolean buildStep = "build".equals(kind);
+                ChatStep webStep = new ChatStep((buildStep ? "build-" : "web-") + number,
+                        (buildStep ? "Build" : "Web " + kind) + " #" + number,
+                        cap(target, 200), "active", started - progress.startedMs);
                 progress.steps.add(webStep);
-                progress.phase = "web";
+                progress.phase = buildStep ? "build" : "web";
                 progress.commandRunning = false;
-                Map<String, Object> result = runWebTool(kind, tool);
+                Map<String, Object> result = buildStep
+                        ? buildDelivery.build(tool) : runWebTool(kind, tool);
                 boolean ok = Json.bool(result, "ok", false);
                 String webError = Json.str(result, "error", "");
                 webStep.status = "done";
-                webStep.detail = (ok ? "ok" : "failed")
+                webStep.detail = (ok ? (buildStep ? "ready" : "ok") : "failed")
                         + " · " + Json.integer(result, "duration_ms", 0) + " ms"
                         + (webError.isBlank() ? "" : " · " + cap(webError, 180))
-                        + " · " + cap(target, 160);
+                        + " · " + cap(buildStep
+                        ? firstNonBlank(Json.str(result, "artifact", ""),
+                        Json.str(result, "folder", ""), target) : target, 160);
                 Map<String, Object> webCall = new LinkedHashMap<>();
                 webCall.put("step", number);
                 webCall.put("kind", kind);
@@ -1118,6 +1146,16 @@ public final class ApiHandler implements HttpHandler {
                 webCall.put("source", Json.str(result, "source", ""));
                 webCall.put("duration_ms", Json.integer(result, "duration_ms", 0));
                 webCall.put("sources", result.get("sources"));
+                if (buildStep) {
+                    for (String key : new String[]{"language", "name", "phase", "folder",
+                            "artifact", "artifact_kind", "launcher", "shortcut", "runtime",
+                            "command", "stdout", "stderr"}) {
+                        if (result.containsKey(key)) {
+                            webCall.put(key, result.get(key));
+                        }
+                    }
+                    webCall.put("exit_code", Json.integer(result, "exit_code", -1));
+                }
                 List<Object> resultItems = Json.asList(result.get("results"));
                 List<Object> preview = new ArrayList<>();
                 for (Object raw : resultItems) {
@@ -1139,7 +1177,8 @@ public final class ApiHandler implements HttpHandler {
                     return Json.map("cancelled", true);
                 }
                 messages.add(Json.map("role", "user", "content",
-                        webToolResultMessage(number, result, feedbackChars)));
+                        buildStep ? buildToolResultMessage(number, result, feedbackChars)
+                                : webToolResultMessage(number, result, feedbackChars)));
                 if (number >= maxSteps) {
                     messages.add(Json.map("role", "user", "content",
                             "TOOL STEP LIMIT REACHED (" + maxSteps + "). "
@@ -1400,6 +1439,14 @@ public final class ApiHandler implements HttpHandler {
     }
 
     private static Map<String, Object> toolRequest(String reply) {
+        Map<String, Object> nativeCall = nativeToolRequest(reply);
+        if (nativeCall != null) {
+            return nativeCall;
+        }
+        Map<String, Object> build = buildRequest(reply);
+        if (build != null) {
+            return build;
+        }
         Map<String, Object> web = webRequest(reply);
         if (web != null) {
             return web;
@@ -1424,6 +1471,160 @@ public final class ApiHandler implements HttpHandler {
         }
         parsed.put("kind", "shell");
         return parsed;
+    }
+
+    private static Map<String, Object> nativeToolRequest(String reply) {
+        Matcher invoke = NATIVE_INVOKE.matcher(reply);
+        if (!invoke.find()) {
+            return null;
+        }
+        String name = invoke.group(2).trim().toLowerCase(Locale.ROOT);
+        Map<String, String> params = new LinkedHashMap<>();
+        Matcher param = NATIVE_PARAM.matcher(invoke.group(3));
+        while (param.find()) {
+            params.put(param.group(2).trim().toLowerCase(Locale.ROOT),
+                    param.group(3).trim());
+        }
+        Map<String, Object> input = parseToolJson(params.get("input"));
+        if (params.isEmpty() && input == null) {
+            // Some models put the JSON body straight inside <invoke> without
+            // wrapping it in <parameter> tags; tolerate that shape too.
+            input = parseToolJson(NATIVE_MARKUP.matcher(invoke.group(3)).replaceAll(" "));
+        }
+        if (params.isEmpty() && input != null) {
+            for (Map.Entry<String, Object> entry : input.entrySet()) {
+                if (entry.getValue() != null) {
+                    params.put(entry.getKey().toLowerCase(Locale.ROOT),
+                            String.valueOf(entry.getValue()));
+                }
+            }
+        }
+        String kind;
+        switch (name) {
+            case "codeforge_shell", "shell", "run_command", "execute_command",
+                 "terminal" -> kind = "shell";
+            case "codeforge_search", "search", "web_search" -> kind = "search";
+            case "codeforge_fetch", "fetch", "web_fetch" -> kind = "fetch";
+            case "codeforge_learn", "learn" -> kind = "learn";
+            case "codeforge_build", "build", "compile", "deliver" -> kind = "build";
+            default -> {
+                return null;
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("kind", kind);
+        if ("shell".equals(kind)) {
+            String command = params.getOrDefault("command", params.getOrDefault("cmd", ""));
+            if (command.isBlank()) {
+                return null;
+            }
+            out.put("command", command);
+            if (params.containsKey("cwd")) {
+                out.put("cwd", params.get("cwd"));
+            }
+            if (params.containsKey("shell")) {
+                out.put("shell", params.get("shell"));
+            }
+            String timeout = params.get("timeout");
+            if (timeout != null && !timeout.isBlank()) {
+                Matcher digits = Pattern.compile("\\d+").matcher(timeout);
+                if (digits.find()) {
+                    try {
+                        out.put("timeout", Integer.parseInt(digits.group()));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+            return out;
+        }
+        if ("search".equals(kind)) {
+            String query = params.getOrDefault("query", "");
+            if (query.isBlank()) {
+                return null;
+            }
+            out.put("query", query);
+            String limit = params.get("limit");
+            if (limit != null) {
+                Matcher digits = Pattern.compile("\\d+").matcher(limit);
+                if (digits.find()) {
+                    out.put("limit", Integer.parseInt(digits.group()));
+                }
+            }
+            return out;
+        }
+        if ("fetch".equals(kind)) {
+            String url = params.getOrDefault("url", "");
+            if (url.isBlank()) {
+                return null;
+            }
+            out.put("url", url);
+            if (params.containsKey("max_chars")) {
+                out.put("max_chars", params.get("max_chars"));
+            }
+            return out;
+        }
+        if ("build".equals(kind)) {
+            String language = params.getOrDefault("language",
+                    params.getOrDefault("lang", ""));
+            String source = params.getOrDefault("source",
+                    params.getOrDefault("path", params.getOrDefault("file", "")));
+            String code = params.getOrDefault("code", "");
+            if (language.isBlank() && source.isBlank() && code.isBlank()) {
+                return null;
+            }
+            if (!language.isBlank()) {
+                out.put("language", language);
+            }
+            if (!source.isBlank()) {
+                out.put("source", source);
+            }
+            if (!code.isBlank()) {
+                out.put("code", code);
+            }
+            for (String key : new String[]{"name", "destination", "filename",
+                    "css", "html"}) {
+                if (params.containsKey(key)) {
+                    out.put(key, params.get(key));
+                }
+            }
+            String gui = params.getOrDefault("gui", "");
+            if (!gui.isBlank()) {
+                out.put("gui", "true".equalsIgnoreCase(gui) || "1".equals(gui)
+                        || "yes".equalsIgnoreCase(gui));
+            }
+            return out;
+        }
+        String software = params.getOrDefault("software", "");
+        if (software.isBlank()) {
+            return null;
+        }
+        out.put("software", software);
+        if (params.containsKey("goal")) {
+            out.put("goal", params.get("goal"));
+        }
+        return out;
+    }
+
+    private static Map<String, Object> buildRequest(String reply) {
+        Matcher build = AGENT_BUILD.matcher(reply);
+        if (build.find()) {
+            Map<String, Object> parsed = parseToolJson(build.group(1));
+            if (parsed != null) {
+                parsed.put("kind", "build");
+                return parsed;
+            }
+        }
+        int marker = reply.indexOf("codeforge_build");
+        if (marker >= 0) {
+            Map<String, Object> parsed = parseToolJson(reply.substring(marker));
+            if (parsed != null && (parsed.containsKey("language")
+                    || parsed.containsKey("source") || parsed.containsKey("code")
+                    || parsed.containsKey("path") || parsed.containsKey("file"))) {
+                parsed.put("kind", "build");
+                return parsed;
+            }
+        }
+        return null;
     }
 
     private static Map<String, Object> webRequest(String reply) {
@@ -1476,6 +1677,9 @@ public final class ApiHandler implements HttpHandler {
         cleaned = AGENT_SEARCH.matcher(cleaned).replaceAll("");
         cleaned = AGENT_FETCH.matcher(cleaned).replaceAll("");
         cleaned = AGENT_LEARN.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_BUILD.matcher(cleaned).replaceAll("");
+        cleaned = NATIVE_INVOKE.matcher(cleaned).replaceAll("");
+        cleaned = NATIVE_CALLS.matcher(cleaned).replaceAll("");
         return cleaned.trim();
     }
 
@@ -1656,6 +1860,62 @@ public final class ApiHandler implements HttpHandler {
                 .append("\nContinue the task. If more tools are needed, emit another ")
                 .append("codeforge block. If the task is complete, answer the user in the ")
                 .append("user's language with no tool block.");
+        return out.toString();
+    }
+
+    private static String buildToolResultMessage(int number, Map<String, Object> result,
+                                                 int feedbackChars) {
+        boolean ok = Json.bool(result, "ok", false);
+        StringBuilder out = new StringBuilder();
+        out.append("BUILD RESULT #").append(number).append('\n');
+        out.append("ok: ").append(ok).append('\n');
+        out.append("language: ").append(Json.str(result, "language", "")).append('\n');
+        out.append("name: ").append(Json.str(result, "name", "")).append('\n');
+        out.append("phase: ").append(Json.str(result, "phase", "")).append('\n');
+        for (String key : new String[]{"runtime", "folder", "artifact", "artifact_kind",
+                "launcher", "shortcut", "command"}) {
+            String value = Json.str(result, key, "");
+            if (!value.isBlank()) {
+                out.append(key).append(": ").append(value).append('\n');
+            }
+        }
+        out.append("exit_code: ").append(Json.integer(result, "exit_code", -1)).append('\n');
+        out.append("timed_out: ").append(Json.bool(result, "timed_out", false)).append('\n');
+        out.append("duration_ms: ").append(Json.integer(result, "duration_ms", 0)).append('\n');
+        String error = Json.str(result, "error", "");
+        if (!error.isBlank()) {
+            out.append("error: ").append(error).append('\n');
+        }
+        String shortcutError = Json.str(result, "shortcut_error", "");
+        if (!shortcutError.isBlank()) {
+            out.append("shortcut_error: ").append(cap(shortcutError, 600)).append('\n');
+        }
+        int each = Math.max(2000, feedbackChars / 2);
+        String stdout = lastChars(Json.str(result, "stdout", ""), each);
+        String stderr = lastChars(Json.str(result, "stderr", ""), each);
+        if (!stdout.isBlank()) {
+            out.append("\nBUILD OUTPUT (tail):\n").append(stdout).append('\n');
+        }
+        if (!stderr.isBlank()) {
+            out.append("\nBUILD ERRORS (tail):\n").append(stderr).append('\n');
+        }
+        if (ok) {
+            out.append("\nThe deliverable is ready on disk. Do not compile, copy or move it ")
+                    .append("again, and never ask the user to build or place files. Give the ")
+                    .append("final answer in the user's language with the artifact and shortcut ")
+                    .append("paths and how to open it.");
+        } else {
+            out.append("\nThe build failed. Read the compiler errors, fix the source file, ")
+                    .append("then call codeforge_build again with the same source path. Do not ")
+                    .append("hand back uncompiled source and do not ask the user to compile.")
+                    .append("\n<codeforge_build>{\"language\":\"")
+                    .append(Json.str(result, "language_id", ""))
+                    .append("\",\"source\":\"")
+                    .append(Json.str(result, "source", ""))
+                    .append("\",\"name\":\"")
+                    .append(Json.str(result, "name", ""))
+                    .append("\"}</codeforge_build>");
+        }
         return out.toString();
     }
 
@@ -2220,6 +2480,15 @@ public final class ApiHandler implements HttpHandler {
 
     private static String cap(String text, int max) {
         return text.length() <= max ? text : text.substring(0, max) + "\n[context truncated]";
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
     }
 
     private void requirePost(String method) throws IOException {

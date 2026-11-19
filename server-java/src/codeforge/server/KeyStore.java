@@ -384,7 +384,7 @@ public final class KeyStore {
                     .timeout(Duration.ofSeconds(30))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + key)
-                    .header("User-Agent", "CodeForgeAI/1.0.5")
+                    .header("User-Agent", "CodeForgeAI/1.0.6")
                     .POST(HttpRequest.BodyPublishers.ofString(
                             Json.write(payload), StandardCharsets.UTF_8))
                     .build();

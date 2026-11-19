@@ -6,7 +6,7 @@
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
-**Version 1.0.5 · 2026-11-19**
+**Version 1.0.6 · 2026-11-19**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
 [![Core](https://img.shields.io/badge/core-C%2B%2B17%20%2F%20C17-7c5cff.svg)](#architecture)
@@ -18,18 +18,18 @@ C/C++ core · Java server · Python automation · Windows · Linux · macOS · A
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.5-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.5-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-windows-x64.zip).
+**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.6-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.6-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-windows-x64.zip).
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.5-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-windows-x64.zip) |
-| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.5-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-linux-source.tar.gz) |
-| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.5-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-macos-source.tar.gz) |
-| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.5-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-mobile-source.zip) |
-| All platforms, source only | `CodeForge-AI-1.0.5-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-source.zip) |
-| Documentation set | `CodeForge-AI-1.0.5-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.5/CodeForge-AI-1.0.5-docs.zip) |
+| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.6-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-windows-x64.zip) |
+| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.6-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-linux-source.tar.gz) |
+| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.6-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-macos-source.tar.gz) |
+| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.6-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-mobile-source.zip) |
+| All platforms, source only | `CodeForge-AI-1.0.6-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-source.zip) |
+| Documentation set | `CodeForge-AI-1.0.6-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.6/CodeForge-AI-1.0.6-docs.zip) |
 
-Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.5.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.5) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.5). Every platform archive contains the full source, the English manual in `docs/MANUAL.md` and its quick-start checklist; the documentation archive carries the complete manual set with all four quick starts.
+Both mirrors carry the same eight release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.6.json`. Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.6) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.6). Every platform archive contains the full source, the English manual in `docs/MANUAL.md` and its quick-start checklist; the documentation archive carries the complete manual set with all four quick starts.
 
 <div align="center">
 
@@ -53,6 +53,7 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **Workspace index** — the server indexes project sources (up to 1,500 files, secret/config/build directories excluded) into `memory/project-index.jsonl`, so questions about your own repository are answered with real paths and excerpts.
 - **Agentic debug loop** — run → collect diagnostics → ask the model for a patch → re-run, for up to eight iterations (default three), with full process-tree timeouts. RUN, PREVIEW, SAVE and placement work even when no model is running.
 - **Multi-language execution** — Python, C, C++, Java, JavaScript, TypeScript, Go, Rust, PHP and C# are compiled and executed inside per-run workspaces with captured stdout/stderr. Missing runtimes are downloaded on demand from the official sources into `native/toolchains/<runtime>`, with live progress and no system PATH changes.
+- **Build and deliver to the Desktop in any supported language** — ask for a game, tool or app and the agent writes the source, calls `codeforge_build`, and leaves a finished double-clickable result on the Desktop: a native `.exe` for C, C++, Go, Rust and C#; a runnable `.jar` with launcher for Java; launchers pinned to the detected interpreter for Python, JavaScript, TypeScript and PHP; an `index.html` page plus shortcut for HTML/CSS. Each delivery gets its own Desktop folder and `.lnk`/`.desktop`/`.command` shortcut, Unicode names and paths work, and compiler errors go back to the model for a fix-and-retry instead of ending as an unbuilt file. Language toolchains are auto-provisioned when the command is missing.
 - **HTML/CSS live preview** — generated pages render in a sandboxed iframe served from a per-run session folder with a strict CSP.
 - **Model-independent workbench** — compile/run buttons, **AUTO COMPILE**, save-to-any-path, language downloads, project placement and launcher creation are executed by the local server and the LOCAL OPS chat layer. A 4B offline model, a 30B model or an online API all get the same execution and placement capabilities; only the prose differs.
 - **Any command, any installed application, any platform** — the Command Agent runs PowerShell, cmd, bash, sh or zsh commands on Windows, macOS and Linux, not only programming tasks. It discovers installed tools and desktop applications on this host, carries per-platform control references for Office/WPS/LibreOffice, browsers, media, archives, OCR, cloud CLIs and databases, and can download 70 missing tools automatically through portable toolchains, the native package manager, pip or npm. If it meets unfamiliar software it searches, reads official documentation and then uses it.
@@ -127,9 +128,11 @@ The chat agent is not limited to code. It can emit one tool block per step and r
 <codeforge_search>{"query":"SQLite JSON functions","limit":6}</codeforge_search>
 <codeforge_fetch>{"url":"https://example.com/docs","max_chars":12000}</codeforge_fetch>
 <codeforge_learn>{"software":"qpdf","goal":"merge and encrypt PDFs"}</codeforge_learn>
+<codeforge_build>{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}</codeforge_build>
 ```
 
 - **Commands** — PowerShell, cmd, bash, sh and zsh are supported. The host runs each command with a bounded timeout, streams stdout/stderr to logs, and applies the publish guard before execution.
+- **Build & deliver** — `codeforge_build` compiles or packages a source file for any supported language and places the runnable result plus a Desktop shortcut in one deterministic step; `gui:true` switches Python to `.pyw` and C# to `WinExe`. HTML/CSS accepts an `.html` file or a folder containing `index.html`. Errors from the compiler are returned to the model so it can fix and call the tool again.
 - **Software** — Windows uses `Get-StartApps`, WinGet and registry uninstall keys; macOS scans `.app` bundles; Linux reads `.desktop` entries. The prompt includes the discovered applications plus launch, Office/COM, browser headless, screen, media, archive, system-settings and cloud-CLI recipes for the current platform.
 - **Missing tools** — a missing command is resolved from a portable toolchain, the native package manager, pip or npm; PATH is refreshed, and the command is retried. The same mapping covers database clients (`psql`, `mysql`, `sqlite3`, `mongosh`, `redis-cli`, `clickhouse-client`, `sqlcmd`, `cypher-shell`, `duckdb`, `influx`) and cloud/developer tools (`gh`, `aws`, `az`, `gcloud`, `kubectl`, `helm`, `rclone`, `pandoc`, `tesseract`, `yt-dlp`, `qpdf`, `gs`, `exiftool`).
 - **Learning** — search, fetch and learn are first-class tools. When the agent meets an unknown command, version, API or error, it researches before guessing and treats page content as untrusted data.
@@ -165,11 +168,11 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 
 | Platform | Release artifact | Route | Build and launch |
 |---|---|---|---|
-| Windows 10/11 x64 | `CodeForge-AI-1.0.5-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
-| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.5-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.5-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.5-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
-| iOS / iPadOS 15+ | `CodeForge-AI-1.0.5-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
+| Windows 10/11 x64 | `CodeForge-AI-1.0.6-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
+| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.6-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.6-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.6-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
+| iOS / iPadOS 15+ | `CodeForge-AI-1.0.6-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
 
 **Same-platform device coverage**
 
@@ -179,7 +182,7 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 - **Android** — ARM64 phones and tablets run the full stack in Termux and install the official `android-arm64` runtime. Other ABIs build llama.cpp locally, and every Android 8+ device can use the Kotlin APK as a client.
 - **iOS / iPadOS** — the Swift app and iSH console are clients/control hosts; inference can stay on a PC, Mac or phone over the LAN via `llm.openai_url`.
 
-Each platform bundle carries a `QUICKSTART.txt` written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.5.json` sit beside the archives.
+Each platform bundle carries a `QUICKSTART.txt` written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.6.json` sit beside the archives.
 
 ## Quick start
 

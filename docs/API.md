@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.5 · Java 17 HTTP server · C++ core bridge
+Version 1.0.6 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -107,6 +107,7 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | GET | `/api/agent/software` | Discovered installed applications |
 | POST | `/api/agent/run` | Execute one command with auto-provisioning and the publish guard |
 | POST | `/api/agent/provision` | Install one missing tool |
+| POST | `/api/agent/build` | Build and deliver a program for any supported language |
 | GET | `/api/keys` | List saved online-provider keys (masked hints only) |
 | POST | `/api/keys` | Add or update a provider key; mirrors the active one into `llm.online` |
 | POST | `/api/keys/activate` | Switch the active online brain |
@@ -133,7 +134,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -182,7 +183,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -675,7 +676,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -1368,7 +1369,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.5", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.6", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1696,6 +1697,39 @@ folder returns `ok:false`, `can_create:true` and `missing_directory`; a path
 that names an existing non-launcher file returns an explicit error. Passing a
 folder creates a launcher inside it; passing a `.lnk`/`.desktop`/`.command`
 file path creates exactly that file.
+
+### POST `/api/agent/build`
+
+Builds and delivers a finished program for any supported language. The server
+writes or reuses the source, compiles or packages it, copies the runnable
+result into a per-app folder, and creates a real shortcut on the Desktop.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/agent/build \
+  -H "Content-Type: application/json" \
+  -d '{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}'
+```
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `language` | string | yes | `c`, `cpp`, `go`, `rust`, `csharp`, `java`, `python`, `javascript`, `typescript`, `php`, `html` or `css` |
+| `source` | string | one of `source`/`code` | Absolute path to the source file; for HTML/CSS also a folder or `.html` file |
+| `code` | string | one of `source`/`code` | Inline source for small prototypes, written into the build workspace |
+| `name` | string | no | App and folder name (defaults to the source filename) |
+| `gui` | boolean | no | Windowed mode: `.pyw` for Python, `WinExe` for C# |
+| `destination` | string | no | Target folder; empty means the current user's Desktop |
+
+Response: `ok`, `success`, `language`, `language_id`, `name`, `phase` (`ready`
+on success), `runtime`, `compiler`, `folder`, `artifact`, `artifact_kind`,
+`launcher`, `shortcut`, `command`, `stdout`, `stderr`, `exit_code`,
+`duration_ms`, `message`. C, C++, Go, Rust and C# produce a native executable;
+Java produces a runnable jar with a launcher; Python, JavaScript, TypeScript and
+PHP produce script plus interpreter-pinned launcher; HTML/CSS produces an
+`index.html` page and a shortcut. On a compiler error `ok` is false and
+`stderr`/`stdout` carry the diagnostics so the model can fix the source and
+retry. In chat the same tool is emitted as
+`<codeforge_build>{...}</codeforge_build>`; legacy XML and DSML envelopes with
+a bare JSON body are accepted too.
 
 ### POST `/api/project/place`
 
