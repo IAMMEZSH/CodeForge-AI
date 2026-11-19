@@ -184,9 +184,11 @@ public final class RuntimeManager {
                 command.add("99");
             }
             command.add("--reasoning");
-            command.add("off");
+            command.add("auto");
+            command.add("--reasoning-format");
+            command.add("deepseek");
             command.add("--reasoning-budget");
-            command.add("256");
+            command.add("768");
 
             ProcessBuilder builder = new ProcessBuilder(command);
             builder.directory(root.toFile());

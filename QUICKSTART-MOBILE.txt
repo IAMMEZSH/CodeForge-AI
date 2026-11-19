@@ -1,4 +1,4 @@
-CodeForge AI 1.0.7 — Android and iOS quick start
+CodeForge AI 1.0.8 — Android and iOS quick start
 =================================================
 
 Two routes are supported on each mobile platform:
@@ -24,8 +24,8 @@ Prepare:
     pkg install -y python clang make cmake git curl libcurl openjdk-17 \
         zip unzip
     termux-setup-storage
-    cp -r ~/storage/downloads/CodeForge-AI-1.0.7 ~/
-    cd ~/CodeForge-AI-1.0.7
+    cp -r ~/storage/downloads/CodeForge-AI-1.0.8 ~/
+    cd ~/CodeForge-AI-1.0.8
     termux-wake-lock
 
 Build and test:
@@ -54,7 +54,7 @@ on the device and point the server at it:
     cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
     cmake --build build -j"$(nproc)" --target llama-server
     export CODEFORGE_LLAMA_SERVER="$HOME/llama.cpp/build/bin/llama-server"
-    cd ~/CodeForge-AI-1.0.7
+    cd ~/CodeForge-AI-1.0.8
     python aux-python/bootstrap.py --run --port 8765
 
 You can persist the same path as llm.llama_server in config.json instead of
@@ -92,7 +92,7 @@ Install iSH from the App Store.
 
 Host role:
 
-    cd ~/CodeForge-AI-1.0.7
+    cd ~/CodeForge-AI-1.0.8
     python3 aux-python/bootstrap.py --all
     python3 aux-python/bootstrap.py --run --port 8765
     curl -s http://127.0.0.1:8765/api/health
@@ -103,7 +103,7 @@ bootstrap intentionally refuses to download the glibc Temurin JDK on Alpine.
 The recommended role is a client. Keep the CodeForge server in iSH and point
 inference at a PC, Mac or phone on the LAN:
 
-    cd ~/CodeForge-AI-1.0.7
+    cd ~/CodeForge-AI-1.0.8
     export CODEFORGE_LLM_BACKEND=openai
     export CODEFORGE_OPENAI_URL=http://192.168.1.10:8080
     python3 aux-python/bootstrap.py --run --port 8765

@@ -13,7 +13,7 @@
     "model_mirror": "https://hf-mirror.com",
     "request_timeout_ms": 600000,
     "online": {
-      "enabled": true,
+      "enabled": false,
       "base_url": "https://api.deepseek.com",
       "api_key": "",
       "model": "deepseek-chat",

@@ -303,18 +303,20 @@ function switchView(view, skipHash) {
   if (view === 'env') { refreshStatus(true); loadLanguages(); loadAgentPanel(); }
   if (view === 'models') loadModels();
   if (view === 'keys') loadKeys();
+  if (view === 'publish') loadPublishStatus();
+  if (view === 'inspect') loadInspectorView();
 }
 $$('.rail-btn').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
 window.addEventListener('hashchange', () => {
   const view = location.hash.replace('#', '');
-  if (['chat', 'debug', 'models', 'keys', 'env'].includes(view) && view !== state.view) {
+  if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'env'].includes(view) && view !== state.view) {
     switchView(view, true);
   }
 });
 document.addEventListener('keydown', event => {
-  if (event.ctrlKey && !event.shiftKey && ['1', '2', '3', '4', '5'].includes(event.key)) {
+  if (event.ctrlKey && !event.shiftKey && ['1', '2', '3', '4', '5', '6', '7'].includes(event.key)) {
     event.preventDefault();
-    switchView(['chat', 'debug', 'models', 'keys', 'env'][Number(event.key) - 1]);
+    switchView(['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'env'][Number(event.key) - 1]);
   }
 });
 
@@ -701,7 +703,15 @@ async function pollProgress() {
   }
 }
 function markInterrupted(text) {
-  state.chat.push({ role: 'note', content: text });
+  const partial = (state.textBuffer || '').trim();
+  if (partial.length > 40) {
+    state.chat.push({ role: 'assistant', content: partial });
+    state.chat.push({ role: 'note', content: text + ' · partial answer kept; your next message continues from it' });
+  } else {
+    state.chat.push({ role: 'note', content: text });
+  }
+  state.textBuffer = '';
+  state.thinkBuffer = '';
   renderChat();
 }
 async function interruptChat() {
@@ -751,7 +761,12 @@ $('#btn-chat-clear').addEventListener('click', async () => {
   if (state.busy) await interruptChat();
   state.chat = [];
   renderChat();
-  toast('New session started');
+  try {
+    await api('/api/chat/history/delete', {
+      method: 'POST', body: { conversation: 'main' }, timeout: 8000
+    });
+  } catch (err) { /* the view is already clear */ }
+  toast('New session started · saved conversation deleted');
 });
 $$('.suggestion').forEach(button => button.addEventListener('click', () => {
   chatInput.value = button.dataset.prompt || '';
@@ -803,13 +818,13 @@ async function sendChat() {
       .slice(-30).map(message => ({ role: message.role, content: message.content }));
     const data = await api('/api/chat', {
       method: 'POST',
-      body: { messages: history, request_id: state.chatRequestId },
+      body: { messages: history, request_id: state.chatRequestId, conversation_id: 'main' },
       timeout: 1036800000,
       signal: state.chatAbort.signal
     });
     holder.remove();
     if (data.cancelled) {
-      markInterrupted('Interrupted by you · previous answer discarded');
+      markInterrupted('Interrupted by you · partial answer kept');
       return;
     }
     if (!data.ok) throw new Error(data.error || 'Inference failed');
@@ -829,7 +844,7 @@ async function sendChat() {
   } catch (err) {
     holder.remove();
     if (err.name === 'AbortError') {
-      markInterrupted('Interrupted by you · previous answer discarded');
+      markInterrupted('Interrupted by you · partial answer kept');
     } else {
       const failed = explainAiError(err.message);
       toast(failed, 'err');
@@ -2433,6 +2448,7 @@ function updateChips() {
     llm.available ? 'on' : (rt.running ? 'warn' : 'off'));
   chip($('#chip-runtime'), rt.running ? (rt.healthy ? 'RUNTIME LIVE' : 'RUNTIME BOOT') : 'RUNTIME OFF',
     rt.running && rt.healthy ? 'on' : (rt.running ? 'warn' : ''));
+  $('#side-core').textContent = coreOk ? 'ONLINE' : 'OFFLINE';
 
   const brain = (status && status.brain) || {};
   const mem = (status && status.memory) || {};
@@ -2579,7 +2595,9 @@ async function loadAgentPanel(refresh = false) {
       ? 'ALLOWED — public actions run without another prompt'
       : 'BLOCKED — local build only; public actions need this switch';
     $('#agent-publish-state').style.color = data.allow_publish ? 'var(--orange)' : 'var(--green)';
-    $('#agent-max-steps').value = data.max_steps || 64;
+    const maxSteps = Math.max(1, Math.min(512, Number(data.max_steps) || 128));
+    $('#agent-max-steps').value = maxSteps;
+    $('#agent-max-steps-range').value = maxSteps;
     $('#agent-command-timeout').value = data.command_timeout_sec || 3600;
     $('#agent-install-timeout').value = data.install_timeout_sec || 1800;
     $('#agent-auto-install').checked = data.auto_install_tools !== false;
@@ -2666,9 +2684,25 @@ $('#btn-index-refresh').addEventListener('click', async () => {
   }
 });
 $('#btn-agent-refresh').addEventListener('click', () => loadAgentPanel(true));
+const stepsRange = $('#agent-max-steps-range');
+const stepsNumber = $('#agent-max-steps');
+const clampSteps = value => Math.max(1, Math.min(512, Math.round(Number(value) || 128)));
+if (stepsRange && stepsNumber) {
+  stepsRange.addEventListener('input', () => {
+    stepsNumber.value = stepsRange.value;
+  });
+  stepsNumber.addEventListener('change', () => {
+    const value = clampSteps(stepsNumber.value);
+    stepsNumber.value = value;
+    stepsRange.value = value;
+  });
+}
 $('#btn-agent-save').addEventListener('click', async () => {
   const button = $('#btn-agent-save');
   const publish = $('#agent-allow-publish').checked;
+  const steps = clampSteps($('#agent-max-steps').value);
+  $('#agent-max-steps').value = steps;
+  $('#agent-max-steps-range').value = steps;
   if (publish && !(state.agent && state.agent.allow_publish) &&
       !confirm('Enable publishing? This allows git push, package uploads, cloud deploys and outbound uploads without another prompt. Only enable it when you intend to publish.')) {
     $('#agent-allow-publish').checked = false;
@@ -2679,7 +2713,7 @@ $('#btn-agent-save').addEventListener('click', async () => {
     const result = await api('/api/agent', {
       method: 'POST',
       body: {
-        max_steps: Number($('#agent-max-steps').value),
+        max_steps: steps,
         command_timeout_sec: Number($('#agent-command-timeout').value),
         install_timeout_sec: Number($('#agent-install-timeout').value),
         auto_install_tools: $('#agent-auto-install').checked,
@@ -2730,7 +2764,7 @@ $('#btn-agent-test').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.0.7 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.0.8 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- key vault ---------------- */
@@ -3099,12 +3133,436 @@ $('#btn-key-test').addEventListener('click', async () => {
 });
 $('#btn-key-cancel').addEventListener('click', resetKeyForm);
 
+/* ---------------- inspect ---------------- */
+let inspectBusy = false;
+
+function riskPill(level, label) {
+  const value = String(level || 'low').toLowerCase();
+  return '<span class="risk-pill ' + value + '">' +
+    escapeHtml(String(label || value).toUpperCase()) + '</span>';
+}
+
+function inspectStat(value, label) {
+  return '<div class="inspect-stat"><b>' + escapeHtml(String(value)) + '</b><span>' +
+    escapeHtml(label) + '</span></div>';
+}
+
+async function loadQuarantine() {
+  const box = $('#quarantine-list');
+  const count = $('#quarantine-count');
+  if (!box) return;
+  try {
+    const data = await api('/api/quarantine', { timeout: 20000 });
+    const entries = Array.isArray(data.entries) ? data.entries : [];
+    if (count) count.textContent = String(entries.length);
+    if (!entries.length) {
+      box.innerHTML = '<div class="dim" style="font-size:11.5px">Quarantine is empty. Files scoring 70+ are copied here read-only.</div>';
+      return;
+    }
+    box.innerHTML = entries.map(entry => {
+      const path = entry.quarantine_path || '';
+      const sha = String(entry.sha256 || '');
+      const shredded = !!entry.shredded;
+      return '<div class="key-card">' +
+        '<div class="key-card-head"><span class="key-card-name mono">' +
+        escapeHtml(fileLabel(path)) + '</span>' + riskPill(shredded ? 'low' : 'high', shredded ? 'shredded' : 'quarantined') + '</div>' +
+        '<div class="key-card-meta mono" style="word-break:break-all">' +
+        escapeHtml(entry.original_path || '') + '</div>' +
+        '<div class="key-card-meta">score ' + escapeHtml(String(entry.score == null ? '—' : entry.score)) +
+        '/100 · ' + escapeHtml(String(entry.quarantined_at || '').replace('T', ' ').slice(0, 19)) +
+        (sha ? ' · SHA-256 ' + escapeHtml(sha.slice(0, 16)) + '…' : '') +
+        (shredded ? ' · copy shredded ' + escapeHtml(String(entry.shredded_at || '').replace('T', ' ').slice(0, 19)) : ' · read-only copy') + '</div>' +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    box.innerHTML = '<span class="bad">' + escapeHtml(err.message) + '</span>';
+  }
+}
+
+function renderInspection(data) {
+  const summary = $('#inspect-summary');
+  const list = $('#inspect-files');
+  const result = $('#inspect-result');
+  if (!summary || !list || !result) return;
+  if (!data || !data.ok) {
+    summary.innerHTML = '';
+    list.innerHTML = '';
+    result.className = 'place-result err';
+    result.textContent = (data && (data.error || data.message)) || 'Inspection failed';
+    return;
+  }
+  const aggregate = data.aggregate || {};
+  const risk = aggregate.risk || {};
+  const integrity = data.integrity || {};
+  const shred = data.shred || {};
+  summary.innerHTML = [
+    inspectStat(aggregate.files != null ? aggregate.files : (data.files_scanned || 0), 'FILES'),
+    inspectStat(aggregate.total_lines || 0, 'LINES'),
+    inspectStat(fmtBytes(aggregate.total_bytes || 0), 'TOTAL SIZE'),
+    inspectStat((risk.max_score || 0) + '/100', 'MAX RISK'),
+    inspectStat(risk.high || 0, 'HIGH RISK'),
+    inspectStat((data.quarantine || []).length, 'QUARANTINED'),
+    inspectStat(integrity.content_verified ? 'VERIFIED' : (integrity.applicable ? 'CHECK' : '—'), 'INTEGRITY'),
+  ].join('');
+
+  const files = Array.isArray(data.files) ? data.files : [];
+  list.innerHTML = files.length ? files.map(file => {
+    const fileRisk = file.risk || {};
+    const hashes = file.hashes || {};
+    const quarantine = file.quarantine || {};
+    const metrics = file.metrics || {};
+    const sha = String(hashes.sha256 || '');
+    return '<div class="inspect-file">' +
+      '<div class="path">' + escapeHtml(file.path || file.name || '') + '</div>' +
+      '<div class="meta">' + riskPill(fileRisk.level, fileRisk.label) +
+      '<span>' + escapeHtml(file.language || '?') + '</span>' +
+      '<span>' + fmtBytes(file.size_bytes || 0) + '</span>' +
+      '<span>' + (metrics.lines || 0) + ' lines</span>' +
+      '<span>' + escapeHtml(file.encoding || '') + '</span>' +
+      (file.error ? '<span class="bad">' + escapeHtml(file.error) + '</span>' : '') +
+      '</div>' +
+      (fileRisk.summary ? '<div class="summary">' + escapeHtml(fileRisk.summary) + '</div>' : '') +
+      (sha ? '<div class="hash">SHA-256 · ' + escapeHtml(sha) + '</div>' : '') +
+      (quarantine.copied ? '<div class="hash" style="margin-top:6px">Read-only quarantine copy' +
+        (quarantine.shredded ? ' · shredded after report' : '') + '</div>' : '') +
+      '</div>';
+  }).join('') : '<div class="dim" style="font-size:11.5px">No code files were found at this path.</div>';
+
+  const report = data.report || {};
+  result.className = 'place-result ok';
+  result.innerHTML = '<div>' + escapeHtml(data.notice || 'Static inspection complete.') + '</div>' +
+    '<div class="hash mono" style="margin-top:6px">Integrity · checked ' +
+      escapeHtml(String(integrity.files_checked || 0)) + ' · ' +
+      (integrity.content_verified ? 'UNCHANGED' : (integrity.applicable ? 'CHECK THE REPORT' : 'N/A')) +
+      ' · digest ' + escapeHtml(String(integrity.digest || '').slice(0, 16)) + '…</div>' +
+    (shred.requested ? '<div class="hash mono">Shred · ' +
+      escapeHtml(String(shred.files_shredded || 0)) + ' shredded · ' +
+      escapeHtml(String(shred.files_failed || 0)) + ' failed · originals untouched</div>' : '') +
+    (report.json ? '<div class="hash mono" style="margin-top:6px;word-break:break-all">JSON · ' +
+      escapeHtml(report.json) + '</div>' : '') +
+    (report.markdown ? '<div class="hash mono" style="word-break:break-all">MARKDOWN · ' +
+      escapeHtml(report.markdown) + '</div>' : '') +
+    '<div class="hash mono" style="margin-top:6px">Static only: no inspected file was executed.</div>';
+}
+
+async function runInspection() {
+  if (inspectBusy) return;
+  const pathInput = $('#inspect-path');
+  const path = pathInput ? pathInput.value.trim() : '';
+  if (!path) {
+    toast('Enter a file or folder path to inspect', 'err');
+    return;
+  }
+  const body = {
+    path,
+    depth: Number($('#inspect-depth')?.value || 0) || 0,
+    max_files: Number($('#inspect-max')?.value || 0) || 60,
+    quarantine: !!$('#inspect-quarantine')?.checked,
+    shred_quarantine: !!$('#inspect-shred')?.checked,
+  };
+  inspectBusy = true;
+  const button = $('#btn-inspect-run');
+  if (button) button.disabled = true;
+  const stateLabel = $('#inspect-state');
+  if (stateLabel) stateLabel.textContent = 'SCANNING…';
+  const result = $('#inspect-result');
+  if (result) {
+    result.className = 'place-result';
+    result.textContent = 'Reading bytes, building the report and verifying hashes. Nothing is executed.';
+  }
+  try {
+    const data = await api('/api/inspect', { method: 'POST', body, timeout: 600000 });
+    renderInspection(data);
+    loadQuarantine();
+    if (data.ok) {
+      const shred = data.shred || {};
+      toast('Static inspection complete · ' + (data.files_scanned || 0) + ' files · report written' +
+        (shred.requested ? ' · ' + (shred.files_shredded || 0) + ' quarantine copies shredded' : ''), '');
+    } else {
+      toast(data.error || 'Inspection failed', 'err');
+    }
+  } catch (err) {
+    if (result) {
+      result.className = 'place-result err';
+      result.textContent = err.message;
+    }
+    toast(err.message, 'err');
+  } finally {
+    inspectBusy = false;
+    if (button) button.disabled = false;
+    if (stateLabel) stateLabel.textContent = 'IDLE';
+  }
+}
+
+function loadInspectorView() {
+  const input = $('#inspect-path');
+  if (input && !input.value && state.status && state.status.server) {
+    input.value = state.status.server.root || '';
+  }
+  loadQuarantine();
+}
+
+$('#btn-inspect-refresh')?.addEventListener('click', loadQuarantine);
+$('#btn-inspect-run')?.addEventListener('click', runInspection);
+$('#inspect-path')?.addEventListener('keydown', event => {
+  if (event.key === 'Enter') runInspection();
+});
+
+/* ---------------- publish ---------------- */
+let publishBusy = false;
+
+function publishStatusLine() {
+  const tag = $('#publish-tag') ? $('#publish-tag').value.trim() : '';
+  $('#publish-badge').textContent = tag ? tag.toUpperCase() : 'READY';
+}
+
+function publishLog(text) {
+  const box = $('#publish-log');
+  if (box) box.textContent = text;
+}
+
+function renderSecrets(list) {
+  const box = $('#publish-secret-list');
+  if (!box) return;
+  const items = Array.isArray(list) ? list : [];
+  if (!items.length) {
+    box.innerHTML = '<div class="dim" style="font-size:11.5px">No service tokens saved yet.</div>';
+    return;
+  }
+  box.innerHTML = items.map(item =>
+    '<div class="key-card"><div class="key-card-head"><span class="key-card-name mono">' +
+    escapeHtml(item.name || '') + '</span></div><div class="key-card-meta">' +
+    escapeHtml(item.hint || '') + '</div><div class="key-card-actions">' +
+    '<button class="btn ghost sm" data-secret-delete="' + escapeHtml(item.name || '') +
+    '">DELETE</button></div></div>').join('');
+  $$('#publish-secret-list [data-secret-delete]').forEach(button => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        const result = await api('/api/secrets/delete', {
+          method: 'POST', body: { name: button.dataset.secretDelete }, timeout: 15000
+        });
+        renderSecrets(result.secrets);
+        loadPublishStatus();
+      } catch (err) {
+        toast(err.message, 'err');
+        button.disabled = false;
+      }
+    });
+  });
+}
+
+async function loadPublishSecrets() {
+  try {
+    const result = await api('/api/secrets', { timeout: 15000 });
+    renderSecrets(result.secrets);
+  } catch (err) {
+    renderSecrets([]);
+  }
+}
+
+async function loadPublishStatus() {
+  try {
+    const data = await api('/api/publish/status', { timeout: 15000 });
+    const gh = $('#publish-github-token');
+    const gc = $('#publish-gitcode-token');
+    if (gh) {
+      gh.textContent = data.github_token
+        ? 'GITHUB · AUTO · ' + (data.github_source || 'ready').toUpperCase()
+        : 'GITHUB · MISSING';
+      gh.style.color = data.github_token ? 'var(--green)' : 'var(--red, #ff6b6b)';
+    }
+    if (gc) {
+      gc.textContent = data.gitcode_token
+        ? 'GITCODE · AUTO · ' + (data.gitcode_source || 'ready').toUpperCase()
+        : 'GITCODE · MISSING';
+      gc.style.color = data.gitcode_token ? 'var(--green)' : 'var(--red, #ff6b6b)';
+    }
+    if ($('#publish-github-repo') && !$('#publish-github-repo').value && data.github_default) {
+      $('#publish-github-repo').value = data.github_default;
+    }
+    if ($('#publish-gitcode-repo') && !$('#publish-gitcode-repo').value && data.gitcode_default) {
+      $('#publish-gitcode-repo').value = data.gitcode_default;
+    }
+    if ($('#publish-tag') && !$('#publish-tag').value && data.default_tag) {
+      $('#publish-tag').value = data.default_tag;
+    }
+    if ($('#publish-folder') && !$('#publish-folder').value && data.release_folder) {
+      $('#publish-folder').value = data.release_folder;
+    }
+    $('#publish-state').textContent = publishBusy ? 'UPLOADING' : 'IDLE';
+    publishStatusLine();
+    loadPublishSecrets();
+  } catch (err) {
+    $('#publish-state').textContent = 'OFFLINE';
+    publishLog('Could not load publish settings: ' + err.message);
+  }
+}
+
+function publishPayload(platform) {
+  const repo = (platform === 'github' ? $('#publish-github-repo') : $('#publish-gitcode-repo'))
+    .value.trim();
+  const body = {
+    platform,
+    repo,
+    tag: $('#publish-tag').value.trim(),
+    name: $('#publish-name').value.trim(),
+    body: $('#publish-body').value,
+    assets_folder: $('#publish-folder').value.trim(),
+    create_repo: $('#publish-create-repo').checked,
+    overwrite: $('#publish-overwrite').checked,
+    delete_older: $('#publish-delete-older').checked,
+    private: $('#publish-private').checked,
+    prerelease: $('#publish-prerelease').checked
+  };
+  if (!body.repo) throw new Error('Enter the ' + platform + ' repository as owner/repo');
+  if (!body.tag) throw new Error('Enter a release tag');
+  return body;
+}
+
+function publishStepText(result) {
+  const lines = [];
+  const label = (result.platform || '').toUpperCase();
+  lines.push(label + ' · ' + (result.ok ? 'SUCCESS' : 'FAILED'));
+  if (result.error) lines.push('ERROR: ' + result.error);
+  for (const step of (result.steps || [])) {
+    lines.push((step.ok ? '[ok] ' : '[!!] ') + step.stage + ' — ' + step.message);
+  }
+  if (result.release_url) lines.push('RELEASE: ' + result.release_url);
+  if (result.assets_total !== undefined) {
+    lines.push('ASSETS: ' + (result.assets_uploaded || 0) + ' uploaded, ' +
+      (result.assets_skipped || 0) + ' skipped, ' + result.assets_total + ' total');
+  }
+  return lines.join('\n');
+}
+
+async function publishOne(platform) {
+  if (publishBusy) return null;
+  let payload;
+  try { payload = publishPayload(platform); }
+  catch (err) { toast(err.message, 'err'); return null; }
+  publishBusy = true;
+  const buttons = ['#btn-publish-github', '#btn-publish-gitcode', '#btn-publish-both'];
+  buttons.forEach(id => { const b = $(id); if (b) b.disabled = true; });
+  $('#publish-state').textContent = 'UPLOADING ' + platform.toUpperCase();
+  publishLog('Publishing ' + payload.repo + ' · ' + payload.tag + ' to ' + platform +
+    '…\nLarge assets can take several minutes. Keep this tab open.');
+  const started = Date.now();
+  try {
+    const result = await api('/api/publish', {
+      method: 'POST', body: payload, timeout: 3600000
+    });
+    publishLog(publishStepText(result));
+    $('#publish-state').textContent = result.ok ? 'DONE' : 'FAILED';
+    publishStatusLine();
+    if (result.ok) toast('Published ' + payload.tag + ' to ' + platform, 'ok');
+    else toast(result.error || 'Publish failed', 'err');
+    return result;
+  } catch (err) {
+    publishLog('[' + platform + '] ' + err.message);
+    $('#publish-state').textContent = 'FAILED';
+    toast(err.message, 'err');
+    return null;
+  } finally {
+    const elapsed = Math.round((Date.now() - started) / 1000);
+    publishBusy = false;
+    buttons.forEach(id => { const b = $(id); if (b) b.disabled = false; });
+    const state = $('#publish-state');
+    if (state && state.textContent !== 'FAILED') state.textContent = 'IDLE · ' + elapsed + 's';
+  }
+}
+
+async function publishBoth() {
+  if (publishBusy) return;
+  const first = await publishOne('github');
+  const second = await publishOne('gitcode');
+  const ok = first && first.ok && second && second.ok;
+  publishLog((first ? publishStepText(first) : 'GitHub: not started') + '\n\n' +
+    (second ? publishStepText(second) : 'GitCode: not started'));
+  $('#publish-state').textContent = ok ? 'BOTH DONE' : 'CHECK RESULTS';
+  toast(ok ? 'Published to both platforms' : 'One or both platforms need attention',
+    ok ? 'ok' : 'err');
+}
+
+$('#btn-publish-refresh')?.addEventListener('click', loadPublishStatus);
+$('#btn-publish-github')?.addEventListener('click', () => publishOne('github'));
+$('#btn-publish-gitcode')?.addEventListener('click', () => publishOne('gitcode'));
+$('#btn-publish-both')?.addEventListener('click', publishBoth);
+$('#btn-publish-to-keys')?.addEventListener('click', () => switchView('keys'));
+$('#publish-tag')?.addEventListener('input', publishStatusLine);
+$('#publish-secret-name')?.addEventListener('change', () => {
+  const custom = $('#publish-secret-name').value === '__custom__';
+  $('#publish-secret-custom').style.display = custom ? 'block' : 'none';
+  if (custom) $('#publish-secret-custom').focus();
+});
+$('#btn-publish-save-secret')?.addEventListener('click', async () => {
+  const selected = $('#publish-secret-name').value;
+  const name = selected === '__custom__'
+    ? $('#publish-secret-custom').value.trim() : selected;
+  const value = $('#publish-secret-value').value.trim();
+  const resultBox = $('#publish-secret-result');
+  if (!name || !value) {
+    resultBox.textContent = 'Enter both a secret name and value.';
+    resultBox.style.color = 'var(--red, #ff6b6b)';
+    return;
+  }
+  const button = $('#btn-publish-save-secret');
+  button.disabled = true;
+  try {
+    const result = await api('/api/secrets', {
+      method: 'POST', body: { name, value }, timeout: 20000
+    });
+    resultBox.textContent = result.ok ? 'Saved ' + name + ' locally.' : (result.error || 'Save failed');
+    resultBox.style.color = result.ok ? 'var(--green)' : 'var(--red, #ff6b6b)';
+    $('#publish-secret-value').value = '';
+    renderSecrets(result.secrets);
+    loadPublishStatus();
+  } catch (err) {
+    resultBox.textContent = err.message;
+    resultBox.style.color = 'var(--red, #ff6b6b)';
+  } finally {
+    button.disabled = false;
+  }
+});
+
+/* ---------------- update notice ---------------- */
+const UPDATE_DISMISS_KEY = 'codeforge.update.dismissed';
+function showUpdateBanner(info) {
+  if (!info || !info.latest) return;
+  if (localStorage.getItem(UPDATE_DISMISS_KEY) === String(info.latest)) return;
+  $('#update-copy').textContent = 'CodeForge AI ' + info.latest
+    + ' is available — you are running ' + (info.current || 'this build') + '.';
+  const link = $('#update-link');
+  link.href = info.url || 'https://github.com/IAMMEZSH/CodeForge-AI/releases';
+  link.textContent = 'Download ' + info.latest;
+  $('#update-banner').hidden = false;
+  $('#update-dismiss').onclick = () => {
+    localStorage.setItem(UPDATE_DISMISS_KEY, String(info.latest));
+    $('#update-banner').hidden = true;
+  };
+}
+async function checkUpdate() {
+  try {
+    const info = await api('/api/update', { timeout: 15000 });
+    if (info && info.update_available) showUpdateBanner(info);
+  } catch (err) {
+    /* offline or release index unreachable — no banner */
+  }
+}
+
 /* ---------------- boot ---------------- */
 renderProviderLinks();
 loadSample();
 updateLines();
 state.chat = [];
 renderChat();
+api('/api/chat/history?conversation=main&limit=300', { timeout: 8000 }).then(data => {
+  if (!data || !Array.isArray(data.messages) || !data.messages.length) return;
+  state.chat = data.messages
+    .filter(message => message.role === 'user' || message.role === 'assistant')
+    .map(message => ({ role: message.role, content: message.content }));
+  renderChat();
+}).catch(() => {});
 loadModels();
 loadLanguages(true);
 refreshStatus(true).then(() => {
@@ -3119,5 +3577,7 @@ setInterval(() => {
   if (state.view === 'chat' && state.status) updateSessionStats();
 }, 6000);
 const initialView = location.hash.replace('#', '');
-if (['chat', 'debug', 'models', 'keys', 'env'].includes(initialView)) switchView(initialView, true);
+if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'env'].includes(initialView)) switchView(initialView, true);
+checkUpdate();
+setInterval(checkUpdate, 6 * 60 * 60 * 1000);
 chatInput.focus();

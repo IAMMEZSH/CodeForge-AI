@@ -33,7 +33,7 @@ JDK_ROOT = ROOT / "native" / "jdk"
 BUILD = ROOT / "server-java" / "build"
 CLASSES = BUILD / "classes"
 JAR = BUILD / "CodeForgeServer.jar"
-VERSION = "1.0.7"
+VERSION = "1.0.8"
 
 C_SOURCES = [
     ROOT / "native-c" / "native_tool.c",
@@ -49,30 +49,9 @@ CORE_SOURCES = [
     "core/runners.cpp",
     "core/debugger.cpp",
 ]
-JAVA_SOURCES = [
-    "Json.java",
-    "Encodings.java",
-    "NativeTools.java",
-    "CoreBridge.java",
-    "AppSettings.java",
-    "KeyStore.java",
-    "MemoryStore.java",
-    "ProjectIndex.java",
-    "OnlineService.java",
-    "ModelManager.java",
-    "RuntimeManager.java",
-    "FileService.java",
-    "DesktopIntegration.java",
-    "ProjectExporter.java",
-    "LanguageSupport.java",
-    "ToolchainManager.java",
-    "ExtendedRunner.java",
-    "AgentShell.java",
-    "ToolProvisioner.java",
-    "BuildDelivery.java",
-    "ApiHandler.java",
-    "ServerMain.java",
-]
+JAVA_SOURCES = sorted(
+    path.name for path in (ROOT / "server-java" / "src" / "codeforge" / "server").glob("*.java")
+)
 
 IS_WINDOWS = os.name == "nt"
 EXE = ".exe" if IS_WINDOWS else ""

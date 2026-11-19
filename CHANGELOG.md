@@ -3,60 +3,66 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
-## 1.0.7 — 2026-11-19
+## 1.0.8 — 2026-11-20
 
 ### Added
 
-- **One-shot build and desktop delivery in every supported language.** A new
-  `codeforge_build` agent tool (also exposed as `POST /api/agent/build`) takes
-  the source the model just wrote and produces a double-clickable result on the
-  Desktop: a native `.exe` for C, C++, Go, Rust and C#; a runnable `.jar` plus
-  launcher for Java; interpreter-pinned launchers for Python (`.py`/`.pyw`),
-  JavaScript, TypeScript and PHP; and an `index.html` page with a shortcut for
-  HTML/CSS. Every delivery gets its own Desktop folder and a real `.lnk`
-  (`.desktop` / `.command` elsewhere) shortcut, Unicode names and paths work,
-  and compiler errors are returned to the model so it fixes the source and
-  retries instead of handing back an unbuilt file. The tool is deterministic —
-  the model never needs to know compiler flags, manifest syntax or working
-  directories.
-- README, manual, API reference, platform guide, security notes, quick starts,
-  diagrams and console screenshots were refreshed for 1.0.7.
-
-### Fixed
-
-- **Plain-language build requests are no longer intercepted.** The console used
-  to treat phrases such as “compile it and put it on the Desktop” as a local
-  file-copy command and answer with a path example. Every non-slash message now
-  goes to the active model, offline or online; only explicit `/` commands stay
-  local. The model receives the request and the `codeforge_build` tool produces
-  the runnable artifact.
-- **The active online model is visible instead of “NO MODEL”.** The header and
-  sidebar show the configured provider/model (for example `DEEPSEEK-CHAT`) and
-  `STANDBY` until reachability is confirmed, rather than implying no model is
-  available.
-- **Reply limit is a highest-to-lowest selector up to 393,216 tokens.** Offline
-  models use the selected value; online providers apply their own output cap
-  (DeepSeek: 8,192) without failing the request. The setting applies to the next
-  reply without restarting inference.
-- **GUI programs are not auto-run in the console.** Win32, Swing/AWT, tkinter,
-  PyQt/PySide, WinForms and WPF replies are delivered without a false `FAILED`
-  result from trying to launch a windowed program in the terminal.
-- **Malformed model tool calls are executed instead of echoed.** Some models
-  emit the XML/DSML tool envelope with a bare JSON body, an unwrapped
-  `<parameter>` tag or missing closing tags. All four shapes are now parsed —
-  tagged `<codeforge_build>`, standard DSML, JSON inside `<invoke>` and a JSON
-  object that follows the tool name — so a build request is never dumped back
-  into the chat as raw text.
-- **Python deliveries stay clean.** The syntax-check step no longer leaves a
-  `__pycache__` directory next to the shipped program.
-- **System C/C++, Java and other runtimes are detected on Windows.** `PATH` and
-  other environment variables are resolved case-insensitively, `JAVA_HOME` is
-  honoured as a javac fallback, and the Environment panel lists system
-  toolchains even when no managed runtime is installed.
-- **Every saved API key is blanked in shipped config files,** including the
-  `llm.keys` list, in every archive.
+- **Static code inspection, quarantine and integrity proof.** The new
+  **Inspect** tab scans any file or project without executing it. Each file
+  receives language, encoding, MIME, entropy, hashes, structure, imports,
+  network clues, masked secrets, concrete risk indicators and a 0–100 score.
+  JSON and Markdown reports are written under
+  `workspace/reports/code-inspection/`. Files scoring 70+ are copied into a
+  read-only quarantine vault with a sidecar audit record.
+- **Optional shredding of quarantine copies.** After the report is written,
+  the server can overwrite each copy created by that scan, truncate it and
+  delete it, while retaining the sidecar with `shredded`, `shredded_at`,
+  `shred_method` and `original_untouched`. Originals are never modified,
+  moved or deleted.
+- **Before/after SHA-256 integrity verification.** Every scanned file is
+  re-hashed after analysis (256 MB budget) and compared with the scan-time
+  hash. The response exposes `unchanged`, `content_verified`, checked,
+  skipped, changed and unreadable counts plus a sorted path+hash digest, so
+  “the scan did not modify the files” is a measured result.
+- **Universal API tool and named-secret vault.** `codeforge_api` /
+  `POST /api/api-call` call any HTTP or HTTPS endpoint with method, headers,
+  query, body and timeout. Named secrets stored through `/api/secrets` are
+  injected in memory and never returned. The agent can now use arbitrary
+  authenticated REST APIs instead of only built-in search/fetch tools.
+- **Publish tab.** The console can create or update GitHub and GitCode
+  releases from a local `release/` folder, upload every asset, replace assets
+  with the same name and optionally delete older GitHub releases. Tokens are
+  discovered from the vault, environment, GitHub CLI or Git credential helper
+  and are never displayed.
+- **Agent file, test and research tools.** `codeforge_read`, `codeforge_list`,
+  `codeforge_write`, `codeforge_edit`, `codeforge_test`, `codeforge_crawl`,
+  `codeforge_deep_search` and `codeforge_corpus` let the model read and edit
+  real files, run the project's test command, crawl pages, run multi-query
+  research and query the local research corpus.
+- **Adjustable agent step limit from 1 to 512.** The Command Agent panel and
+  `/api/agent` accept any value in the range; the default is 128.
+- **In-app update notices.** `GET /api/update` reads the public release index
+  (GitCode first, GitHub fallback; ten-minute cache) and compares the newest
+  stable tag with the running build. The console checks on load and every six
+  hours, then shows a dismissible banner linking to the release. Only release
+  metadata is fetched. `"updates": {"enabled": false}` in `config.json`
+  disables the check. Builds older than 1.0.8 have no checker, so their first
+  upgrade is manual; the release banner and README say so explicitly.
 
 ### Changed
 
+- README, user manual, API reference, security notes, architecture notes,
+  quick starts, diagrams, banner and console screenshots were refreshed for
+  1.0.8 and now document the static inspector, the secret vault, the publish
+  workflow and the file/research tools.
 - The server jar, native binaries, web console, mobile projects and release
-  manifest all report 1.0.7.
+  manifest all report 1.0.8.
+
+### Security
+
+- Static inspection never executes a sample and reports a hash-based integrity
+  result for the inspected tree.
+- Secret values, publish tokens and `Authorization`/`Cookie` response headers
+  are never written to API responses or logs.
+- Shipped `config.json` files blank `llm.api_key`, `llm.online.api_key`,
+  `llm.keys` and the whole `secrets` object in every archive.

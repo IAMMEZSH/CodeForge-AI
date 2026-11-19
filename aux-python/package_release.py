@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.0.7"
+VERSION = "1.0.8"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {
@@ -225,6 +225,8 @@ def entry_bytes(path: Path) -> bytes:
         for key in llm.get("keys") or []:
             if isinstance(key, dict):
                 key["api_key"] = ""
+        if "secrets" in doc:
+            doc["secrets"] = {}
         data = (json.dumps(doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     return data
 
@@ -379,7 +381,7 @@ def main() -> int:
             "Linux and macOS bundles use tar.gz so executable bits survive; each carries a platform QUICKSTART.txt.",
             "The mobile bundle covers Android via Termux, iOS via iSH, and the Kotlin/Swift thin clients.",
             "The source bundle builds on Windows, Linux, macOS, Termux and iSH.",
-            "Private user state (memory/, workspace/, logs/) is excluded and every API key field, including saved keys, in shipped config.json files is blanked.",
+            "Private user state (memory/, workspace/, logs/) is excluded and every API key field, saved keys and service-token vault in shipped config.json files is blanked.",
             "Verify downloads with: sha256sum -c SHA256SUMS.txt",
         ],
     }

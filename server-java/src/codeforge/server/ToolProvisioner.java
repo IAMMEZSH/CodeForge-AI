@@ -249,10 +249,12 @@ public final class ToolProvisioner {
         alias("google-chrome-stable", "google-chrome");
         alias("chrome", "google-chrome");
         alias("chromium", "google-chrome");
+        alias("mvn", "maven");
         alias("clickhouse-client", "clickhouse");
         alias("clickhouse-local", "clickhouse");
         alias("bcp", "sqlcmd");
 
+        PIP.put("pytest", "pytest");
         PIP.put("cqlsh", "cqlsh");
         PIP.put("pgcli", "pgcli");
         PIP.put("mycli", "mycli");

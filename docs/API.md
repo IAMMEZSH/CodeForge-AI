@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.7 · Java 17 HTTP server · C++ core bridge
+Version 1.0.8 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -73,6 +73,7 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | --- | --- | --- |
 | GET | `/api/health` | Liveness, version, uptime |
 | GET | `/api/status` | Full server + core + toolchain + model snapshot |
+| GET | `/api/update` | Newer-release check; metadata only, `?refresh=1` bypasses the cache |
 | POST | `/api/chat` | Chat completion through the local model |
 | GET | `/api/chat/progress` | Live stage trace and remaining-time estimate |
 | POST | `/api/chat/cancel` | Interrupt an in-flight chat and free the model |
@@ -103,6 +104,13 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | GET | `/api/online` | Network and research status |
 | GET | `/api/online/research` | Web research persisted into memory |
 | GET | `/api/online/fetch` | Fetch one page as readable text |
+| POST | `/api/inspect` | Static scan of a file or folder; reports, quarantine, integrity, optional shred |
+| GET | `/api/quarantine` | Quarantine vault entries with shredded/quarantined state |
+| GET/POST | `/api/secrets` | List named secrets or store a value in the local vault |
+| POST | `/api/secrets/delete` | Delete a named secret |
+| POST | `/api/api-call` | Universal outbound HTTP/HTTPS call with optional secret injection |
+| GET | `/api/publish/status` | Publish defaults and token source names (never values) |
+| POST | `/api/publish` | Create/update a GitHub or GitCode release and upload assets |
 | GET/POST | `/api/agent` | Read or update Command Agent settings and capabilities |
 | GET | `/api/agent/software` | Discovered installed applications |
 | POST | `/api/agent/run` | Execute one command with auto-provisioning and the publish guard |
@@ -134,7 +142,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -183,7 +191,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -291,6 +299,33 @@ The native helper reports the same numbers as `cforge_native sysinfo`.
 runtime is installed: `{"ok": false, "installed": false, "platform": "...",
 "arch": "..."}`; with an override it also carries
 `"available": true` and `"configured_server": "<path>"`.
+
+### GET `/api/update`
+
+Reads the public release index and compares the newest stable tag with the
+running build. GitCode is preferred on Chinese systems and GitHub is the
+fallback; results are cached for ten minutes. `?refresh=1` forces a fresh
+check. Only release metadata is fetched — no prompt, file, key or usage data.
+
+```json
+{
+  "ok": true,
+  "enabled": true,
+  "current": "1.0.8",
+  "latest": "1.0.9",
+  "update_available": true,
+  "source": "gitcode",
+  "name": "CodeForge AI v1.0.9",
+  "published_at": "2026-12-01T10:00:00+08:00",
+  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.0.9",
+  "checked_at": "2026-12-01T02:10:00Z"
+}
+```
+
+With `"updates": {"enabled": false}` in `config.json` the response is
+`{"ok": true, "enabled": false, "current": "1.0.8", "update_available": false}`.
+If both release indexes are unreachable, `ok` is `false` with an `error`
+string; the console shows no banner.
 
 ---
 
@@ -676,7 +711,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -1124,7 +1159,7 @@ capability cache and rescans tools and applications.
 {
   "ok": true,
   "enabled": true,
-  "max_steps": 64,
+  "max_steps": 128,
   "command_timeout_sec": 3600,
   "max_feedback_chars": 48000,
   "auto_install_tools": true,
@@ -1145,8 +1180,9 @@ capability cache and rescans tools and applications.
 ### POST `/api/agent`
 
 Updates one or more settings. Boolean fields must be booleans; numeric values
-are clamped to the documented ranges. The response has the same shape as
-`GET /api/agent`, including the refreshed capability snapshot.
+are clamped to the documented ranges (`max_steps` 1–512, default 128). The
+response has the same shape as `GET /api/agent`, including the refreshed
+capability snapshot.
 
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/agent \
@@ -1369,7 +1405,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.7", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.8", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1836,3 +1872,139 @@ allow-forms allow-modals allow-popups allow-pointer-lock`, `nosniff`,
   default, `huggingface.co` fallback) and GitHub.
 - All model files stay under `models/downloads/`; all generated code stays
   under `workspace/`; logs stay under `logs/`.
+- Static inspection reads bytes only and never executes the inspected file.
+  The request returns an `integrity` object produced by re-hashing every source
+  file after analysis, so callers can verify that the scan did not modify it.
+  Shredding applies only to quarantine copies created by that same request.
+
+---
+
+## 21. Static inspection, secrets, outbound API and publishing
+
+### POST `/api/inspect`
+
+Runs the static code inspector on one file or a directory. Nothing is executed:
+there is no interpreter, compiler, loader or shell involved. The server reads
+bytes, scores risk, writes JSON and Markdown reports, optionally copies risky
+files into the read-only quarantine vault, re-hashes every source file to prove
+integrity, and optionally shreds only the copies created by this request.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/inspect \
+  -H "Content-Type: application/json" \
+  -d '{"path":"C:\\samples","depth":2,"max_files":20,"quarantine":true,"shred_quarantine":true}'
+```
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `path` | string | required | File or directory; relative paths resolve under the project root |
+| `depth` | integer | `3` | 0–6 |
+| `max_files` | integer | `60` | 1–500 |
+| `quarantine` | boolean | `true` | Copy files scoring 70+ to `workspace/quarantine/` as read-only copies |
+| `shred_quarantine` | boolean | `false` | After the report is written, shred quarantine copies created by this run; alias `shred` |
+| `max_file_mb` | integer | `64` | Read-only in the response; larger files are skipped |
+
+Response fields:
+
+| Field | Meaning |
+| --- | --- |
+| `files_scanned`, `manifests_scanned` | Counts of analysed code files and dependency/config manifests |
+| `aggregate` | Total bytes/lines, per-language breakdown, risk counts and high-risk file list |
+| `files[]` | One detailed report per file: hashes, language, MIME, encoding, entropy, binary facts, metrics, structure, dependencies, network clues, secrets (masked), risk, quarantine |
+| `manifests[]` | Dependency and config summaries for `.env`, package manifests, lockfiles and build files |
+| `quarantine[]` | Copies created in this run, with `quarantine_path`, `meta_path`, `sha256`, `shredded`, `shredded_at`, `shred_method`, `mode` and `executed:false` |
+| `integrity` | `unchanged`, `content_verified`, `files_checked`, `files_skipped`, `files_changed`, `files_unreadable`, `budget_bytes`, `budget_used_bytes`, `digest` and per-file change lists |
+| `shred` | `requested`, `performed`, `files_shredded`, `files_failed`, `entries`, `notice` |
+| `report` | Absolute paths, byte sizes, and any rewrite error for the JSON and Markdown reports |
+| `execution` | Always `{"mode":"static-only","executed":false}` |
+| `notice` | Human-readable summary including whether originals were untouched |
+
+`integrity.content_verified` is true only when at least one file was checked,
+every scanned file was checked, and none changed or became unreadable. Files
+larger than the remaining 256 MB re-hash budget are counted in
+`files_skipped`, so verification is reported as incomplete rather than faked.
+
+`shred.performed` is true when a shred request was carried out; inspect
+`files_shredded` for the number of copies destroyed. A successful shred keeps
+the sidecar and records `shredded:true`, `shredded_at`, `shred_method` and
+`original_untouched:true`. Originals are never moved, modified or deleted.
+
+### GET `/api/quarantine`
+
+Lists the quarantine vault. Each entry includes `name`, `original_path`,
+`quarantine_path`, `meta_path`, `score`, `reason`, hashes, `shredded`,
+`shredded_at`, `quarantine_size` and whether the copy currently exists.
+Shredded entries retain their metadata so the audit trail survives.
+
+### GET / POST `/api/secrets`
+
+`GET` returns secret **names**, a masked hint and length; values are never
+returned. `POST` stores or replaces one secret:
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/secrets \
+  -H "Content-Type: application/json" \
+  -d '{"name":"EXAMPLE_TOKEN","value":"…"}'
+
+curl -s -X POST http://127.0.0.1:8765/api/secrets/delete \
+  -H "Content-Type: application/json" -d '{"name":"EXAMPLE_TOKEN"}'
+```
+
+Names accept letters, digits, `_` and `-`; values are trimmed and capped at
+20,000 characters. Secrets live in the local `config.json` vault. Public release
+packaging blanks the vault.
+
+### POST `/api/api-call`
+
+Universal outbound HTTP client used by the agent tool `codeforge_api`.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `method` | string | GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS (default GET) |
+| `url` | string | `http://` or `https://` only |
+| `headers` | object or JSON string | Caller headers; `Authorization`, `Cookie` and `Set-Cookie` are not echoed back |
+| `query` | object | URL-encoded query parameters |
+| `body` | object, array or string | Objects/arrays are sent as JSON; a content type is added when absent |
+| `secret_name` | string | Name in the vault; alias `secret` |
+| `auth` | string | `bearer` (default), `token`, `header` or `query` |
+| `header`, `param`, `prefix` | string | Header/query name and optional value prefix for the injected secret |
+| `timeout` | integer | 5–120 seconds, default 30 |
+| `max_chars` | integer | Response truncation limit, 1,000–400,000, default 60,000 |
+
+The response contains `ok`, `status`, `method`, `url`, `content_type`, filtered
+`headers`, `body`, `truncated`, `bytes`, parsed `json` when applicable,
+`duration_ms`, and either `secret_used` or `secret_missing`. Secret values are
+never included.
+
+### GET `/api/publish/status` and POST `/api/publish`
+
+`status` returns `github_token`/`gitcode_token` booleans, `github_source`
+(`vault`, `environment`, `github-cli` or `missing`), `release_folder`,
+`default_tag`, and default repository names. Token values are never returned.
+
+`publish` creates or updates a release on GitHub or GitCode and uploads files
+from the release folder:
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/publish \
+  -H "Content-Type: application/json" \
+  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.0.8","name":"CodeForge AI v1.0.8","body":"…","folder":"release","overwrite":true,"delete_older":true}'
+```
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `platform` | string | `github` | `github` or `gitcode` |
+| `owner` / `repo` | string | status defaults | `owner/repo` accepted in either field |
+| `tag`, `name`, `body` | string | version tag | Release identity and notes |
+| `target` | string | default branch | Commit/branch target |
+| `folder` | string | `release` | Files to upload (recursive; regular files only) |
+| `create_repo` | boolean | `false` | Create the repository if missing |
+| `create_release` | boolean | `true` | Create the release when absent |
+| `overwrite` | boolean | `true` | Replace assets with the same name |
+| `delete_older` | boolean | `false` | Delete older releases after publishing where supported |
+| `draft`, `prerelease`, `private` | boolean | `false` | Platform flags |
+
+Response: `ok`, `platform`, `release_url`, `uploaded[]`, `skipped[]`,
+`deleted[]`, `steps[]` and `duration_ms`. Every step records action, success
+and detail. Tokens are read from the vault, environment, GitHub CLI or Git
+credential helper and are never logged.

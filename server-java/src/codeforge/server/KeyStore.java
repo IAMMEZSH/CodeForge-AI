@@ -61,6 +61,120 @@ public final class KeyStore {
         }
     }
 
+    /* ---------------------------------------------------------------- */
+    /* generic secrets: API keys, GitHub/GitCode tokens, service tokens  */
+    /* ---------------------------------------------------------------- */
+
+    public synchronized Map<String, Object> secretsView() {
+        try {
+            Map<String, Object> doc = readDoc();
+            Map<String, Object> secrets = Json.asObject(doc.get("secrets"));
+            List<Map<String, Object>> items = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : secrets.entrySet()) {
+                String value = entry.getValue() == null ? "" : String.valueOf(entry.getValue());
+                items.add(Json.map(
+                        "name", entry.getKey(),
+                        "hint", maskSecret(value),
+                        "length", value.length()));
+            }
+            items.sort((a, b) -> Json.str(a, "name", "")
+                    .compareToIgnoreCase(Json.str(b, "name", "")));
+            return Json.map("ok", true, "secrets", items);
+        } catch (Exception ex) {
+            return failure("Cannot read secrets: " + ex.getMessage());
+        }
+    }
+
+    public synchronized Map<String, Object> setSecret(String rawName, String value) {
+        String name = normalizeSecretName(rawName);
+        if (name.isBlank()) {
+            return failure("Secret name must contain letters, digits, '_' or '-'.");
+        }
+        if (value == null || value.isBlank()) {
+            return failure("Secret value is empty.");
+        }
+        if (value.length() > 20000) {
+            return failure("Secret value is too long.");
+        }
+        try {
+            Map<String, Object> doc = readDoc();
+            Map<String, Object> secrets = child(doc, "secrets");
+            secrets.put(name, value.trim());
+            writeDoc(doc);
+            Map<String, Object> out = new LinkedHashMap<>(secretsView());
+            out.put("message", "Saved " + name);
+            return out;
+        } catch (Exception ex) {
+            return failure("Cannot save secret: " + ex.getMessage());
+        }
+    }
+
+    public synchronized Map<String, Object> deleteSecret(String rawName) {
+        String name = normalizeSecretName(rawName);
+        try {
+            Map<String, Object> doc = readDoc();
+            Map<String, Object> secrets = Json.asObject(doc.get("secrets"));
+            String actual = findSecretKey(secrets, name);
+            if (actual == null) {
+                return failure("Secret not found: " + name);
+            }
+            secrets.remove(actual);
+            writeDoc(doc);
+            Map<String, Object> out = new LinkedHashMap<>(secretsView());
+            out.put("message", "Deleted " + actual);
+            return out;
+        } catch (Exception ex) {
+            return failure("Cannot delete secret: " + ex.getMessage());
+        }
+    }
+
+    /** Internal use only. Never send this value through an API response. */
+    public synchronized String secretValue(String rawName) {
+        String name = normalizeSecretName(rawName);
+        if (name.isBlank()) {
+            return "";
+        }
+        try {
+            Map<String, Object> doc = readDoc();
+            Map<String, Object> secrets = Json.asObject(doc.get("secrets"));
+            String actual = findSecretKey(secrets, name);
+            return actual == null ? "" : Json.str(secrets, actual, "");
+        } catch (Exception ex) {
+            return "";
+        }
+    }
+
+    public synchronized boolean hasSecret(String rawName) {
+        return !secretValue(rawName).isBlank();
+    }
+
+    private static String normalizeSecretName(String raw) {
+        String name = raw == null ? "" : raw.trim();
+        if (name.length() > 80) {
+            name = name.substring(0, 80);
+        }
+        return name.replaceAll("[^A-Za-z0-9_.-]", "");
+    }
+
+    private static String findSecretKey(Map<String, Object> secrets, String name) {
+        for (String key : secrets.keySet()) {
+            if (key.equalsIgnoreCase(name)) {
+                return key;
+            }
+        }
+        return null;
+    }
+
+    private static String maskSecret(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        if (value.length() <= 8) {
+            return "••••";
+        }
+        return "••••" + value.substring(value.length() - 4);
+    }
+
     public synchronized Map<String, Object> agentSettings() {
         try {
             return agentView(readDoc(), configFile.toString());
@@ -81,8 +195,8 @@ public final class KeyStore {
                 agent.put("enabled", flag);
             }
             if (request.containsKey("max_steps")) {
-                int value = Json.integer(request, "max_steps", 64);
-                agent.put("max_steps", Math.max(1, Math.min(256, value)));
+                int value = Json.integer(request, "max_steps", 128);
+                agent.put("max_steps", Math.max(1, Math.min(512, value)));
             }
             if (request.containsKey("command_timeout_sec")) {
                 int value = Json.integer(request, "command_timeout_sec", 3600);
@@ -130,7 +244,7 @@ public final class KeyStore {
         out.put("ok", true);
         out.put("config", configPath);
         out.put("enabled", Json.bool(agent, "enabled", true));
-        out.put("max_steps", clamp(Json.integer(agent, "max_steps", 64), 1, 256));
+        out.put("max_steps", clamp(Json.integer(agent, "max_steps", 128), 1, 512));
         out.put("command_timeout_sec",
                 clamp(Json.integer(agent, "command_timeout_sec", 3600), 1, 86400));
         out.put("max_feedback_chars",
@@ -384,7 +498,7 @@ public final class KeyStore {
                     .timeout(Duration.ofSeconds(30))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + key)
-                    .header("User-Agent", "CodeForgeAI/1.0.7")
+                    .header("User-Agent", "CodeForgeAI/1.0.8")
                     .POST(HttpRequest.BodyPublishers.ofString(
                             Json.write(payload), StandardCharsets.UTF_8))
                     .build();

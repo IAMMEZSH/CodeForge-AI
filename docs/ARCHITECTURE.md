@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.7 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.0.8 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -33,7 +33,7 @@ is the least risky choice.
 | Layer | Language | Responsibility | Why |
 | --- | --- | --- | --- |
 | Native helper | C17 | SHA-256, file hashing, verification, host sysinfo | No runtime, tiny binary, identical behavior on every OS, usable from Java and scripts |
-| Main core | C++17 | LLM protocol, prompt construction, toolchain detection, compilation, sandboxed execution, debug loop | Deterministic control over processes, timeouts, encodings, and job objects without a VM |
+| Main core | C++17 | LLM protocol, prompt construction, toolchain detection, compilation, supervised execution, debug loop | Deterministic control over processes, timeouts, encodings, and job objects without a VM |
 | Control server | Java 17 | HTTP API, model registry, resumable downloads, ZIP/tar.gz extraction, runtime supervision | Mature standard-library HTTP server, robust streams, simple deployment on one JAR |
 | Auxiliary core | Python 3.13 | Bootstrap, build orchestration, packaging, self-test driver, mock LLM | Glue code changes often; Python keeps the build script readable and portable |
 | Desktop shell | C++17 (Win32) | Tray icon, control center window, Edge app-mode launch | Native window with zero frameworks; launches the console like a product, not a dev server |
@@ -55,15 +55,15 @@ supervise and kill process trees.
 └───────────────┬──────────────────────────────────────────────────────────┘
                 │ spawns / HTTP
 ┌───────────────▼──────────────────────────────────────────────────────────┐
-│ Web console  server-java/web/console (app.js 1293 · styles.css 1043)     │
-│  Chat · Debug · Models · Environment · hash routing · canvas particles   │
+│ Web console  server-java/web/console                                    │
+│  Chat · Debug · Models · Inspect · Publish · Environment                 │
 └───────────────┬──────────────────────────────────────────────────────────┘
                 │ REST /api/*
 ┌───────────────▼──────────────────────────────────────────────────────────┐
 │ Java control server  com.sun.net.httpserver on 127.0.0.1:8765           │
 │  ApiHandler · ModelManager · RuntimeManager · MemoryStore · ProjectIndex │
-│  OnlineService · AgentShell · ToolProvisioner · KeyStore · AppSettings   │
-│  CoreBridge                                                              │
+│  OnlineService · AgentShell · ToolProvisioner · TestRunner · KeyStore    │
+│  ApiClient · Publisher · CodeInspector · CoreBridge · AppSettings        │
 └───┬──────────────┬──────────────┬──────────────┬────────────────────────┘
     │ JSON command │ HTTPS        │ HTTPS        │ local files
 ┌───▼───────────┐ ┌▼────────────┐ ┌▼───────────┐ ┌▼─────────────────────┐
@@ -385,6 +385,54 @@ happen in Java, so a small local model cannot lose the execution capability.
 The publish guard rejects remote/public actions unless `agent.allow_publish`
 is true; it is a policy layer, not an OS sandbox, because the process runs
 with the user's privileges.
+
+The agent also exposes file tools (`read`, `list`, `write`, `edit`), `test`,
+web tools (`crawl`, `deep_search`, `corpus`), `api` and `inspect`. The step
+limit is clamped to 1–512 and defaults to 128.
+
+### 5.8 Static inspection pipeline
+
+```
+POST /api/inspect {path, depth, max_files, quarantine, shred_quarantine}
+  → CodeInspector.prepare: resolve the target, bound depth 0–6 and files 1–500
+  → walk: skip VCS, build, dependency and cache folders; record manifests
+  → per file:
+       read at most 64 MB; hash with SHA-256/SHA-1/MD5
+       detect encoding, language, MIME and binary facts
+       entropy, line/structure/import/function metrics
+       network clues, masked secret patterns, risk rules → score + indicators
+       optional quarantine: read-only copy + .meta.json sidecar
+  → aggregate risk bands and language totals
+  → write JSON + Markdown reports FIRST
+  → verifyIntegrity: re-hash each source file (256 MB budget), compare
+  → optional shredQuarantinedCopies: only copies from this run
+       random overwrite → force → truncate → force → delete; keep sidecar
+  → rewrite reports with integrity and shred results
+```
+
+No compiler, interpreter, loader or shell is involved with the inspected
+bytes. Quarantine copies are artifacts for review, not execution. The shred
+path clears the DOS read-only attribute only on that copy; the original path
+is never passed to the writer. `integrity.content_verified` is true only when
+all scanned files were re-hashed and none changed or became unreadable; the
+sorted path+hash digest gives a single value for the whole scan.
+
+### 5.9 Update check
+
+```
+GET /api/update[?refresh=1]
+  → UpdateChecker reads config.json: updates.enabled (default true)
+  → prefer GitCode on zh systems, GitHub otherwise; fall back on failure
+  → fetch release metadata only (tag, name, date, page URL)
+  → compare newest stable tag with ApiHandler.VERSION (numeric major.minor.patch)
+  → cache result for 10 minutes
+```
+
+The console calls this endpoint on load and every six hours, then shows a
+dismissible banner when `update_available` is true. No prompt, file, key or
+usage data is sent. Builds older than 1.0.8 do not contain this checker, so
+their first move to 1.0.8 is a manual download; from 1.0.8 onward the banner
+reaches installed copies without a manual check.
 
 ---
 

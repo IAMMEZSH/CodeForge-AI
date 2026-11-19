@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.0.7 · Last reviewed 2026-11-19
+Version 1.0.8 · Last reviewed 2026-11-20
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:
@@ -154,11 +154,16 @@ file. Keep llama.cpp current and prefer well-known repositories.
 
 ### 4.6 Data handling
 
-- No analytics, crash reporting, telemetry, update checks, or fingerprinting.
-- No outbound request except: model downloads (domestic mirror with Hugging
-  Face fallback), runtime downloads (GitHub), the configured LLM backend
-  (loopback by default), the optional online LLM you configure, and opt-in web
-  research.
+- No analytics, crash reporting, telemetry, or fingerprinting.
+- The only automatic request is the release-index version check that powers
+  in-app update notices. It reads release metadata from GitCode
+  (`api.gitcode.com`, preferred on Chinese systems) or GitHub
+  (`api.github.com`, fallback), sends no prompt, file, key or usage data, and
+  can be disabled with `"updates": {"enabled": false}` in `config.json`.
+- No other outbound request except: model downloads (domestic mirror with
+  Hugging Face fallback), runtime downloads (GitHub), the configured LLM
+  backend (loopback by default), the optional online LLM you configure, and
+  opt-in web research.
 - Chat history and code are not uploaded by CodeForge itself. They are written
   to `workspace/` and — by design, so the offline brain remembers — to
   `memory/memories.jsonl`.
@@ -221,6 +226,41 @@ Consequences worth stating plainly:
 - Web pages returned by search, fetch and learn are untrusted data. The prompt
   labels them as evidence and forbids following their instructions; prompt
   injection is reduced, not eliminated.
+
+### 4.10 Static inspection and the secret vault
+
+**Static inspection.** `/api/inspect` and `codeforge_inspect` never pass a
+sample to a compiler, interpreter, loader, shell or debugger. The implementation
+opens files for reading, hashes them, extracts text/binary facts and writes a
+report. It does not create a process from the sample. Consequently a malicious
+file cannot execute merely because it was inspected. The one destructive
+operation available is shredding, and it is restricted to quarantine copies
+created by that same request; the original path and bytes are not touched.
+After analysis, each source file is re-hashed and compared with the scan-time
+SHA-256. `integrity.content_verified` is true only when every scanned file was
+checked and none changed or became unreadable; otherwise the response says so.
+A 256 MB re-hash budget bounds the extra I/O.
+
+**Quarantine.** Risky files (score 70+) are copied to
+`workspace/quarantine/` with a read-only DOS attribute and a `.meta.json`
+sidecar. The copy is data, not a runnable package; nothing auto-runs it. The
+shred step overwrites the copy with random bytes, forces it to disk, truncates
+and deletes it, then records the action in the sidecar. On SSDs, wear levelling
+and the flash translation layer mean a software overwrite is not proof of
+physical destruction; the report discloses this.
+
+**Named secrets.** `POST /api/secrets` stores values in the local
+`config.json` vault. `GET /api/secrets` returns names, masked hints and lengths
+only. `POST /api/api-call` and `codeforge_api` can inject a named secret into a
+header or query parameter; responses never contain the value, and
+`Authorization`, `Cookie` and `Set-Cookie` response headers are stripped before
+the result is returned or logged. Release packaging blanks the vault, including
+`llm.keys`, in every shipped `config.json`.
+
+**Publish tokens.** The publisher probes the vault, environment, GitHub CLI and
+the local Git credential helper, in that order. `/api/publish/status` reports
+only token presence and source, never a value. Publishing is an explicit
+button/API action; the agent's general publish guard remains separate.
 
 ---
 
@@ -300,12 +340,17 @@ equivalent to giving them a shell.
 | `config.json → llm.api_key` | plain text | Only for a local mock; protect file ACLs |
 | `CODEFORGE_ONLINE_LLM_KEY` | environment | Preferred over the next row |
 | `config.json → llm.online.api_key` | plain text | Grants paid-cloud access; restrict ACLs, cap spend on the provider side |
+| `config.json → secrets` | plain text vault | Named tokens for `codeforge_api` and publishing; the API returns masked hints only. Protect the file and blank the vault before sharing a copy |
+| `GITHUB_TOKEN`, `GH_TOKEN` | environment / vault / GitHub CLI keyring | Used only by the publisher; never returned by `/api/publish/status` |
+| `GITCODE_TOKEN`, `GITCODE_ACCESS_TOKEN` | environment / vault | Used only by the publisher; create a scoped personal access token |
 | Hugging Face token | not used | Do not add one to the repo |
 | TLS keys | not applicable | Add at your proxy, never in this repo |
 
-The server never logs either API key. Command lines logged for debugging may
-include model paths and flags, not keys. If you switch to a paid gateway, keep
-usage caps on the gateway side.
+The server never logs API keys, vault values or publish tokens. Command lines
+logged for debugging may include model paths and flags, not secrets. If you
+switch to a paid gateway, keep usage caps on the gateway side. Release packaging
+blanks `llm.api_key`, `llm.online.api_key`, `llm.keys` and the whole `secrets`
+object in every shipped `config.json`.
 
 Linux file permissions:
 
@@ -334,6 +379,8 @@ icacls workspace /inheritance:r /grant:r "<user>:(OI)(CI)(F)"
 | Configured `llm.online.base_url` (DeepSeek by default) | chat/debug when an online key is set | prompts, code, injected memory, workspace context and tool/application inventory |
 | Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360, Wikipedia | web research, agent search/fetch/learn | the search query or requested URL only |
 | Native package managers and their mirrors | automatic tool provisioning | package names and downloads |
+| Any host passed to `/api/api-call` or `codeforge_api` | explicit API call | method, URL, headers, query and body supplied by the caller; the injected secret stays in the request only |
+| `api.github.com`, `uploads.github.com`, `api.gitcode.com` | Publish tab or approved publish action | repository, release metadata and uploaded asset bytes |
 | Any host the agent is explicitly asked to fetch or publish to | agent web tools or an approved publish action | the command or content the task requires |
 
 If you point `openai_url` or `llm.online.base_url` at a cloud provider, **your

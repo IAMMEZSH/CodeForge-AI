@@ -171,19 +171,33 @@
       <svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="m11 11 9 9M17 17l2-2M14 14l2-2"/></svg>
       <span>Keys</span>
     </button>
+    <button class="rail-btn" data-view="publish" title="Publish to GitHub and GitCode">
+      <svg viewBox="0 0 24 24"><path d="M12 16V3"/><path d="m7 8 5-5 5 5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg>
+      <span>Publish</span>
+    </button>
+    <button class="rail-btn" data-view="inspect" title="Static code inspection, quarantine, integrity proof and optional shredding">
+      <svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.6-3 7.7-7 9-4-1.3-7-4.4-7-9V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span>Inspect</span>
+    </button>
     <button class="rail-btn" data-view="env" title="Environment">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
-      <span>System</span>
+      <span>Env</span>
     </button>
     <div class="rail-spacer"></div>
     <div class="rail-status">OFFLINE · READY</div>
   </aside>
 
   <div class="shell">
+    <div class="update-banner" id="update-banner" hidden>
+      <span class="update-flag">UPDATE</span>
+      <span class="update-copy" id="update-copy">A newer CodeForge AI release is available.</span>
+      <a class="update-link" id="update-link" target="_blank" rel="noopener">Download</a>
+      <button class="update-close" id="update-dismiss" title="Dismiss for this version" aria-label="Dismiss update notice">&times;</button>
+    </div>
     <header class="topbar">
       <div class="title-block">
         <div class="eyebrow">Local-first intelligent dev workbench</div>
-        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0.7</span></div>
+        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0.8</span></div>
       </div>
       <div class="top-chips">
         <span class="chip off" id="chip-core"><i class="dot"></i>Core</span>
@@ -536,6 +550,158 @@
         </div>
       </section>
 
+      <!-- ================= PUBLISH ================= -->
+      <section class="view" id="view-publish">
+        <div class="publish-grid">
+          <div class="publish-main">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Publish a release</h3><span class="badge" id="publish-badge">—</span>
+                <div class="spacer"></div>
+                <button class="btn ghost sm" id="btn-publish-refresh">Refresh</button>
+              </div>
+              <div class="panel-body">
+                <div class="publish-tokens">
+                  <span class="model-state" id="publish-github-token">GITHUB_TOKEN · checking…</span>
+                  <span class="model-state" id="publish-gitcode-token">GITCODE_TOKEN · checking…</span>
+                </div>
+                <div class="publish-row">
+                  <div>
+                    <label class="small">GitHub repository</label>
+                    <input class="field mono" id="publish-github-repo" placeholder="IAMMEZSH/CodeForge-AI" spellcheck="false">
+                  </div>
+                  <div>
+                    <label class="small">GitCode repository</label>
+                    <input class="field mono" id="publish-gitcode-repo" placeholder="gcw_So3EkhfR/CodeForge-AI" spellcheck="false">
+                  </div>
+                  <div>
+                    <label class="small">Tag</label>
+                    <input class="field mono" id="publish-tag" placeholder="v1.0.8" spellcheck="false">
+                  </div>
+                </div>
+                <label class="small" style="margin-top:12px;display:block">Release title</label>
+                <input class="field" id="publish-name" placeholder="CodeForge AI v1.0.8" spellcheck="false">
+                <label class="small" style="margin-top:12px;display:block">Release notes</label>
+                <textarea class="field" id="publish-body" rows="5" placeholder="What changed in this release…" spellcheck="false"></textarea>
+                <label class="small" style="margin-top:12px;display:block">Assets folder</label>
+                <input class="field mono" id="publish-folder" placeholder="release" spellcheck="false">
+                <div class="hint">Every file in this folder is uploaded as a release asset. Leave the path relative to the project root or use an absolute folder. Assets already on the release are replaced when “Replace existing assets” is on.</div>
+                <div class="publish-flags">
+                  <label><input type="checkbox" id="publish-create-repo"> Create repository if missing</label>
+                  <label><input type="checkbox" id="publish-overwrite" checked> Replace existing assets</label>
+                  <label><input type="checkbox" id="publish-delete-older"> Delete older releases (GitHub)</label>
+                  <label><input type="checkbox" id="publish-private"> Private repository</label>
+                  <label><input type="checkbox" id="publish-prerelease"> Pre-release</label>
+                </div>
+                <div class="place-actions">
+                  <button class="btn" id="btn-publish-github">PUBLISH TO GITHUB</button>
+                  <button class="btn" id="btn-publish-gitcode">PUBLISH TO GITCODE</button>
+                  <button class="btn ghost" id="btn-publish-both">BOTH PLATFORMS</button>
+                </div>
+                <div class="place-result" id="publish-result"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Live step log</h3><div class="spacer"></div><span class="model-state" id="publish-state">IDLE</span></div>
+              <div class="panel-body">
+                <pre class="log-box" id="publish-log" style="display:block;min-height:180px">Add tokens in Keys, then publish. Nothing is uploaded until you press a publish button.</pre>
+              </div>
+            </div>
+          </div>
+          <div class="publish-side">
+            <div class="panel">
+              <div class="panel-head"><h3>What gets published</h3></div>
+              <div class="panel-body" style="font-size:11.5px;color:var(--muted);line-height:1.8">
+                <div>• Release tag, title and notes</div>
+                <div>• Every file in the assets folder</div>
+                <div>• Direct download links on both platforms</div>
+                <div style="margin-top:10px">Tokens are read from this machine's vault and never shown, logged or sent anywhere except the platform API you choose.</div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Tokens</h3><div class="spacer"></div><span class="model-state">LOCAL VAULT</span></div>
+              <div class="panel-body" style="font-size:11.5px;color:var(--muted);line-height:1.8">
+                <div>Store <span class="mono">GITHUB_TOKEN</span> with repo scope.</div>
+                <div>Store <span class="mono">GITCODE_TOKEN</span> with repository and release permissions.</div>
+                <label class="small" style="margin-top:12px;display:block">Secret name</label>
+                <select class="field" id="publish-secret-name">
+                  <option value="GITHUB_TOKEN">GITHUB_TOKEN</option>
+                  <option value="GITCODE_TOKEN">GITCODE_TOKEN</option>
+                  <option value="__custom__">Other secret name…</option>
+                </select>
+                <input class="field mono" id="publish-secret-custom" placeholder="MY_API_KEY" spellcheck="false" style="display:none;margin-top:8px">
+                <label class="small" style="margin-top:10px;display:block">Token value</label>
+                <input class="field mono" id="publish-secret-value" type="password" placeholder="paste token once" spellcheck="false" autocomplete="off">
+                <div class="place-actions"><button class="btn sm" id="btn-publish-save-secret">SAVE TOKEN</button><button class="btn ghost sm" id="btn-publish-to-keys">OPEN KEYS</button></div>
+                <div class="place-actions" style="margin-top:8px">
+                  <a class="btn ghost sm" href="https://github.com/settings/tokens" target="_blank" rel="noopener">GITHUB TOKEN PAGE</a>
+                  <a class="btn ghost sm" href="https://gitcode.com/setting/token-classic" target="_blank" rel="noopener">GITCODE TOKEN PAGE</a>
+                </div>
+                <div class="hint">CodeForge first reuses a saved token, environment variables, an already signed-in GitHub CLI, or the local Git credential store. Only when none exists do you need to create one once on the official platform page. Tokens are never printed or written into release packages.</div>
+                <div class="place-result" id="publish-secret-result"></div>
+                <div id="publish-secret-list" class="key-list" style="margin-top:10px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= INSPECT ================= -->
+      <section class="view" id="view-inspect">
+        <div class="inspect-grid">
+          <div class="inspect-main">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Code inspector</h3>
+                <span class="badge" id="inspect-badge">STATIC · NEVER EXECUTES</span>
+                <div class="spacer"></div>
+                <button class="btn ghost sm" id="btn-inspect-refresh">Refresh vault</button>
+              </div>
+              <div class="panel-body">
+                <label class="small">File or project folder</label>
+                <input class="field mono" id="inspect-path" placeholder="C:\samples  ·  C:\project\src  ·  D:\downloads\suspect.exe" spellcheck="false">
+                <div class="inspect-row">
+                  <div>
+                    <label class="small">Max depth</label>
+                    <input class="field mono" id="inspect-depth" type="number" min="0" max="6" value="3">
+                  </div>
+                  <div>
+                    <label class="small">Max files</label>
+                    <input class="field mono" id="inspect-max" type="number" min="1" max="500" value="60">
+                  </div>
+                  <label class="inspect-check"><input type="checkbox" id="inspect-quarantine" checked> Quarantine files scoring 70+</label>
+                  <label class="inspect-check"><input type="checkbox" id="inspect-shred" checked> After the report, shred quarantine copies</label>
+                </div>
+                <div class="place-actions">
+                  <button class="btn" id="btn-inspect-run">INSPECT NOW</button>
+                  <span class="model-state" id="inspect-state">IDLE</span>
+                </div>
+                <div class="hint">Every inspected file gets a detailed report: SHA-256/SHA-1/MD5, language and encoding, entropy, lines, classes, functions, imports, network clues, masked secrets, risk score and concrete indicators, plus JSON and Markdown files under <span class="mono">workspace/reports/code-inspection/</span>. Inspection only reads bytes — nothing is executed. After the report is written, the source files are re-hashed to prove they were not modified; the optional shred step overwrites and deletes only the quarantine copies created by this run, never the originals.</div>
+                <div id="inspect-summary" class="inspect-summary"></div>
+                <div id="inspect-files" class="inspect-files"></div>
+                <div class="place-result" id="inspect-result"></div>
+              </div>
+            </div>
+            </div>
+          <div class="inspect-side">
+            <div class="panel">
+              <div class="panel-head"><h3>Quarantine vault</h3><span class="model-state" id="quarantine-count">0</span></div>
+              <div class="panel-body">
+                <div id="quarantine-list" class="key-list"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Reports</h3></div>
+              <div class="panel-body" style="font-size:11.5px;color:var(--muted);line-height:1.8">
+                <div>• <span class="mono">workspace/reports/code-inspection/*.json</span> — machine-readable full report</div>
+                <div>• <span class="mono">*.md</span> — exhaustive human-readable report</div>
+                <div style="margin-top:10px">A static report is generated for every inspection, even with zero findings. It records the before/after SHA-256 integrity check and, when enabled, the shred result for quarantine copies.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ================= ENVIRONMENT ================= -->
       <section class="view" id="view-env">
         <div class="env-grid">
@@ -582,8 +748,11 @@
                   <tr><td>Publishing guard</td><td id="agent-publish-state">—</td></tr>
                 </table>
                 <div class="agent-form">
-                  <label class="small">Max tool steps (1–256)</label>
-                  <input class="field mono" id="agent-max-steps" type="number" min="1" max="256" value="64">
+                  <label class="small">Max tool steps (1–512)</label>
+                  <div class="range-row">
+                    <input id="agent-max-steps-range" type="range" min="1" max="512" step="1" value="128">
+                    <input class="field mono" id="agent-max-steps" type="number" min="1" max="512" value="128">
+                  </div>
                   <label class="small">Command timeout (seconds)</label>
                   <input class="field mono" id="agent-command-timeout" type="number" min="1" max="86400" value="3600">
                   <label class="small">Tool install timeout (seconds)</label>

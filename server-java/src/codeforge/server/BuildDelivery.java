@@ -50,6 +50,8 @@ public final class BuildDelivery {
     private final Path root;
     private final Path workspace;
     private final ToolchainManager toolchains;
+    /** Set per build() call from the user-approved auto_install flag. */
+    private final ThreadLocal<Boolean> installConsent = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     public BuildDelivery(Path root, ToolchainManager toolchains) {
         this.root = root;
@@ -65,6 +67,7 @@ public final class BuildDelivery {
         out.put("phase", "setup");
         out.put("tool", "codeforge_build");
         Path appDir = null;
+        installConsent.set(Boolean.valueOf(Json.bool(request, "auto_install", false)));
         try {
             String sourceRaw = firstNonBlank(Json.str(request, "source", ""),
                     Json.str(request, "path", ""), Json.str(request, "file", ""));
@@ -81,22 +84,34 @@ public final class BuildDelivery {
             if (source == null && code.isBlank()) {
                 throw new BuildFailure("source path or code is required", null);
             }
-            String name = safeName(Json.str(request, "name", ""));
+            String name = cleanAppName(safeName(Json.str(request, "name", "")));
             if (name.isBlank()) {
-                name = safeName(source != null ? stripExtension(source.getFileName().toString())
-                        : "CodeForgeApp");
+                name = cleanAppName(safeName(source != null
+                        ? stripExtension(source.getFileName().toString()) : "CodeForgeApp"));
             }
             if (name.isBlank()) {
                 name = "CodeForgeApp";
             }
             boolean gui = Json.bool(request, "gui", false);
             Path destination = resolveDestination(Json.str(request, "destination", ""));
-            if (Files.exists(destination) && !Files.isDirectory(destination)) {
-                throw new BuildFailure("The destination is a file, not a folder: " + destination, null);
+            if (Files.isRegularFile(destination)) {
+                Path parent = destination.getParent();
+                if (parent != null) {
+                    destination = parent;
+                }
             }
             Files.createDirectories(destination);
             appDir = destination.resolve(name);
-            if (Files.exists(appDir) && !Files.isDirectory(appDir)) {
+            if (Files.isRegularFile(appDir)) {
+                String base = name;
+                int suffix = 1;
+                do {
+                    name = base + "-app" + (suffix > 1 ? "-" + suffix : "");
+                    appDir = destination.resolve(name);
+                    ++suffix;
+                } while (Files.isRegularFile(appDir) && suffix <= 50);
+            }
+            if (Files.isRegularFile(appDir)) {
                 throw new BuildFailure("The app folder path is a file: " + appDir, null);
             }
             Files.createDirectories(appDir);
@@ -180,6 +195,7 @@ public final class BuildDelivery {
             }
         }
         out.put("duration_ms", System.currentTimeMillis() - started);
+        installConsent.remove();
         return out;
     }
 
@@ -680,10 +696,22 @@ public final class BuildDelivery {
     private ToolchainManager.Resolved require(String runtimeId, String message)
             throws BuildFailure {
         ToolchainManager.Resolved runtime = toolchains.resolve(runtimeId);
-        if (runtime == null || !runtime.available()) {
-            throw new BuildFailure(message, null);
+        if (runtime != null && runtime.available()) {
+            return runtime;
         }
-        return runtime;
+        if (Boolean.TRUE.equals(installConsent.get())) {
+            Map<String, Object> installed = toolchains.ensureBlocking(runtimeId, true, 1800, null);
+            toolchains.refreshDetection();
+            runtime = toolchains.resolve(runtimeId);
+            if (runtime != null && runtime.available()) {
+                return runtime;
+            }
+            String error = Json.str(installed, "error", "");
+            throw new BuildFailure(message + (error.isBlank()
+                    ? "" : " (auto-install failed: " + error + ")"), null);
+        }
+        throw new BuildFailure(message + " Enable auto-install in Settings to let CodeForge "
+                + "install it with your permission.", null);
     }
 
     private Path findCompiler(ToolchainManager.Resolved runtime, boolean cpp) throws BuildFailure {
@@ -936,6 +964,9 @@ public final class BuildDelivery {
         if (value.isBlank() || value.equalsIgnoreCase("desktop") || value.equals("桌面")) {
             return FileService.desktopDir().toAbsolutePath();
         }
+        if (value.equals("~") || value.startsWith("~/") || value.startsWith("~\\")) {
+            value = System.getProperty("user.home", "") + value.substring(1);
+        }
         if (value.matches("(?i)^(?:desktop|桌面)[\\\\/].+")) {
             int slash = Math.max(value.indexOf('/'), value.indexOf('\\'));
             return FileService.desktopDir().resolve(value.substring(slash + 1))
@@ -1086,6 +1117,17 @@ public final class BuildDelivery {
     private static String arch() {
         String value = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
         return value.contains("aarch64") || value.contains("arm64") ? "arm64" : "x64";
+    }
+
+    private static String cleanAppName(String name) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        for (String ext : new String[]{".cpp", ".cc", ".cxx", ".c", ".py", ".java",
+                ".go", ".rs", ".cs", ".php", ".js", ".mjs", ".ts", ".html", ".css"}) {
+            if (lower.endsWith(ext) && name.length() > ext.length()) {
+                return name.substring(0, name.length() - ext.length()).trim();
+            }
+        }
+        return name;
     }
 
     private static String safeName(String raw) {

@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.7 · 2026-11-19**
+**Version 1.0.8 · 2026-11-20**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -229,6 +229,10 @@ size plus 512 MB. Keep at least 15 GB free for comfortable model rotation.
   the archive from GitHub.
 - **JDK bootstrap** (only when no JDK 17+ is present) resolves Temurin assets
   from `api.github.com` and downloads from Adoptium/GitHub.
+- **Update check** reads public release metadata from `api.gitcode.com`
+  (preferred on Chinese systems) or `api.github.com` when the console loads
+  and every six hours. It sends no prompt, source file, key or diagnostic.
+  Disable it with `"updates": {"enabled": false}` in `config.json`.
 - No prompt, source file or diagnostic is ever uploaded.
 
 ---
@@ -599,7 +603,8 @@ chat/debug/run return a JSON error. Rebuild with `bootstrap.py --all`.
 
 | Area | Description |
 |---|---|
-| Left rail | Chat, Debug, Models, Keys, System. Click or press `Ctrl+1`…`Ctrl+5` |
+| Left rail | Chat, Debug, Models, Keys, Publish, Inspect, Env. Click or press `Ctrl+1`…`Ctrl+7` |
+| Update banner | Appears below the top bar when the public release index reports a newer stable version. **Download** opens the release page; **×** dismisses that version |
 | Top chips | Core (C++ core reachable), LLM (inference backend usable), Runtime (llama.cpp state) |
 | Clock | Local time |
 | Info button | Version and stack summary toast |
@@ -849,7 +854,14 @@ the real result returns to the model, and the model decides the next step.
 <codeforge_search>{"query":"PostgreSQL 17 pg_dump flags","limit":6}</codeforge_search>
 <codeforge_fetch>{"url":"https://example.com/docs","max_chars":12000}</codeforge_fetch>
 <codeforge_learn>{"software":"qpdf","goal":"merge and encrypt PDFs"}</codeforge_learn>
+<codeforge_api>{"method":"POST","url":"https://api.example.com/v1/items","secret_name":"EXAMPLE_TOKEN","body":{"name":"demo"}}</codeforge_api>
+<codeforge_read>{"path":"C:\\work\\src\\main.py","start":1,"lines":200}</codeforge_read>
+<codeforge_edit>{"path":"C:\\work\\src\\main.py","find":"old","replace":"new"}</codeforge_edit>
+<codeforge_test>{"path":"C:\\work","timeout":600}</codeforge_test>
+<codeforge_crawl>{"url":"https://example.com/docs","depth":2,"max_pages":12}</codeforge_crawl>
+<codeforge_deep_search>{"query":"SQLite WAL mode","pages":6}</codeforge_deep_search>
 <codeforge_build>{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}</codeforge_build>
+<codeforge_inspect>{"path":"C:\\samples\\suspect.exe","depth":0,"max_files":1,"quarantine":true,"shred_quarantine":false}</codeforge_inspect>
 ```
 
 | Capability | Behavior |
@@ -860,8 +872,12 @@ the real result returns to the model, and the model decides the next step.
 | Software control | The prompt carries per-platform recipes for Office/WPS/LibreOffice COM and headless conversion, browser headless screenshot/PDF and Playwright/Selenium, screen capture and UI automation, OCR, media, archives, system settings, mail and cloud CLIs |
 | Missing tools | Portable toolchain first, then the native package manager (winget, apt, dnf, yum, pacman, zypper, apk or brew), then pip or npm when mapped; PATH is refreshed and the command is retried once. The mapping also covers database clients and cloud developer tools |
 | Online learning | `search` queries Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360 and Wikipedia in parallel, skips failed sources, deduplicates and ranks the merged results. `fetch` returns readable page text. `learn` researches an unfamiliar application, CLI, API or error. A missing simple command also triggers one automatic research pass |
-| Long loops | Up to 256 tool steps; older tool output is compacted before each model call while the system prompt and newest results are kept; every executed call remains in `tool_calls` even if the model call fails |
-| Publishing | Local commits, builds, packages and exports always work. Remote/public actions are blocked until **Allow publishing** is enabled, or a single API run passes `allow_publish=true` |
+| Crawling and deep search | `crawl` follows same-domain links from a seed URL and extracts page text with a page cap; `deep_search` fetches several result pages for a query and returns ranked excerpts; `corpus` queries the local research corpus built from saved findings |
+| File tools | `read` returns numbered lines from a real file; `list` walks a directory; `write` creates or appends; `edit` performs exact literal replacement; `test` detects and runs the project's own test command |
+| Universal API | `api` calls any HTTP/HTTPS endpoint with method, headers, query, body and timeout. A named secret from the vault is injected in memory and is never returned |
+| Static inspection | `inspect` analyses a file or project without executing it, returns file facts and risk evidence, optionally creates read-only quarantine copies and can shred only those copies after writing the report |
+| Long loops | The step limit is adjustable from **1 to 512** (default 128) in the Command Agent panel. Older tool output is compacted before each model call while the system prompt and newest results are kept; every executed call remains in `tool_calls` even if the model call fails |
+| Publishing | Local commits, builds, packages and exports always work. Remote/public actions are blocked until **Allow publishing** is enabled, or a single API run passes `allow_publish=true`. The **Publish** tab can create or update a GitHub/GitCode release, upload every file in `release/`, overwrite assets and optionally delete older releases |
 
 Blocked public actions include `git push`, GitHub/GitCode release/PR/issue
 creation, npm/PyPI/Cargo/NuGet/Docker/container registry pushes, `scp`, `rsync`,
@@ -872,10 +888,11 @@ which account instead of retrying.
 
 **Settings panel.** System → **Command Agent** shows detected commands,
 installed applications, the deduplicated auto-provisionable list and the online
-learning state. It edits `agent.max_steps`, `agent.command_timeout_sec`,
-`agent.install_timeout_sec`, `agent.auto_install_tools`,
-`agent.auto_learn_software` and `agent.allow_publish`, saves them to
-`config.json`, and can run a test command locally without calling a model. The
+learning state. It edits `agent.max_steps` (1–512, default 128),
+`agent.command_timeout_sec`, `agent.install_timeout_sec`,
+`agent.auto_install_tools`, `agent.auto_learn_software` and
+`agent.allow_publish`, saves them to `config.json`, and can run a test command
+locally without calling a model. The
 test result shows the exit code, duration, provisioning outcome and output;
 publishing commands are blocked there too unless the guard is disabled.
 
@@ -921,6 +938,85 @@ errors, the diagnostics return to the model, which fixes the source and calls
 the tool again. The agent never hands back only unbuilt source and never asks
 the user to compile, copy, move or install anything manually. The same
 operation is available directly as `POST /api/agent/build`.
+
+### 5.10 Static inspection, quarantine and shredding
+
+**Inspect** is for unknown or untrusted code. It is a static analysis pipeline:
+no sample is imported, compiled, opened by an interpreter or executed on the
+host. The control plane reads bytes, hashes them and writes a report.
+
+![Inspect view after scanning two files, quarantining one and shredding its copy](images/console-inspect.png)
+
+| Control | Meaning |
+|---|---|
+| **File or project folder** | One file or a directory. Depth 0–6 and max files 1–500 bound the traversal; build, dependency and VCS folders are skipped |
+| **Quarantine files scoring 70+** | Copies risky files into `workspace/quarantine/` as read-only files with a `.meta.json` sidecar. The original is never moved |
+| **After the report, shred quarantine copies** | Off by default in the API, on by default in the console. Writes the report first, then shreds only copies created by this run |
+| **Inspect now** | Runs the scan and renders counts, risk, integrity, shred result and report paths |
+
+**Per-file evidence.** The report includes detected language and family, MIME,
+encoding and confidence, text/binary classification, file timestamps, DOS
+attributes, Zone.Identifier, SHA-256/SHA-1/MD5, entropy, line and byte counts,
+line endings, indentation, approximate comment/code/blank lines, nesting and
+cyclomatic complexity, classes, functions, entry points, imports, URLs, IPs,
+emails, dependency names, TODO markers and masked secret findings. Every risk
+score lists the exact indicators that contributed to it.
+
+**Risk bands.** 0–29 low, 30–69 caution, 70–100 high. High-risk files are the
+only ones quarantined. Executable extensions are marked, but the inspector does
+not execute them to learn more. Binaries are described by header facts and
+extracted strings, not run.
+
+**Integrity proof.** During analysis each file is hashed. After the report is
+written, the inspector re-hashes every scanned file (256 MB total budget) and
+compares the values. `integrity.unchanged`, `integrity.files_changed`,
+`integrity.files_unreadable`, `integrity.files_checked` and a sorted
+path+hash `integrity.digest` are returned and stored in the report. This proves
+whether the scan modified the source bytes.
+
+**Shredding.** When enabled, the server clears the read-only attribute on each
+quarantine copy produced by this scan, overwrites it in 64 KB random chunks,
+forces the data to disk, truncates it to zero, forces again and deletes it. The
+sidecar is retained with `shredded: true`, `shredded_at`, `shred_method` and
+`original_untouched: true`. The original file, its hash and its location are
+untouched. On SSDs, wear levelling means a software overwrite cannot guarantee
+physical erasure; the report states this limit.
+
+**Output.** Every scan writes a JSON and a Markdown report under
+`workspace/reports/code-inspection/`. The console keeps a quarantine vault list
+that marks each entry **QUARANTINED** or **SHREDDED**. Both are also available
+through `POST /api/inspect` and `GET /api/quarantine`.
+
+**Agent use.** The same operation is available as `codeforge_inspect`. The
+agent is instructed to say “static inspection” rather than claiming it ran a
+sample, and to read the `integrity` field before asserting that files were not
+modified.
+
+### 5.11 Publish tab
+
+The **Publish** rail item drives GitHub and GitCode releases through their REST
+APIs. It never prints or returns a token.
+
+| Field | Meaning |
+|---|---|
+| Repository | `owner/repo` for GitHub and GitCode; defaults come from the server status |
+| Tag / title / notes | Release identity and body; the default tag follows the server version |
+| Folder | Local folder whose files are uploaded; default `release` |
+| Create repository if missing | Creates the repository when the account allows it |
+| Replace existing assets | Overwrites an asset with the same name instead of failing |
+| Delete older releases | Removes older releases on GitHub after the new one is published |
+| Private / pre-release | Passed to the platform as release flags |
+
+**Tokens.** The status row probes, in order, the local vault, environment
+variables (`GITHUB_TOKEN`/`GH_TOKEN`, `GITCODE_TOKEN`/`GITCODE_ACCESS_TOKEN`),
+the already-authenticated GitHub CLI, and the local Git credential helper. A
+missing token is reported with the exact place to add it; the console never
+shows the value. Use **Save token** on the right to store one in the vault once.
+
+**Live step log.** Each platform call streams steps: token check, repository,
+release lookup, asset upload, overwrite and delete-older. The result lists the
+release URL and every uploaded asset. Publishing is a real public action: it is
+never triggered by opening the tab, and the button must be pressed explicitly.
 
 ---
 
@@ -1558,7 +1654,7 @@ and the System → Command Agent panel.
 | Key | Default | Range | Meaning |
 |---|---|---|---|
 | `enabled` | `true` | boolean | Route chat through the command-agent loop. When false, chat is a plain completion |
-| `max_steps` | `64` | 1–256 | Maximum tool calls per answer |
+| `max_steps` | `128` | 1–512 | Maximum tool calls per answer |
 | `command_timeout_sec` | `3600` | 1–86400 | Default timeout for a shell command |
 | `max_feedback_chars` | `48000` | 4000–200000 | Size budget for tool output returned to the model; also drives context compaction |
 | `auto_install_tools` | `true` | boolean | Download a missing command, refresh PATH and retry once |
@@ -1671,11 +1767,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.7-source.zip`
-- `CodeForge-AI-1.0.7-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.7-docs.zip`
+- `CodeForge-AI-1.0.8-source.zip`
+- `CodeForge-AI-1.0.8-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.8-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.7.json`
+- `manifest-1.0.8.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -1721,7 +1817,14 @@ Full request/response schemas, status codes and examples are in
 | GET | `/api/online?probe=1` | Network and research status |
 | GET | `/api/online/research?q=` | Run web research and persist the results |
 | GET | `/api/online/fetch?url=&max_chars=` | Fetch one page as readable text |
-| GET/POST | `/api/agent` | Read or update Command Agent settings |
+| POST | `/api/inspect` | Static scan with reports, quarantine and optional shredding |
+| GET | `/api/quarantine` | Quarantine vault entries and shredded state |
+| GET/POST | `/api/secrets` | List secret names or store one named secret |
+| POST | `/api/secrets/delete` | Delete a named secret |
+| POST | `/api/api-call` | Universal outbound HTTP call with optional named-secret injection |
+| GET | `/api/publish/status` | Publish defaults and detected token sources (no values) |
+| POST | `/api/publish` | Create/update a GitHub or GitCode release and upload assets |
+| GET/POST | `/api/agent` | Read or update Command Agent settings (steps 1–512) |
 | GET | `/api/agent/software?refresh=1` | Installed applications |
 | POST | `/api/agent/run` | Execute one command with auto-install and the publish guard |
 | POST | `/api/agent/provision` | Install one tool without running a command |
@@ -1847,12 +1950,18 @@ Never delete `models/installed.json` while a download is running.
 - Non-GET API requests require JSON content type and a matching Origin when
   one is present.
 - Request bodies are capped at 8 MB.
+- **Static inspection never executes the inspected file.** The scan re-hashes
+  every source file after analysis and reports whether its bytes changed.
+- Shredding applies only to quarantine copies created by the same scan; original
+  files are never modified or deleted, and the sidecar records that fact.
 
 ### 15.2 Non-guarantees
 
-- **No sandbox.** Generated programs run with your user privileges and can
-  read/write your files, spawn processes and use the network. Run only code you
-  trust, or use a dedicated OS user/VM.
+- **No execution sandbox.** Generated programs run with your user privileges and
+  can read/write your files, spawn processes and use the network. This does not
+  apply to static **Inspect**, which never executes a sample, but it does apply
+  to **Run**, **Debug** and agent commands. Run only code you trust, or use a
+  dedicated OS user/VM.
 - **No authentication.** Anything that can reach `127.0.0.1:8765` can execute
   code. Do not expose the port through a reverse proxy without adding
   authentication and TLS, and never bind it to `0.0.0.0` in an untrusted

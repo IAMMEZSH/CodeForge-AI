@@ -100,7 +100,7 @@
     <div class="head-meta">
       <div><b>BIND</b> 127.0.0.1 · 8765 / 8080</div>
       <div><b>TELEMETRY</b> none</div>
-      <div><b>EGRESS</b> provider + download endpoints</div>
+      <div><b>EGRESS</b> provider · download · index</div>
     </div>
   </div>
 
@@ -119,8 +119,8 @@
           </div>
         </div>
         <div class="outside">
-          <b>OUTSIDE · ON DEMAND ONLY</b>
-          <span>hf-mirror.com · model weights<br><i>Hugging Face fallback · GitHub runtime · Adoptium JDK</i><br><i>asset downloads only; online brain is opt-in</i></span>
+          <b>OUTSIDE · NAMED ENDPOINTS</b>
+          <span>hf-mirror.com · model weights<br><i>Hugging Face fallback · GitHub runtime · Adoptium JDK</i><br><i>opt-in online brain · user API calls · release publishing</i><br><i>release-index version check · metadata only</i></span>
         </div>
       </div>
       <div class="legend">
@@ -169,7 +169,7 @@
       <div class="def">
         <div class="shield">PRV-08</div>
         <h4>No telemetry</h4>
-        <p>No analytics, accounts, remote update or background upload. Egress is limited to configured model providers and download hosts.</p>
+        <p>No analytics, accounts or background uploads. The only automatic request is the release-index version check (metadata only, disable in config.json). Other egress is limited to providers, download hosts and APIs you call.</p>
       </div>
     </div>
   </div>
@@ -178,7 +178,7 @@
     <div class="wicon">!</div>
     <div>
       <h4>Honest boundaries</h4>
-      <p>There is <b>no OS sandbox</b> and <b>no API authentication token</b>. Executed code runs with your privileges. Anyone who can reach the loopback port can execute code. Never expose 8765 directly to an untrusted network.</p>
+      <p>There is <b>no OS sandbox</b> and <b>no API authentication token</b>. Executed code runs with your privileges. Never expose 8765 to an untrusted network. <b>Static inspection never executes a sample</b>; shredding removes only quarantined copies created by that scan, never originals.</p>
     </div>
     <span class="spacer"></span>
     <span class="pill pink"><span class="dot"></span>LOOPBACK IS THE PERIMETER</span>
@@ -189,7 +189,7 @@
     <span class="sep"></span>
     <span>Downloads are explicit and verified</span>
     <span class="sep"></span>
-    <span>CodeForge AI v1.0.7</span>
+    <span>CodeForge AI v1.0.8</span>
   </div>
 </div>
 </body>
