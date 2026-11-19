@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.6 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.0.7 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -13,7 +13,7 @@ every major operation.
 | Goal | Consequence |
 | --- | --- |
 | Fully offline inference | GGUF models run on llama.cpp; no cloud API is required at any point |
-| Local-first privacy | Server binds to `127.0.0.1`; no telemetry, no accounts, no tokens |
+| Local-first privacy | Server binds to `127.0.0.1`; no telemetry or accounts; the online brain is opt-in |
 | Real debugging, not chat theatre | The loop actually compiles, executes, reads diagnostics, patches and re-runs |
 | Five desktop/mobile platforms | Windows, Linux, macOS share one POSIX build; Android/iOS get Termux/iSH plus native thin clients |
 | Small trusted core | The C/C++ core is dependency-light and can be rebuilt from source with one script |

@@ -95,12 +95,12 @@
     <div>
       <div class="eyebrow"><span class="dot"></span> Threat model · trust boundaries <span class="line"></span></div>
       <h1 class="title"><span class="grad">Local by construction</span></h1>
-      <p class="subtitle">Loopback is the perimeter. Downloads are explicit, hashed and size-checked. Prompts, source and diagnostics never leave the host.</p>
+      <p class="subtitle">Loopback is the perimeter. Downloads are explicit, hashed and size-checked. Offline prompts, source and diagnostics stay on the host; an enabled online brain sends the active conversation to your chosen provider.</p>
     </div>
     <div class="head-meta">
       <div><b>BIND</b> 127.0.0.1 · 8765 / 8080</div>
       <div><b>TELEMETRY</b> none</div>
-      <div><b>EGRESS</b> download endpoints only</div>
+      <div><b>EGRESS</b> provider + download endpoints</div>
     </div>
   </div>
 
@@ -120,7 +120,7 @@
         </div>
         <div class="outside">
           <b>OUTSIDE · ON DEMAND ONLY</b>
-          <span>hf-mirror.com · model weights<br><i>Hugging Face fallback · GitHub runtime · Adoptium JDK</i><br><i>no prompts / no code / no diagnostics</i></span>
+          <span>hf-mirror.com · model weights<br><i>Hugging Face fallback · GitHub runtime · Adoptium JDK</i><br><i>asset downloads only; online brain is opt-in</i></span>
         </div>
       </div>
       <div class="legend">
@@ -169,7 +169,7 @@
       <div class="def">
         <div class="shield">PRV-08</div>
         <h4>No telemetry</h4>
-        <p>No analytics, accounts, remote update or background upload. Download hosts are the only egress.</p>
+        <p>No analytics, accounts, remote update or background upload. Egress is limited to configured model providers and download hosts.</p>
       </div>
     </div>
   </div>
@@ -185,11 +185,11 @@
   </div>
 
   <div class="footer-strip">
-    <span><b>No account</b> · no cloud · no telemetry</span>
+    <span><b>No account</b> · opt-in online brain · no telemetry</span>
     <span class="sep"></span>
     <span>Downloads are explicit and verified</span>
     <span class="sep"></span>
-    <span>CodeForge AI v1.0.6</span>
+    <span>CodeForge AI v1.0.7</span>
   </div>
 </div>
 </body>

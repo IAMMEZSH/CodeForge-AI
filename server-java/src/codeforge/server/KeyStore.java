@@ -161,7 +161,7 @@ public final class KeyStore {
                     "min", AppSettings.MIN_MAX_TOKENS,
                     "max", AppSettings.MAX_MAX_TOKENS,
                     "message", "Reply limit saved: " + value
-                            + " tokens for every offline model.");
+                            + " tokens; online providers apply their own output cap.");
         } catch (Exception ex) {
             return failure("Cannot save config.json: " + ex.getMessage());
         }
@@ -384,7 +384,7 @@ public final class KeyStore {
                     .timeout(Duration.ofSeconds(30))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + key)
-                    .header("User-Agent", "CodeForgeAI/1.0.6")
+                    .header("User-Agent", "CodeForgeAI/1.0.7")
                     .POST(HttpRequest.BodyPublishers.ofString(
                             Json.write(payload), StandardCharsets.UTF_8))
                     .build();

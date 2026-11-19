@@ -45,7 +45,7 @@ const state = {
   runResults: {},
   rtContext: storedChoice('cf-rt-context', 2048, 524288),
   rtParallel: storedChoice('cf-rt-parallel', 1, 8),
-  rtMaxTokens: storedChoice('cf-rt-max-tokens', 64, 393216),
+  rtMaxTokens: storedChoice('cf-rt-max-tokens', 64, 393216) || 393216,
   autoRun: localStorage.getItem('cf-auto-run') === '1',
   lastSavePath: localStorage.getItem('cf-save-path') || '',
   saveFiles: null,
@@ -952,6 +952,7 @@ async function runCodeBlock(index, mode) {
     }
   }
 }
+const GUI_CODE_HINT = /(?:wWinMain|WinMain|CreateWindow(?:Ex)?W?|MessageBoxW?|javax\.swing|java\.awt|JFrame|tkinter|PyQt|PySide|System\.Windows\.Forms|System\.Windows\.Window|<UseWindowsForms>|<UseWPF>)/;
 async function autoRunMessage(message) {
   if (!state.autoRun || !message) return;
   const wanted = (message.meta && message.meta.requested_language) || '';
@@ -963,6 +964,7 @@ async function autoRunMessage(message) {
   let target = wanted ? blocks.find(block => runnable(block) === wanted) : null;
   if (!target) target = blocks.find(block => runnable(block));
   if (!target) return;
+  if (GUI_CODE_HINT.test(target.code)) return;
   const lang = runnable(target);
   await new Promise(resolve => setTimeout(resolve, 80));
   const normalize = value => String(value || '').replace(/\r/g, '').replace(/\n+$/, '');
@@ -1457,6 +1459,8 @@ const LOCAL_INSTALL_NAMES = [
 const LOCAL_RUN_WORDS = /(?:^|\s|\/)(?:run|compile|build)\b|运行|执行|跑一下|编译/;
 const LOCAL_PLACE_WORDS = /(?:放到|放个|放一份|放在|放去|放于|放桌面|放置|搬到|弄到|复制到|复制一份|移动到|部署到|place|copy|move)/i;
 const LOCAL_PLACE_NOUNS = /(?:项目|工程|文件夹|目录|整个|代码库|project|folder|repository|repo)/i;
+const LOCAL_BUILD_WORDS = /(?:编译|构建|打包|做成|制作|开发|编写|生成(?!的)|写(?:一个|个|一款|款|程序|软件|游戏|代码)|做(?:一个|个|一款|款|程序|软件|游戏)|build|compile|package|generate|create|make|write|develop)/i;
+const LOCAL_ARTIFACT_WORDS = /(?:程序|软件|游戏|应用|工具|可执行|安装包|exe|game|program|app(?:lication)?|software|tool|executable|artifact)/i;
 const LOCAL_LAUNCH_WORDS = /(?:快捷方式|快捷图标|launcher|shortcut)/;
 const LOCAL_LANG_WORDS = /(?:环境|运行时|编译器|runtime|toolchain|sdk)/;
 function localDest(text) {
@@ -1721,6 +1725,9 @@ async function handleLocalAction(text) {
         pending.payload.move, true);
     }
   }
+  // Natural-language messages always go to the model. Only explicit
+  // slash commands (and their confirmations) stay on the local path.
+  if (!raw.startsWith('/')) return false;
   const slash = raw.match(/^\/(run|compile|build|save|place|copy|move|launcher|shortcut|install|help)\b\s*([\s\S]*)$/i);
   if (slash) {
     const command = slash[1].toLowerCase();
@@ -1780,6 +1787,13 @@ async function handleLocalAction(text) {
   const driveTarget = localDriveTarget(raw);
   const moveIntent = /移动|搬运|\bmove\b/i.test(raw);
   const overwriteIntent = /覆盖|overwrite|replace/i.test(raw);
+  const buildIntent = LOCAL_BUILD_WORDS.test(raw)
+    || (!tokens.length && LOCAL_ARTIFACT_WORDS.test(raw));
+  if (buildIntent) {
+    // Build/write asks must reach the agent; only explicit file copy/move
+    // phrases with real local paths stay on the local shortcut path.
+    return false;
+  }
   if (LOCAL_PLACE_WORDS.test(raw) && tokens.length >= 2) {
     return executeLocalFilePlace(tokens[0], tokens[1], moveIntent, overwriteIntent);
   }
@@ -2217,7 +2231,7 @@ function renderModels() {
     localStorage.setItem('cf-rt-max-tokens', String(state.rtMaxTokens));
   }
   if (maxTokensInput && document.activeElement !== maxTokensInput) {
-    maxTokensInput.value = String(state.rtMaxTokens || rt.max_tokens || 2048);
+    maxTokensInput.value = String(state.rtMaxTokens || rt.max_tokens || 393216);
   }
 
   const queue = $('#dl-jobs');
@@ -2341,7 +2355,7 @@ $('#rt-max-tokens').addEventListener('change', async () => {
   const value = Math.round(Number(input.value));
   if (!Number.isInteger(value) || value < 64 || value > 393216) {
     toast('Reply limit must be between 64 and 393,216 tokens', 'err');
-    input.value = String(state.rtMaxTokens || 2048);
+    input.value = String(state.rtMaxTokens || 393216);
     return;
   }
   input.disabled = true;
@@ -2353,9 +2367,9 @@ $('#rt-max-tokens').addEventListener('change', async () => {
     input.value = String(state.rtMaxTokens);
     localStorage.setItem('cf-rt-max-tokens', String(state.rtMaxTokens));
     toast('Reply limit saved · ' + state.rtMaxTokens.toLocaleString()
-      + ' tokens for every offline model', 'ok');
+      + ' tokens for online and offline replies', 'ok');
   } catch (err) {
-    input.value = String(state.rtMaxTokens || 2048);
+    input.value = String(state.rtMaxTokens || 393216);
     toast(err.message, 'err');
   } finally {
     input.disabled = false;
@@ -2420,39 +2434,47 @@ function updateChips() {
   chip($('#chip-runtime'), rt.running ? (rt.healthy ? 'RUNTIME LIVE' : 'RUNTIME BOOT') : 'RUNTIME OFF',
     rt.running && rt.healthy ? 'on' : (rt.running ? 'warn' : ''));
 
-  const backend = llm.kind || (rt.running ? 'llama.cpp' : '—');
-  const modelPath = llm.model || rt.model_id || '';
-  const registry = (status && status.models && status.models.registry) || [];
-  const active = registry.find(entry => entry.id === rt.model_id) ||
-    registry.find(entry => entry.installed && modelPath.toLowerCase().includes(String(entry.file || '').toLowerCase()));
-  const modelLabel = (active && active.name) || fileLabel(modelPath);
-  $('#side-backend').textContent = backend;
-  $('#side-model').textContent = modelLabel || '—';
-  $('#side-model').title = modelPath;
-  $('#side-state').textContent = llm.available ? 'ONLINE' : 'OFFLINE';
-  $('#side-state').className = 'v ' + (llm.available ? 'green' : 'amber');
-  $('#chat-model-badge').textContent = modelLabel ? modelLabel.toUpperCase() : 'NO MODEL';
-  $('#chat-model-badge').className = 'badge ' + (llm.available ? 'ok' : '');
-  $('#sb-state').textContent = 'ONLINE';
-  $('#sb-core').textContent = 'CORE ' + (coreOk ? 'LIVE' : 'DOWN');
-  $('#sb-model').textContent = 'MODEL ' + (modelLabel ? modelLabel.toUpperCase() : 'NONE');
-
   const brain = (status && status.brain) || {};
   const mem = (status && status.memory) || {};
   const ws = (status && status.workspace) || {};
   const onlineStatus = (status && status.online) || {};
   const onlineEnabled = brain.online_enabled !== false;
-  const remote = onlineEnabled && !!brain.online_configured && !!(onlineStatus.online);
+  const onlineConfigured = onlineEnabled && !!brain.online_configured;
+  const remote = onlineConfigured && !!onlineStatus.online;
+  const onlineLabel = onlineConfigured
+    ? (brain.online_model || brain.online_provider || 'online') : '';
+  const backend = llm.kind || (rt.running ? 'llama.cpp' : '—');
+  const modelPath = llm.model || rt.model_id || '';
+  const registry = (status && status.models && status.models.registry) || [];
+  const active = registry.find(entry => entry.id === rt.model_id) ||
+    registry.find(entry => entry.installed && modelPath.toLowerCase().includes(String(entry.file || '').toLowerCase()));
+  const localLabel = (active && active.name) || fileLabel(modelPath);
+  const activeLabel = remote ? onlineLabel : (localLabel || onlineLabel);
+  $('#side-backend').textContent = remote ? (brain.online_provider || 'online') : backend;
+  $('#side-model').textContent = activeLabel || '—';
+  $('#side-model').title = remote ? (brain.online_url || '') : modelPath;
+  $('#side-state').textContent = (remote || llm.available) ? 'ONLINE'
+    : (onlineConfigured ? 'STANDBY' : 'OFFLINE');
+  $('#side-state').className = 'v ' + ((remote || llm.available) ? 'green' : 'amber');
+  const readyLabel = remote || llm.available;
+  $('#chat-model-badge').textContent = activeLabel
+    ? (activeLabel.toUpperCase() + (readyLabel ? '' : ' · STANDBY'))
+    : 'NO MODEL';
+  $('#chat-model-badge').className = 'badge ' + (readyLabel ? 'ok' : '');
+  $('#sb-state').textContent = 'ONLINE';
+  $('#sb-core').textContent = 'CORE ' + (coreOk ? 'LIVE' : 'DOWN');
+  $('#sb-model').textContent = 'MODEL ' + (activeLabel ? activeLabel.toUpperCase() : 'NONE');
+
   $('#side-route').textContent = remote ? 'ONLINE' : 'LOCAL';
   $('#side-route').className = 'v ' + (remote ? 'green' : 'amber');
   $('#side-online-brain').textContent = !onlineEnabled
     ? 'disabled · offline only'
-    : brain.online_configured
-      ? (brain.online_model || 'configured') + (onlineStatus.online ? ' · REACHABLE' : ' · OFFLINE')
+    : onlineConfigured
+      ? (onlineLabel + (onlineStatus.online ? ' · REACHABLE' : ' · STANDBY'))
       : 'not configured';
   $('#side-memory').textContent = mem.enabled ? ((mem.entries || 0) + ' entries') : 'disabled';
   $('#side-workspace').textContent = ws.enabled ? ((ws.files || 0) + ' files') : 'disabled';
-  $('#chat-hint').textContent = remote
+  $('#chat-hint').textContent = remote || onlineConfigured
     ? 'ONLINE BRAIN · MEMORY · WORKSPACE · LOCAL OPS'
     : 'LOCAL BRAIN · MEMORY · WORKSPACE · LOCAL OPS';
   $('#sb-memory').textContent = 'MEM ' + (mem.entries == null ? '—' : mem.entries);
@@ -2708,7 +2730,7 @@ $('#btn-agent-test').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.0.6 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.0.7 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- key vault ---------------- */

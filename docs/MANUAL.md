@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.6 · 2026-11-19**
+**Version 1.0.7 · 2026-11-19**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -76,7 +76,8 @@ online brain when a key is configured.
 
 ### 1.1 Design principles
 
-- **Local-first.** No account, no cloud key, no telemetry. The server binds to
+- **Local-first.** No account and no telemetry. Offline inference needs no cloud
+  key; the optional online brain uses a key you configure. The server binds to
   `127.0.0.1`; inference binds to `127.0.0.1:8080`.
 - **Action-first.** Short commands and code requests produce runnable output
   before prose. Managed inference caps reasoning and disables the chat
@@ -756,8 +757,10 @@ after generation completes.
   system prompt if you did not supply one. The prompt instructs the model to be
   a senior local programming assistant, to give complete runnable snippets in
   fenced blocks, and to identify root causes before fixes.
-- Sampling defaults: temperature `0.2`, max tokens `2048`, request timeout
-  600 seconds. All are configurable (section 10).
+- Sampling defaults: temperature `0.2`, reply limit selectable from `393,216`
+  down to `64` tokens (offline models use the selected value; online providers
+  apply their own output cap), request timeout 600 seconds. All are configurable
+  (section 10).
 - The reply is rendered as markdown: headings, lists, bold/italic, inline
   code, fenced code blocks with copy buttons, links, and pipe tables.
 
@@ -784,7 +787,7 @@ after generation completes.
 | `The OpenAI-compatible service requires an API key (HTTP 401)` | Remote service needs a key | Set `llm.api_key` or `CODEFORGE_LLM_API_KEY` |
 | `No model selected` | Backend is up but exposes no model | Download a model or `ollama pull` one |
 | `AI service returned HTTP 500…` | Model failed to load (RAM, corrupt file) | Check `logs/llama-server.log` |
-| `C++ main core timed out after <N> seconds` | Generation exceeded the dynamic local budget (120 s + 0.5 s per token; 900 s floor, 48 h ceiling) | Wait, reduce the reply limit, or use a smaller/faster model |
+| `C++ main core timed out after <N> seconds` | Generation exceeded the dynamic local budget (120 s + 0.5 s per token, 900 s floor) | Wait, reduce the reply limit, or use a smaller/faster model |
 | `Link failure` bubble | Server not reachable | Check the control center / server log |
 
 ### 5.7 Compile, preview, save and local operations
@@ -1247,16 +1250,17 @@ runtime/llama.cpp-cuda/llama-server.exe (CUDA)
   before pressing Start. The browser remembers the selection; the API accepts
   the same values as `context_size` and `parallel`. llama.cpp divides the total
   window across the slots, so the per-slot window is `context_size / parallel`.
-- **Reply limit** in the runtime panel sets `llm.max_tokens` for **every**
-  offline model, from 64 to 393,216 tokens (the largest value accepted by the
-  active DeepSeek endpoint). It applies to the next reply without restarting
+- **Reply limit** in the runtime panel is a highest-to-lowest selector from
+  393,216 down to 64 tokens and sets `llm.max_tokens` for every offline model.
+  Online providers apply their own output cap (DeepSeek: 8,192) while the same
+  selection stays in place. It applies to the next reply without restarting
   inference. The context window minus the prompt is still the real cap: a
   131,072-token context cannot return 393,216 tokens, no matter how high the
   limit is set.
 - Local generation uses a dynamic timeout of 120 seconds plus 500 ms per
-  requested token, with a 900-second floor and a 48-hour ceiling, so a large
-  reply limit is not cut off by the old fixed timeout. The core rejects a
-  request only if generation exceeds that budget.
+  requested token, with a 900-second floor, so a large reply limit is not cut
+  off by the old fixed timeout. The core rejects a request only if generation
+  exceeds that budget.
 - Readiness is probed at `GET http://127.0.0.1:8080/health` every 750 ms for up
   to 180 seconds.
 - Output is appended to `logs/llama-server.log`; the UI can show the tail.
@@ -1289,8 +1293,8 @@ the LLM chip re-probes automatically.
 
 Model size affects answer quality and speed, never the workbench feature set.
 Compile/run, HTML preview, saving to any path, language downloads, project
-placement and launchers are handled by the local server and the LOCAL OPS
-layer. A 4B offline model, a 30B model and an online API all get exactly the
+placement and launchers are handled by the local server and the local control
+plane. A 4B offline model, a 30B model and an online API all get exactly the
 same execution, file and placement capabilities; only the prose and code they
 generate differ.
 
@@ -1380,11 +1384,10 @@ creates only the launcher (Windows `.lnk`, Linux `.desktop`, macOS `.command`);
 panels show a confirmation button when the parent folder does not exist rather
 than creating it silently.
 
-These four panels are also exposed through local ops in chat and through the
-REST API (section 19 of the API reference), so they behave identically no
-matter which model is selected. Local placement phrases such as “把
-C:\Users\you\Downloads\report.pdf 放到 D:\archive” and “把整个文件夹复制到桌面”
-run instantly without calling a model.
+These four panels are also exposed through the REST API (section 19 of the API
+reference) and through explicit `/copy`, `/move`, `/save` and `/launcher`
+commands. Plain-language placement requests go to the active model, which can
+invoke the same local tools.
 
 Host telemetry is collected by the C17 helper (`cforge_native sysinfo`) using
 native APIs, not shell commands. Memory and disk values are in MB/GB as
@@ -1464,11 +1467,11 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `model` | empty | — | Override the model name; empty uses the backend's first model |
 | `llama_server` | empty | — | Path to a source-built or distro `llama-server`; takes priority over the managed runtime |
 | `temperature` | `0.2` | 0.0–2.0 | Sampling temperature |
-| `max_tokens` | `2048` | 64–393216 | Reply budget shared by every offline model; also editable as **Reply limit** in the runtime panel and applied on the next reply without restarting inference. 393,216 is the largest value accepted by the active DeepSeek endpoint; the context window minus the prompt still caps the actual reply |
+| `max_tokens` | `393216` | 64–393216 | Reply budget for online and offline replies; also selectable as **Reply limit** in the runtime panel and applied on the next reply without restarting inference. Offline models use the full value; online providers apply their own output cap (DeepSeek: 8,192). The context window minus the prompt still caps the actual reply |
 | `context_size` | `16384` | 2048–524288 | Managed llama-server context window (`-c`), in tokens; also selectable in the runtime panel |
 | `parallel` | `1` | 1–8 | Concurrent llama-server slots; the total context is divided across them |
 | `model_mirror` | `https://hf-mirror.com` | — | Hugging Face-compatible metadata/file mirror for every offline model; comma-separated sources are tried in order and `https://huggingface.co` is appended as fallback |
-| `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core; local chat requests are extended automatically to 120 s + 0.5 s per token (48 h ceiling) so large reply limits are not cut off |
+| `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core; local chat requests are extended automatically to 120 s + 0.5 s per token so large reply limits are not cut off |
 
 ### 10.2 `debug` section
 
@@ -1668,11 +1671,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.6-source.zip`
-- `CodeForge-AI-1.0.6-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.6-docs.zip`
+- `CodeForge-AI-1.0.7-source.zip`
+- `CodeForge-AI-1.0.7-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.7-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.6.json`
+- `manifest-1.0.7.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.

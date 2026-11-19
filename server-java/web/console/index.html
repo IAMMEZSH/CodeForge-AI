@@ -183,7 +183,7 @@
     <header class="topbar">
       <div class="title-block">
         <div class="eyebrow">Local-first intelligent dev workbench</div>
-        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0.6</span></div>
+        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.0.7</span></div>
       </div>
       <div class="top-chips">
         <span class="chip off" id="chip-core"><i class="dot"></i>Core</span>
@@ -219,7 +219,7 @@
               <div class="chat-empty" id="chat-empty">
                 <div class="hero-bat"><img src="brand-bat-icon.svg" alt="CodeForge AI bat totem"></div>
                 <h2>Forge code with <span>on-device intelligence</span></h2>
-                <p>A private coding copilot running entirely on this machine. Ask about repositories, generate implementations, or hand a failing program to the autonomous debug loop.</p>
+                <p>A private coding copilot: offline inference stays local, online is optional. Ask about repositories, generate code, or run the autonomous debug loop.</p>
                 <div class="suggestions">
                   <button class="suggestion" data-prompt="Explain the difference between processes and threads with a C++ example.">Explain process vs thread</button>
                   <button class="suggestion" data-prompt="Write a thread-safe bounded queue in C++17 with condition variables.">Generate C++ concurrency</button>
@@ -267,7 +267,7 @@
               <ul class="hint-list">
                 <li>Start the bundled runtime in Models to unlock inference.</li>
                 <li>Paste failing code in Debug for an autonomous repair loop.</li>
-                <li>Every request is served from 127.0.0.1 — nothing leaves the host.</li>
+                <li>The console and local API stay on 127.0.0.1; the optional online brain calls its configured provider.</li>
                 <li>Use C/C++/Python/Java; toolchains are auto-detected.</li>
               </ul>
             </div>
@@ -413,8 +413,24 @@
                   <option value="8">8</option>
                 </select>
               </label>
-              <label class="rt-field" title="Maximum reply length for every offline model, in tokens. Range 64–393,216. Applies to the next reply without restarting inference; the context window must be large enough for prompt plus reply.">Reply limit
-                <input id="rt-max-tokens" type="number" min="64" max="393216" step="64" value="2048" inputmode="numeric" aria-label="Maximum reply tokens">
+              <label class="rt-field" title="Maximum reply length in tokens, highest to lowest. Offline models use the full value; online providers apply their own output cap. Includes comments, so real code is shorter than this number.">Reply limit
+                <select id="rt-max-tokens" aria-label="Maximum reply tokens">
+                  <option value="393216" selected>393,216 (max)</option>
+                  <option value="262144">262,144</option>
+                  <option value="196608">196,608</option>
+                  <option value="131072">131,072</option>
+                  <option value="65536">65,536</option>
+                  <option value="32768">32,768</option>
+                  <option value="16384">16,384</option>
+                  <option value="8192">8,192</option>
+                  <option value="4096">4,096</option>
+                  <option value="2048">2,048</option>
+                  <option value="1024">1,024</option>
+                  <option value="512">512</option>
+                  <option value="256">256</option>
+                  <option value="128">128</option>
+                  <option value="64">64 (min)</option>
+                </select>
               </label>
               <button class="btn red" id="btn-rt-stop">Stop</button>
               <button class="btn ghost" id="btn-rt-logs">View log</button>
@@ -422,7 +438,7 @@
               <span class="model-state" id="rt-installed">runtime not installed</span>
             </div>
             <div class="dim" style="font-size:11.5px;margin-top:8px">Default 16K total. 512K is available for models whose architecture supports it and needs a large-RAM workstation; the model's native limit always wins.</div>
-            <div class="dim" style="font-size:11.5px;margin-top:5px">Reply limit is shared by every offline model and applies to the next reply without restarting inference. Range 64–393,216 tokens; the context window still caps the actual reply. On CPU, 4K–8K is a practical ceiling; a full 32K reply can take hours. The CUDA backend raises decoding speed about 18×.</div>
+            <div class="dim" style="font-size:11.5px;margin-top:5px">Reply limit applies to online and offline replies without restarting inference. Offline models use the full selected value; online providers cap output at their own limit (DeepSeek: 8,192), and the context window still caps the actual reply. On CPU, 4K–8K is a practical ceiling; a full 32K reply can take hours. The CUDA backend raises decoding speed about 18×.</div>
             <pre class="log-box" id="rt-log" style="display:none"></pre>
           </div>
         </div>
@@ -692,7 +708,7 @@
             <div class="panel">
               <div class="panel-head"><h3>Privacy</h3></div>
               <div class="panel-body" style="font-size:11.5px;color:var(--muted);line-height:1.75">
-                CodeForge executes generated code on this host by design. Only loopback sockets are used for inference and the local API. Model downloads use hf-mirror.com by default (Hugging Face fallback) and the runtime uses GitHub; no code or prompt is uploaded.
+                CodeForge executes generated code on this host by design. Offline inference and the local API use loopback sockets. When the online brain is enabled, the active conversation is sent to your configured model provider over HTTPS. Model downloads use hf-mirror.com by default (Hugging Face fallback) and the runtime uses GitHub.
               </div>
             </div>
           </div>

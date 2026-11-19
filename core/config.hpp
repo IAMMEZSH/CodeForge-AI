@@ -11,6 +11,7 @@ struct OnlineLlmConfig {
     std::string api_key;
     std::string model = "deepseek-chat";
     int timeout_ms = 120000;
+    int max_tokens = 8192;
 
     bool configured() const {
         return enabled && !api_key.empty();
@@ -24,7 +25,7 @@ struct LlmConfig {
     std::string api_key;
     std::string model;
     double temperature = 0.2;
-    int max_tokens = 2048;
+    int max_tokens = 393216;
     int request_timeout_ms = 600000;
     OnlineLlmConfig online;
 };

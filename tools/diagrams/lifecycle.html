@@ -101,7 +101,7 @@
 
   <div class="lanes">
     <div class="lane">
-      <div class="lane-label"><b>CHAT</b><span>POST /api/chat</span><em>One model completion over the last 30 messages.</em></div>
+      <div class="lane-label"><b>CHAT</b><span>POST /api/chat</span><em>Offline or opt-in online model completion.</em></div>
       <div class="track">
         <div class="lnode"><b>Console</b><span><span class="k">messages[]</span> · last 30</span></div>
         <div class="fa"><span>JSON</span><div class="shaft"></div></div>
@@ -109,7 +109,7 @@
         <div class="fa"><span>stdin</span><div class="shaft"></div></div>
         <div class="lnode violet"><b>C++ core</b><span>system prompt · last 40</span></div>
         <div class="fa"><span>/v1</span><div class="shaft"></div></div>
-        <div class="lnode"><b>llama-server</b><span>GGUF · configurable ctx</span></div>
+        <div class="lnode"><b>model backend</b><span>llama.cpp or online HTTPS</span></div>
         <div class="fa"><span>reply</span><div class="shaft"></div></div>
         <div class="lnode ok"><b>Rendered answer</b><span>markdown · tables · copy</span></div>
       </div>
@@ -207,7 +207,7 @@
     <span class="sep"></span>
     <span>Logical failures return <b>200</b> with <b>ok:false</b></span>
     <span class="sep"></span>
-    <span>CodeForge AI v1.0.6</span>
+    <span>CodeForge AI v1.0.7</span>
   </div>
 </div>
 </body>

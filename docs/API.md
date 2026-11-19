@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.6 · Java 17 HTTP server · C++ core bridge
+Version 1.0.7 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -134,7 +134,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -183,7 +183,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -676,7 +676,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -1369,7 +1369,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.6", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.7", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1514,9 +1514,9 @@ port 8765 publicly is equivalent to exposing a code execution endpoint.
 
 ## 19. Language runtimes, files, placement and preview
 
-These endpoints are model-independent: the console and the chat **LOCAL OPS**
-layer call them directly, so they work the same with an online model, an
-offline GGUF model, or no model at all.
+These endpoints are model-independent: the console and the chat **local
+command layer** call them directly, so they work the same with an online model,
+an offline GGUF model, or no model at all.
 
 ### GET `/api/languages`
 
@@ -1811,7 +1811,9 @@ allow-forms allow-modals allow-popups allow-pointer-lock`, `nosniff`,
 
 ## 20. Security model of the API
 
-- Loopback binding only; no TLS because traffic never leaves the host.
+- Loopback binding only; local console and API traffic stays on the host and
+  needs no TLS. Requests to a configured online model provider leave the host
+  over HTTPS.
 - No authentication: treat the port as a local trust boundary. Do not expose
   it through `ngrok`, port forwarding, or a public reverse proxy without
   adding an authenticating proxy and TLS.

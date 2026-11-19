@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.0.6";
+    public static final String VERSION = "1.0.7";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private static final class BadRequest extends IOException {
@@ -89,6 +89,8 @@ public final class ApiHandler implements HttpHandler {
             "(?is)<codeforge_learn>\\s*(.*?)\\s*</codeforge_learn>");
     private static final Pattern AGENT_BUILD = Pattern.compile(
             "(?is)<codeforge_build>\\s*(.*?)\\s*</codeforge_build>");
+    private static final Pattern TOOL_OPEN = Pattern.compile(
+            "(?is)<codeforge_(shell|build|search|fetch|learn)\\b[^>]*>");
     private static final Pattern NATIVE_INVOKE = Pattern.compile(
             "(?is)<([^>]{0,40}?)invoke\\s+name\\s*=\\s*[\"']?"
                     + "([A-Za-z0-9_.:-]+)[\"']?[^>]*>(.*?)"
@@ -127,7 +129,7 @@ public final class ApiHandler implements HttpHandler {
         volatile int predictedTokens;
         volatile int generatedTokens;
         volatile int contextTokens;
-        volatile int maxTokens = 2048;
+        volatile int maxTokens = 393216;
         volatile int promptProcessed;
         volatile int promptCache;
         volatile int remainTokens;
@@ -1071,6 +1073,7 @@ public final class ApiHandler implements HttpHandler {
         call.put("context", cap(Json.str(request, "context", "") + "\n\n"
                 + agentShell.agentPrompt(agentCfg), 32000));
         Path stream = firstStream;
+        int repairAttempts = 0;
         java.util.Set<String> autoLearned = new java.util.LinkedHashSet<>();
         Map<String, Object> response = Json.map("ok", false,
                 "error", "The command agent produced no response");
@@ -1094,6 +1097,46 @@ public final class ApiHandler implements HttpHandler {
             String reply = Json.str(response, "reply", "");
             Map<String, Object> tool = toolRequest(reply);
             if (tool == null) {
+                if (hasToolMarkup(reply) && repairAttempts < 2 && step <= maxSteps) {
+                    ++repairAttempts;
+                    messages.add(Json.map("role", "assistant",
+                            "content", "(An incomplete or malformed tool call was discarded.)"));
+                    messages.add(Json.map("role", "user", "content",
+                            "Your previous tool call was incomplete or malformed and nothing "
+                                    + "ran. Do not resend the truncated text. For a program, use "
+                                    + "<codeforge_build> with a compact JSON body containing "
+                                    + "\"language\", \"code\" or \"source\", \"name\" and \"gui\"; "
+                                    + "for shell work, keep commands short and split long files. "
+                                    + "Complete exactly one tool block now."));
+                    progress.phase = "generate";
+                    progress.streamPath = root.resolve("logs").resolve("chat-stream-"
+                            + requestId + "-repair" + repairAttempts + ".jsonl").toString();
+                    try {
+                        Files.createDirectories(Path.of(progress.streamPath).getParent());
+                    } catch (IOException ignored) {
+                    }
+                    stream = Path.of(progress.streamPath);
+                    progress.streamOffset = 0;
+                    progress.streamThinkChars = 0;
+                    progress.streamTextChars = 0;
+                    progress.streamLastMs = 0;
+                    progress.streamResetPending = true;
+                    progress.genStartedMs = System.currentTimeMillis();
+                    progress.generatedTokens = 0;
+                    progress.lastSampleMs = 0;
+                    progress.lastSampleTokens = 0;
+                    progress.tokensPerSecond = 0;
+                    progress.lastTokenMs = 0;
+                    progress.remainTokens = 0;
+                    continue;
+                }
+                if (hasToolMarkup(reply)) {
+                    Map<String, Object> cleaned = new LinkedHashMap<>(response);
+                    cleaned.put("reply", "The model returned an incomplete tool call, so it "
+                            + "was not executed. Please retry; if the program is large, ask "
+                            + "for it in a smaller step or switch to a larger reply limit.");
+                    response = cleaned;
+                }
                 break;
             }
             if (step > maxSteps) {
@@ -1669,6 +1712,20 @@ public final class ApiHandler implements HttpHandler {
         } catch (RuntimeException ex) {
             return null;
         }
+    }
+
+    private static boolean hasToolMarkup(String reply) {
+        if (reply == null || reply.isBlank()) {
+            return false;
+        }
+        if (TOOL_OPEN.matcher(reply).find()) {
+            return true;
+        }
+        String lower = reply.toLowerCase(Locale.ROOT);
+        return lower.contains("```codeforge_shell")
+                || lower.contains("```codeforge-shell")
+                || lower.contains("```shell-json")
+                || lower.contains("<invoke name");
     }
 
     private static String stripToolBlock(String reply) {

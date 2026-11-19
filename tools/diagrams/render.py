@@ -33,7 +33,7 @@ JOBS = [
     ("banner.html", "banner.png", 1600, 600),
     ("architecture.html", "diagram-architecture.png", 1600, 1000),
     ("debug-loop.html", "diagram-debug-loop.png", 1600, 1000),
-    ("platforms.html", "diagram-platforms.png", 1600, 1000),
+    ("platforms.html", "diagram-platforms.png", 1600, 1280),
     ("models.html", "diagram-models.png", 1600, 1000),
     ("security.html", "diagram-security.png", 1600, 1000),
     ("quickstart.html", "diagram-quickstart.png", 1600, 1000),

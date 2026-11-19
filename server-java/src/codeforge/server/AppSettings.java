@@ -44,7 +44,7 @@ public final class AppSettings {
     private String onlineLlmKey = "";
     private int contextSize = 16384;
     private int parallelSlots = 1;
-    private int maxTokens = 2048;
+    private int maxTokens = 393216;
 
     public AppSettings(Path root) {
         this.root = root;

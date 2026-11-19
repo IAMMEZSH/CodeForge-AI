@@ -80,6 +80,8 @@ AppConfig load_config(const std::filesystem::path& root) {
                         online->get_string("model", config.llm.online.model);
                     config.llm.online.timeout_ms =
                         online->get_int("timeout_ms", config.llm.online.timeout_ms);
+                    config.llm.online.max_tokens =
+                        online->get_int("max_tokens", config.llm.online.max_tokens);
                 }
             }
             const Json* debug = parsed.find("debug");
@@ -157,6 +159,7 @@ LlmConfig with_online_backend(const LlmConfig& config) {
     online.api_key = config.online.api_key;
     online.model = config.online.model;
     online.request_timeout_ms = config.online.timeout_ms;
+    online.max_tokens = std::min(config.max_tokens, config.online.max_tokens);
     return online;
 }
 

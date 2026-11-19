@@ -53,6 +53,10 @@
   .ops-cell b { display: block; font-family: var(--mono); font-size: 8.6px; letter-spacing: 0.12em; color: var(--pink); margin-bottom: 3px; }
   .ops-cell span { font-size: 9.8px; line-height: 1.45; color: var(--muted); }
   .ops-cell code { font-family: var(--mono); font-size: 9px; color: var(--cyan); }
+  html, body, .sheet { height: 1280px; }
+  .grid { min-height: 0; }
+  .plat { min-width: 0; }
+  .plat .code { overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -156,7 +160,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 <span class="c"># USB link to a LAN host</span>
 adb reverse tcp:8765 tcp:8765</div>
       <div class="mini-tags"><span>Termux</span><span>Kotlin / WebView</span><span>10.0.2.2</span></div>
-      <div class="note"><i>No prebuilt llama.cpp asset:</i> build it from source and write runtime/runtime.json. See PLATFORMS.md.</div>
+      <div class="note"><b>ARM64:</b> managed runtime available. <i>Other ABIs:</i> build llama.cpp locally and write runtime/runtime.json. See PLATFORMS.md.</div>
     </div>
 
     <div class="plat ios">
@@ -195,7 +199,7 @@ apk add python3 clang cmake curl-dev openjdk17</div>
     <span class="sep"></span>
     <span>Windows · Linux · macOS · Android · iOS</span>
     <span class="sep"></span>
-    <span>CodeForge AI v1.0.6</span>
+    <span>CodeForge AI v1.0.7</span>
   </div>
 </div>
 </body>

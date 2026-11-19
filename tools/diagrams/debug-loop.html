@@ -90,7 +90,7 @@
     <div>
       <div class="eyebrow"><span class="dot"></span> Autonomous repair engine <span class="line"></span></div>
       <h1 class="title"><span class="grad">The debug loop</span></h1>
-      <p class="subtitle">Compile, execute, capture the truth, then let the local model replace the whole file with a corrected version. Repeat until green or bounded.</p>
+      <p class="subtitle">Compile, execute, capture the truth, then let the model replace the whole file with a corrected version. Repeat until green or bounded.</p>
     </div>
     <div class="head-meta">
       <div><b>ITERATIONS</b> 1–8 · default 3</div>
@@ -165,7 +165,7 @@
   <div class="loopback">
     <b>LOOP</b><span>Re-run feeds the next observation</span>
     <span class="spacer"></span>
-    <span><b>BACKEND</b> local model · Qwen3 4B / DeepSeek / GPT-OSS / Devstral…</span>
+    <span><b>BACKEND</b> offline or online model · Qwen3 4B / DeepSeek / GPT-OSS / Devstral…</span>
     <span class="spacer"></span>
     <span><b>EVIDENCE</b> compiler output + runtime output</span>
   </div>
@@ -191,11 +191,11 @@
   </div>
 
   <div class="footer-strip">
-    <span><b>run → observe → repair</b> without leaving the machine</span>
+    <span><b>run → observe → repair</b> with local execution</span>
     <span class="sep"></span>
     <span>Bounded iterations · process-tree timeouts · persisted evidence</span>
     <span class="sep"></span>
-    <span>CodeForge AI v1.0.6</span>
+    <span>CodeForge AI v1.0.7</span>
   </div>
 </div>
 </body>

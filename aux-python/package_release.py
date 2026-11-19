@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.0.6"
+VERSION = "1.0.7"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {
@@ -117,7 +117,7 @@ QUICKSTART_WINDOWS = """CodeForge AI {version} — Windows quick start
    - click "Start inference";
    - chat, or paste failing code in Debug and press "Auto-debug".
 
-Everything runs on this machine. Models and the runtime are downloaded on
+Offline inference runs on this machine; the optional online brain calls your configured provider. Models and the runtime are downloaded on
 demand and are not part of this archive.
 
 Documentation: docs/MANUAL.md, docs/PLATFORMS.md, docs/API.md
