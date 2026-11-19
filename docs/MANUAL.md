@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.5 · 2026-11-16**
+**Version 1.0.5 · 2026-11-19**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -849,7 +849,7 @@ the real result returns to the model, and the model decides the next step.
 |---|---|
 | Command execution | PowerShell, cmd, bash, sh or zsh; optional `cwd`; bounded `timeout`; stdout and stderr are logged and the tail is returned to the model |
 | Tool discovery | Windows: `Get-Command`, `where.exe`, WinGet and known install folders; Unix: PATH and package managers. The prompt lists detected commands with versions |
-| Application discovery | Windows `Get-StartApps` plus registry uninstall keys; macOS `/Applications` and `.app` bundles; Linux `.desktop` entries. This host reports 156 applications |
+| Application discovery | Windows `Get-StartApps` plus registry uninstall keys; macOS `/Applications` and `.app` bundles; Linux `.desktop` entries. The reference host reports more than 150 applications |
 | Software control | The prompt carries per-platform recipes for Office/WPS/LibreOffice COM and headless conversion, browser headless screenshot/PDF and Playwright/Selenium, screen capture and UI automation, OCR, media, archives, system settings, mail and cloud CLIs |
 | Missing tools | Portable toolchain first, then the native package manager (winget, apt, dnf, yum, pacman, zypper, apk or brew), then pip or npm when mapped; PATH is refreshed and the command is retried once. The mapping also covers database clients and cloud developer tools |
 | Online learning | `search` queries Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360 and Wikipedia in parallel, skips failed sources, deduplicates and ranks the merged results. `fetch` returns readable page text. `learn` researches an unfamiliar application, CLI, API or error. A missing simple command also triggers one automatic research pass |

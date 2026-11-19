@@ -240,7 +240,7 @@ The native helper reports the same numbers as `cforge_native sysinfo`.
   "base_url": "http://127.0.0.1:8080",
   "model_id": "qwen3-4b-instruct-2507",
   "model_path": "C:\\...\\Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
-  "started_at": "2026-11-16T12:19:49.048Z",
+  "started_at": "2026-11-19T12:19:49.048Z",
   "log": "logs\\llama-server.log",
   "error": "",
   "max_tokens": 8192,
@@ -270,14 +270,14 @@ The native helper reports the same numbers as `cforge_native sysinfo`.
 
 ```json
 {
-  "version": "b12412",
+  "version": "b12532",
   "platform": "win-cpu-x64",
   "arch": "amd64",
   "server": "runtime\\llama.cpp\\llama-server.exe",
-  "size": 25139524,
-  "sha256": "6781ee6a...824755a",
-  "archive": "llama-b12412-bin-win-cpu-x64.zip",
-  "installed_at": "2026-11-15T12:46:03.270Z",
+  "size": 25700468,
+  "sha256": "beb8c051...9e473fa",
+  "archive": "llama-b12532-bin-win-cpu-x64.zip",
+  "installed_at": "2026-11-19T08:49:18.636Z",
   "ok": true,
   "installed": true,
   "available": true,
@@ -760,7 +760,7 @@ Model entry:
     "path": "models\\downloads\\qwen3-4b-instruct-2507\\Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
     "bytes": 2497281120,
     "sha256": "3605803b...c67e597",
-    "downloaded_at": "2026-11-15T11:18:45.566Z"
+    "downloaded_at": "2026-11-19T11:18:45.566Z"
   }
 }
 ```
@@ -1133,8 +1133,8 @@ capability cache and rescans tools and applications.
   "capabilities": {
     "os": "Windows 11",
     "shell": "powershell",
-    "tool_count": 28,
-    "software_count": 156,
+    "tool_count": 33,
+    "software_count": 162,
     "provisionable": [{"id":"qpdf","name":"QPDF","available":true,"path":"…","method":"package"}],
     "publishing": {"supported": true, "requires_permission": true, "allow_publish_setting": "agent.allow_publish"}
   }
