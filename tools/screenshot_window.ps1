@@ -36,7 +36,7 @@ $hdc = $gfx.GetHdc()
 [WinCap]::PrintWindow($hwnd, $hdc, 2) | Out-Null
 $gfx.ReleaseHdc($hdc)
 $gfx.Dispose()
-$full = Join-Path (Get-Location) $OutPath
+$full = if ([System.IO.Path]::IsPathRooted($OutPath)) { $OutPath } else { Join-Path (Get-Location) $OutPath }
 $dir = Split-Path $full -Parent
 if (!(Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
 $bmp.Save($full, [System.Drawing.Imaging.ImageFormat]::Png)

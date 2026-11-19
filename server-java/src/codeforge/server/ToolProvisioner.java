@@ -982,7 +982,7 @@ public final class ToolProvisioner {
                 return cachedPath;
             }
             LinkedHashSet<String> pieces = new LinkedHashSet<>();
-            for (String part : splitPath(System.getenv().getOrDefault("PATH", ""))) {
+            for (String part : splitPath(ToolchainManager.systemPath())) {
                 if (Files.isDirectory(Path.of(part))) {
                     addUnique(pieces, part, WINDOWS);
                 }

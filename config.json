@@ -18,7 +18,19 @@
       "api_key": "",
       "model": "deepseek-chat",
       "timeout_ms": 120000
-    }
+    },
+    "active_key": "default",
+    "keys": [
+      {
+        "id": "default",
+        "name": "DeepSeek",
+        "base_url": "https://api.deepseek.com",
+        "model": "deepseek-chat",
+        "api_key": "",
+        "created_at": "2026-11-19T08:08:52.730951200Z",
+        "updated_at": "2026-11-19T08:08:52.730951200Z"
+      }
+    ]
   },
   "debug": {
     "max_iterations": 3,

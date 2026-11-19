@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.4 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.0.5 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for

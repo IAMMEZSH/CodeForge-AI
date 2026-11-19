@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.0.4";
+    public static final String VERSION = "1.0.5";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private static final class BadRequest extends IOException {

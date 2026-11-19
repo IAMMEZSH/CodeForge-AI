@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.0.4"
+VERSION = "1.0.5"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {
@@ -37,7 +37,8 @@ EXCLUDE_DIRS = {
 }
 EXCLUDE_SUFFIXES = {".part", ".pyc", ".tmp", ".old", ".prebuild",
                     ".prebuild.exe", ".prebuild.jar", ".pre-stream-bak"}
-EXCLUDE_NAMES = {"installed.json", "runtime.json", ".env", "credentials.json", "secrets.json"}
+EXCLUDE_NAMES = {"installed.json", "runtime.json", ".env", "credentials.json", "secrets.json",
+                 "启动-CodeForge-AI.cmd"}
 EXECUTABLE_FILES = {"build.sh", "mobile/android/gradlew"}
 # Wrapper jar ships with every source bundle so ./gradlew works without Gradle installed.
 REQUIRED_JARS = {"mobile/android/gradle/wrapper/gradle-wrapper.jar"}
@@ -57,6 +58,7 @@ REQUIRED = [
     "QUICKSTART-LINUX.txt",
     "QUICKSTART-MACOS.txt",
     "QUICKSTART-MOBILE.txt",
+    "QUICKSTART-WINDOWS.txt",
     "mobile/android/gradlew",
     "mobile/android/gradle/wrapper/gradle-wrapper.jar",
 ]
@@ -73,7 +75,7 @@ PLATFORM_QUICKSTARTS = {
     "macos": ("QUICKSTART-MACOS.txt", "QUICKSTART.txt"),
     "mobile": ("QUICKSTART-MOBILE.txt", "QUICKSTART.txt"),
 }
-ROOT_QUICKSTARTS = {source for source, _ in PLATFORM_QUICKSTARTS.values()}
+ROOT_QUICKSTARTS = {source for source, _ in PLATFORM_QUICKSTARTS.values()} | {"QUICKSTART-WINDOWS.txt"}
 PLATFORM_LABELS = {
     "source": "all platforms (source)",
     "docs": "documentation",
@@ -151,6 +153,10 @@ def excluded(relative: Path, mode: str) -> bool:
         return True
     if relative.as_posix() in ROOT_QUICKSTARTS and mode in PLATFORM_QUICKSTARTS:
         return True
+    if mode == "windows" and relative.as_posix() == "QUICKSTART-WINDOWS.txt":
+        # The generated quick start with the current version is added by
+        # add_quickstart; keep the on-disk copy from duplicating the entry.
+        return True
     if name.startswith("_") and relative.suffix.lower() == ".png":
         return True
     if any(name.lower().endswith(suffix) for suffix in EXCLUDE_SUFFIXES):
@@ -216,6 +222,9 @@ def entry_bytes(path: Path) -> bytes:
         llm = doc.setdefault("llm", {})
         llm["api_key"] = ""
         llm.setdefault("online", {})["api_key"] = ""
+        for key in llm.get("keys") or []:
+            if isinstance(key, dict):
+                key["api_key"] = ""
         data = (json.dumps(doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     return data
 
@@ -370,7 +379,7 @@ def main() -> int:
             "Linux and macOS bundles use tar.gz so executable bits survive; each carries a platform QUICKSTART.txt.",
             "The mobile bundle covers Android via Termux, iOS via iSH, and the Kotlin/Swift thin clients.",
             "The source bundle builds on Windows, Linux, macOS, Termux and iSH.",
-            "Private user state (memory/, workspace/, logs/) is excluded and both API key fields in every shipped config.json are blanked.",
+            "Private user state (memory/, workspace/, logs/) is excluded and every API key field, including saved keys, in shipped config.json files is blanked.",
             "Verify downloads with: sha256sum -c SHA256SUMS.txt",
         ],
     }

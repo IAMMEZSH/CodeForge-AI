@@ -27,7 +27,7 @@
 
 namespace {
 
-const char* kVersion = "1.0.4";
+const char* kVersion = "1.0.5";
 
 std::string arg_utf8(wchar_t* value) {
     if (value == nullptr) {

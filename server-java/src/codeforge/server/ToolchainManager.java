@@ -458,6 +458,16 @@ public final class ToolchainManager {
                 if (javac == null || !Files.isRegularFile(javac)) {
                     javac = which("javac");
                 }
+                if (javac == null || !Files.isRegularFile(javac)) {
+                    String home = systemEnv("JAVA_HOME");
+                    if (!home.isBlank()) {
+                        Path candidate = Path.of(home).resolve("bin").resolve("javac" + EXE);
+                        if (Files.isRegularFile(candidate)) {
+                            javac = candidate;
+                            jdk = null;
+                        }
+                    }
+                }
                 if (javac != null) {
                     String version = probe(javac, "-version", Map.of());
                     if (!version.isBlank()) {
@@ -567,7 +577,7 @@ public final class ToolchainManager {
 
     private Map<String, String> buildEnvironment(String id, Path binDir, Path home) {
         Map<String, String> env = new LinkedHashMap<>();
-        String path = System.getenv().getOrDefault("PATH", "");
+        String path = systemPath();
         if (binDir != null) {
             env.put("PATH", binDir + File.pathSeparator + path);
         }
@@ -620,12 +630,39 @@ public final class ToolchainManager {
         }
     }
 
+    /** Windows env blocks use "Path"; System.getenv() map lookups are case-sensitive. */
+    static String systemPath() {
+        String path = System.getenv("PATH");
+        if (path != null && !path.isBlank()) {
+            return path;
+        }
+        for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
+            if ("PATH".equalsIgnoreCase(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return "";
+    }
+
+    static String systemEnv(String name) {
+        String value = System.getenv(name);
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+        for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
+            if (name.equalsIgnoreCase(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return "";
+    }
+
     private Path which(String name) {
         Path direct = Path.of(name);
         if (direct.isAbsolute() && Files.isRegularFile(direct)) {
             return direct;
         }
-        String path = System.getenv().getOrDefault("PATH", "");
+        String path = systemPath();
         List<String> suffixes = new ArrayList<>();
         if (WINDOWS) {
             suffixes.add(".exe");

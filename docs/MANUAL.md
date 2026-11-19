@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.4 · 2026-11-16**
+**Version 1.0.5 · 2026-11-16**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -1628,11 +1628,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.4-source.zip`
-- `CodeForge-AI-1.0.4-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.4-docs.zip`
+- `CodeForge-AI-1.0.5-source.zip`
+- `CodeForge-AI-1.0.5-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.5-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.4.json`
+- `manifest-1.0.5.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
