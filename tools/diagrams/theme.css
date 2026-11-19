@@ -90,8 +90,7 @@ body.banner-body { height: 600px; }
   border-radius: 6px;
   pointer-events: none;
 }
-.frame-line::before, .frame-line::after,
-.sheet::before, .sheet::after {
+.frame-line::before, .frame-line::after {
   content: "";
   position: absolute;
   width: 34px;

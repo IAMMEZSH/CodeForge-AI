@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.8 · Java 17 HTTP server · C++ core bridge
+Version 1.0.9 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -106,6 +106,8 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | GET | `/api/online/fetch` | Fetch one page as readable text |
 | POST | `/api/inspect` | Static scan of a file or folder; reports, quarantine, integrity, optional shred |
 | GET | `/api/quarantine` | Quarantine vault entries with shredded/quarantined state |
+| GET | `/api/engines` | Detect installed Godot, Unity, Unreal, Cocos Creator and LÖVE; `?refresh=1` rescans |
+| POST | `/api/engines` | Detect projects or build/export/run a game project through its engine CLI |
 | GET/POST | `/api/secrets` | List named secrets or store a value in the local vault |
 | POST | `/api/secrets/delete` | Delete a named secret |
 | POST | `/api/api-call` | Universal outbound HTTP/HTTPS call with optional secret injection |
@@ -142,7 +144,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -191,7 +193,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -311,7 +313,7 @@ check. Only release metadata is fetched — no prompt, file, key or usage data.
 {
   "ok": true,
   "enabled": true,
-  "current": "1.0.8",
+  "current": "1.0.9",
   "latest": "1.0.9",
   "update_available": true,
   "source": "gitcode",
@@ -323,7 +325,7 @@ check. Only release metadata is fetched — no prompt, file, key or usage data.
 ```
 
 With `"updates": {"enabled": false}` in `config.json` the response is
-`{"ok": true, "enabled": false, "current": "1.0.8", "update_available": false}`.
+`{"ok": true, "enabled": false, "current": "1.0.9", "update_available": false}`.
 If both release indexes are unreachable, `ok` is `false` with an `error`
 string; the console shows no banner.
 
@@ -711,7 +713,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -1405,7 +1407,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.8", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.0.9", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1988,7 +1990,7 @@ from the release folder:
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/publish \
   -H "Content-Type: application/json" \
-  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.0.8","name":"CodeForge AI v1.0.8","body":"…","folder":"release","overwrite":true,"delete_older":true}'
+  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.0.9","name":"CodeForge AI v1.0.9","body":"…","folder":"release","overwrite":true,"delete_older":true}'
 ```
 
 | Field | Type | Default | Notes |
@@ -2008,3 +2010,115 @@ Response: `ok`, `platform`, `release_url`, `uploaded[]`, `skipped[]`,
 `deleted[]`, `steps[]` and `duration_ms`. Every step records action, success
 and detail. Tokens are read from the vault, environment, GitHub CLI or Git
 credential helper and are never logged.
+
+---
+
+## 22. Game engines
+
+### GET `/api/engines`
+
+Detects the engines installed on this machine. The list is cached for 60
+seconds; `?refresh=1` rescans environment variables, `PATH`, Unity Hub, Epic
+Games and the standard install folders.
+
+```bash
+curl -s "http://127.0.0.1:8765/api/engines?refresh=1"
+```
+
+```json
+{
+  "ok": true,
+  "engine_not_bundled": true,
+  "count": 5,
+  "installed": 2,
+  "cache_age_ms": 0,
+  "cache_seconds": 60,
+  "checked_at": "2026-11-20T14:02:11.442",
+  "engines": [
+    {
+      "id": "godot",
+      "name": "Godot 4",
+      "installed": true,
+      "executable": "C:\\Tools\\Godot\\godot.exe",
+      "engine_root": "C:\\Tools\\Godot",
+      "version": "4.3.stable.mono",
+      "source": "GODOT_BIN",
+      "actions": ["build", "export", "run"],
+      "install_hint": "Install Godot 4, or set GODOT_BIN to the Godot executable.",
+      "license": "MIT",
+      "capabilities": {"build": true, "export": true, "run": true, "bundled": false}
+    }
+  ],
+  "note": "Adapters call engines already installed on this machine. CodeForge never downloads, bundles or redistributes an engine."
+}
+```
+
+The five adapters are `godot`, `unity`, `unreal`, `cocos` and `love`.
+`installed` counts engines that were actually found. CodeForge never
+downloads, installs or redistributes an engine; each entry carries an
+`install_hint` for manual setup.
+
+### POST `/api/engines`
+
+One endpoint for detection and engine actions. `action` defaults to `detect`.
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/engines \
+  -H "Content-Type: application/json" \
+  -d '{"action":"detect","path":"C:/games","depth":2}'
+```
+
+```json
+{
+  "ok": true,
+  "tool": "codeforge_engine",
+  "action": "detect",
+  "path": "C:\\games",
+  "count": 1,
+  "searched_depth": 2,
+  "engine_not_bundled": true,
+  "projects": [
+    {
+      "engine": "godot",
+      "name": "star-runner",
+      "path": "C:\\games\\star-runner",
+      "version": "4.3",
+      "markers": ["project.godot"],
+      "presets": [{"name": "Windows Desktop", "platform": "Windows Desktop", "runnable": true}],
+      "targets": ["windows", "linux", "macos", "web"],
+      "warnings": [],
+      "engine_installed": true,
+      "engine_version": "4.3.stable.mono"
+    }
+  ]
+}
+```
+
+Project markers: `project.godot` (Godot), `ProjectSettings/ProjectVersion.txt`
+plus `Assets/` (Unity), `*.uproject` (Unreal), `package.json` with a Cocos
+Creator version plus `assets/` (Cocos), `main.lua` (LÖVE).
+
+Build, export and run take `action`, `path` (or `project`), optional `engine`,
+`target` (`windows`, `linux`, `macos`, `web`), `preset` (Godot preset name),
+`output`, `debug`, `headless` and `timeout`:
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/engines \
+  -H "Content-Type: application/json" \
+  -d '{"action":"export","path":"C:/games/star-runner","engine":"godot","target":"windows","preset":"Windows Desktop","timeout":1800}'
+```
+
+Success responses add `phase:"ready"`, `output`, `artifact`,
+`artifact_kind`, `stdout`, `stderr`, `duration_ms` and `message`. The artifact
+is read from disk before success is reported. A missing engine returns
+`ok:false`, `phase:"failed"`, `error`, `install_hint` and
+`engine_not_bundled:true`; an invalid target lists the supported values for
+that engine. LÖVE `build` produces a `.love` ZIP with no engine installed, and
+LÖVE `export` fuses a Windows `.exe` only when `love.exe` exists. Cocos fails
+when no `index.html` was produced instead of claiming success.
+
+In chat the same endpoint is exposed as the `codeforge_engine` tool:
+
+```text
+<codeforge_engine>{"action":"build","path":"C:\\games\\moon-maze","engine":"love"}</codeforge_engine>
+```

@@ -6,7 +6,7 @@
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
-**Version 1.0.8 · 2026-11-20**
+**Version 1.0.9 · 2026-11-20**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
 [![Core](https://img.shields.io/badge/core-C%2B%2B17%20%2F%20C17-7c5cff.svg)](#architecture)
@@ -16,24 +16,24 @@ C/C++ core · Java server · Python automation · Windows · Linux · macOS · A
 
 </div>
 
-> **Upgrading from an earlier build?** v1.0.8 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.0.8 bundle on this page. Starting with 1.0.8 the console checks the public release index and shows an in-app banner when a newer build exists; earlier builds contain no checker, so this first update must be done manually.
+> **Upgrading from an earlier build?** v1.0.9 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.0.9 bundle on this page. Starting with 1.0.9 the console checks the public release index and shows an in-app banner when a newer build exists; earlier builds contain no checker, so this first update must be done manually.
 >
-> **旧版用户请注意：** v1.0.8 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.0.8 安装包覆盖升级。从 1.0.8 起，控制台会在启动时检查公开发布页，有新版本时显示升级横幅；更早的版本没有这个检查器，所以这一次必须手动升级。
+> **旧版用户请注意：** v1.0.9 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.0.9 安装包覆盖升级。从 1.0.9 起，控制台会在启动时检查公开发布页，有新版本时显示升级横幅；更早的版本没有这个检查器，所以这一次必须手动升级。
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.8-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.8-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-windows-x64.zip).
+**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.9-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.9-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip).
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.8-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-windows-x64.zip) |
-| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.8-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-linux-source.tar.gz) |
-| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.8-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-macos-source.tar.gz) |
-| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.8-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-mobile-source.zip) |
-| All platforms, source only | `CodeForge-AI-1.0.8-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-source.zip) |
-| Documentation set | `CodeForge-AI-1.0.8-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.8/CodeForge-AI-1.0.8-docs.zip) |
+| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.9-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip) |
+| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.9-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-linux-source.tar.gz) |
+| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.9-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-macos-source.tar.gz) |
+| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.9-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-mobile-source.zip) |
+| All platforms, source only | `CodeForge-AI-1.0.9-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-source.zip) |
+| Documentation set | `CodeForge-AI-1.0.9-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-docs.zip) |
 
-Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.8.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.8) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.8). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
+Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.9.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.9) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.9). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
 
 <div align="center">
 
@@ -59,6 +59,7 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **Multi-language execution** — Python, C, C++, Java, JavaScript, TypeScript, Go, Rust, PHP and C# are compiled and executed inside per-run workspaces with captured stdout/stderr. Missing runtimes are downloaded on demand from the official sources into `native/toolchains/<runtime>`, with live progress and no system PATH changes.
 - **Build and deliver to the Desktop in any supported language** — ask for a game, tool or app and the agent writes the source, calls `codeforge_build`, and leaves a finished double-clickable result on the Desktop: a native `.exe` for C, C++, Go, Rust and C#; a runnable `.jar` with launcher for Java; launchers pinned to the detected interpreter for Python, JavaScript, TypeScript and PHP; an `index.html` page plus shortcut for HTML/CSS. Each delivery gets its own Desktop folder and `.lnk`/`.desktop`/`.command` shortcut, Unicode names and paths work, and compiler errors go back to the model for a fix-and-retry instead of ending as an unbuilt file. Language toolchains are auto-provisioned when the command is missing.
 - **Static code inspection that never executes the sample** — point **Inspect** at any file or project folder. Every scanned file gets language and encoding detection, SHA-256/SHA-1/MD5 hashes, entropy, line/class/function/import metrics, network clues, masked secrets, a 0–100 risk score with concrete indicators, and JSON plus Markdown reports under `workspace/reports/code-inspection/`. Files scoring 70+ are copied into a read-only quarantine vault. After the report is written, the source files are re-hashed to prove their bytes were not modified; the optional shred step overwrites and deletes **only the quarantine copies created by that run**, never the originals, and keeps a sidecar audit record.
+- **Game engine adapters** — the **Engines** tab and `codeforge_engine` drive **Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE** using the engines you already installed. No engine is downloaded or bundled. CodeForge finds engines through environment variables, PATH, Unity Hub, Epic Games and the standard install folders, finds projects by their real markers (`project.godot`, `ProjectSettings/ProjectVersion.txt` + `Assets/`, `*.uproject`, Cocos `package.json` + `assets/`, `main.lua`), reads Godot export presets, then builds, exports and runs through each engine's own CLI. Every export is checked against the artifact on disk, and a missing engine returns the exact install hint instead of a false success. LÖVE `.love` packaging works with no engine installed, and a fused `.exe` is produced when `love.exe` is present.
 - **Universal HTTP and secret vault** — `codeforge_api` / `POST /api/api-call` can call any HTTP or HTTPS endpoint with any method, headers, query, body and timeout. Named secrets stored through `POST /api/secrets` are injected into the request in memory; values are never echoed in responses, logs or reports. This covers arbitrary REST, JSON, form and authenticated API work beyond the built-in web search tools.
 - **Agent file, test and research tools** — `codeforge_read`, `codeforge_list`, `codeforge_write`, `codeforge_edit`, `codeforge_test`, `codeforge_crawl`, `codeforge_deep_search` and `codeforge_corpus` let the model open real files, walk project trees, apply exact replacements, run the detected test command, crawl same-domain pages, run multi-query research over fetched pages and query the local research corpus. Tool results come back to the model before its next step.
 - **HTML/CSS live preview** — generated pages render in a sandboxed iframe served from a per-run session folder with a strict CSP.
@@ -72,7 +73,7 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **CPU or CUDA llama.cpp runtime** — install the managed CPU build (Windows x64/ARM64, macOS arm64/x64, Linux x64/ARM64/s390x, Android ARM64), or add the official CUDA build and let CodeForge detect it. The runtime panel offers **Auto / CPU / CUDA**; Auto uses the GPU build when present, CUDA offloads all 99 layers, and CPU remains the fallback for machines without an NVIDIA GPU. The server verifies SHA-256, retries through GitHub mirror fallbacks when the asset host is blocked, and controls `llama-server` with a user-selectable 2K–512K context window (16K default).
 - **Faster answers on NVIDIA hardware** — the CUDA build measured ~83.6 tok/s on an RTX 4070 12 GB versus ~4.5 tok/s on CPU for the same Qwen3 4B model, while a direct `add(a,b)` completion returned code in 0.8 s. Short prompts and cap-limited reasoning reach code quickly instead of deliberating.
 - **Adjustable reply limit for online and offline replies** — a highest-to-lowest selector from 393,216 down to 64 tokens in the runtime panel, applied to the next reply without restarting inference. Offline models use the full selected value; online providers apply their own output cap (DeepSeek: 8,192). The model's context window minus the prompt remains the real cap on the actual reply.
-- **In-app update notices** — since 1.0.8 the console reads the public release index on load and every six hours. When a newer stable tag exists it shows a banner with the version and a direct download link, dismissible per version. The check fetches only release metadata from GitCode (GitHub fallback) and sends no prompt, file, key or usage data; set `"updates": {"enabled": false}` in `config.json` to turn it off.
+- **In-app update notices** — since 1.0.9 the console reads the public release index on load and every six hours. When a newer stable tag exists it shows a banner with the version and a direct download link, dismissible per version. The check fetches only release metadata from GitCode (GitHub fallback) and sends no prompt, file, key or usage data; set `"updates": {"enabled": false}` in `config.json` to turn it off.
 - **Native control center** — a Win32 C++ app that starts the server, shows live readiness, and opens the console in an Edge app window.
 - **One web console everywhere** — the same responsive futuristic UI works on desktop browsers, Android WebView, and iOS WKWebView.
 - **Interruptible chat with a live reasoning trace** — every turn shows stage-by-stage execution (memory recall, workspace scan, live research, context assembly, generation), a live token counter with the measured decoding rate on the local runtime, a remaining-time estimate, and a progress bar. The send key becomes **INTERJECT** while the model is working: press it to stop the answer and send your correction immediately, or **STOP** to cancel with an empty box. Cancellation kills the core process on the server, frees the model, and does not write the aborted turn to memory.
@@ -82,7 +83,7 @@ Local inference stays on the machine. When you configure an **online brain** (an
 <img src="docs/images/diagram-architecture.png" alt="CodeForge AI architecture: browser console and Win32 control center, Java REST server, C/C++ core, llama.cpp runtime, Python automation" width="100%">
 
 - **C/C++ main core** — all orchestration, compilation, execution, diagnostics, model calls, and the debug loop.
-- **Java server** — REST API, download manager with resume, archive extraction, runtime management.
+- **Java server** — REST API, download manager with resume, archive extraction, runtime management, static inspector, secret vault, release publisher and game-engine adapters.
 - **Python auxiliary core** — environment bootstrap, portable JDK provisioning, build automation, packaging, and a mock LLM for testing.
 - **Mobile thin clients** — Kotlin/WebView and Swift/WKWebView shells that connect to a CodeForge server on the device or LAN.
 
@@ -143,6 +144,7 @@ The chat agent is not limited to code. It can emit one tool block per step and r
 <codeforge_test>{"path":"C:\\work","timeout":600}</codeforge_test>
 <codeforge_build>{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}</codeforge_build>
 <codeforge_inspect>{"path":"C:\\samples\\suspect.exe","depth":0,"max_files":1,"quarantine":true,"shred_quarantine":false}</codeforge_inspect>
+<codeforge_engine>{"action":"export","path":"C:\\games\\star-runner","engine":"godot","target":"windows","preset":"Windows Desktop"}</codeforge_engine>
 ```
 
 - **Commands** — PowerShell, cmd, bash, sh and zsh are supported. The host runs each command with a bounded timeout, streams stdout/stderr to logs, and applies the publish guard before execution.
@@ -166,6 +168,25 @@ The chat agent is not limited to code. It can emit one tool block per step and r
 - **Report first, then shred** — JSON and Markdown reports are written before any destructive step. If **shred quarantine copies** is enabled, the server overwrites each copy created by that scan with random data in 64 KB chunks, forces it to disk, truncates it to zero, deletes it, and records `shredded`, `shredded_at`, the method and `original_untouched=true` in the sidecar. The original file and its hash remain unchanged.
 
 On SSDs, flash translation layers and wear levelling mean a software overwrite is not a physical-erasure guarantee; the report says so. The guarantee is narrower and testable: **the inspector never executes a sample, never modifies the original, and only shreds copies it created in the same run.**
+
+## Game engine adapters
+
+<img src="docs/images/console-engines.png" alt="Engines tab: five adapters with install hints, project detection and build/export controls" width="100%">
+
+The **Engines** tab detects the engines installed on this machine, finds game projects in any folder and drives each engine through its own command-line tools. CodeForge never downloads, installs or bundles an engine; when one is missing, the response contains the exact install hint and the action stops instead of pretending to succeed.
+
+| Engine | Detection | Project marker | Build / export |
+|---|---|---|---|
+| Godot 4 | `GODOT`, `GODOT_BIN`, PATH, standard folders | `project.godot` | Headless import + export with a named preset |
+| Unity | `UNITY`, Unity Hub, `Program Files\Unity` | `ProjectSettings/ProjectVersion.txt` + `Assets/` | `-batchmode -executeMethod` player build |
+| Unreal Engine 5 | `UE_ROOT`, Epic Games launcher, `C:\Program Files\Epic Games\UE_*` | `*.uproject` | `RunUAT BuildCookRun` |
+| Cocos Creator | `COCOS`, PATH | `package.json` with Cocos Creator version + `assets/` | Creator CLI build; verifies `index.html` |
+| LÖVE | `LOVE`, PATH | `main.lua` | `.love` ZIP packaging, optional fused `.exe` |
+
+- **Detection** — `GET /api/engines` reports engine version, install path, install hint and project count for all five adapters; `POST /api/engines` with `{"action":"detect","path":"C:\\games","depth":2}` scans a folder for projects.
+- **Actions** — `detect`, `build`, `export`, `run` and `status`. Export targets are validated per engine, Godot presets are read from `export_presets.cfg`, and Unity/Unreal/Cocos exports point at the real artifact rather than echoing a command.
+- **Honest results** — a missing engine fails with `install_hint`; Cocos fails when no `index.html` appears; LÖVE packs and fuses only when `love.exe` exists. `engine_not_bundled` is always reported.
+- **Console** — the Engines view shows installed engine cards, detected projects, action forms, export presets and a live log, and the agent receives the same adapter data in its system prompt.
 
 ## Offline model library
 
@@ -196,11 +217,11 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 
 | Platform | Release artifact | Route | Build and launch |
 |---|---|---|---|
-| Windows 10/11 x64 | `CodeForge-AI-1.0.8-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
-| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.8-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.8-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.8-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
-| iOS / iPadOS 15+ | `CodeForge-AI-1.0.8-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
+| Windows 10/11 x64 | `CodeForge-AI-1.0.9-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
+| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.9-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.9-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.9-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
+| iOS / iPadOS 15+ | `CodeForge-AI-1.0.9-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
 
 **Same-platform device coverage**
 
@@ -210,7 +231,7 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 - **Android** — ARM64 phones and tablets run the full stack in Termux and install the official `android-arm64` runtime. Other ABIs build llama.cpp locally, and every Android 8+ device can use the Kotlin APK as a client.
 - **iOS / iPadOS** — the Swift app and iSH console are clients/control hosts; inference can stay on a PC, Mac or phone over the LAN via `llm.openai_url`.
 
-Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.8.json` sit beside the archives.
+Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.9.json` sit beside the archives.
 
 ## Quick start
 
@@ -278,6 +299,7 @@ Every command, package list, and limitation is documented in [Platform guide](do
 - **Models** — filter by region or size, download with resume, install the llama.cpp runtime, start/stop inference, inspect logs.
 - **Keys** — add, test, switch and delete OpenAI-compatible provider keys; the online brain is switchable while every saved key stays local and masked.
 - **Inspect** — scan any file or project, review per-file reports and risk indicators, browse the quarantine vault, proof-check before/after hashes, and optionally shred quarantine copies after the report. JSON and Markdown reports are always written.
+- **Engines** — see which of Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE are installed, scan any folder for game projects, and build, export or run them with the engine's own CLI. Missing engines show an install hint, and nothing is ever downloaded or bundled.
 - **Publish** — detect GitHub/GitCode credentials, choose the release folder, tag, title and notes, create the repository or release and upload every asset, with overwrite and delete-older controls.
 - **Environment** — verify the C/C++ core, toolchains (with INSTALL buttons and live download progress), local API, host telemetry, dual-brain route, memory store and workspace index; place the project anywhere, create a launcher anywhere and write any file to any path. The **Command Agent** panel shows detected commands, installed applications and auto-provisionable tools, edits step/timeout/auto-download/auto-learn/publish settings, and runs a command locally without involving a model.
 

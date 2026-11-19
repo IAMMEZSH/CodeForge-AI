@@ -1,4 +1,4 @@
-CodeForge AI 1.0.8 — Windows quick start
+CodeForge AI 1.0.9 — Windows quick start
 =====================================================
 
 1. Install Java 17 or newer (winget install EclipseAdoptium.Temurin.17.JDK),
@@ -29,6 +29,14 @@ CodeForge AI 1.0.8 — Windows quick start
      about 76 GB and exceeds that model's native 256K limit;
    - click "Start inference";
    - chat, or paste failing code in Debug and press "Auto-debug".
+
+4. Optional: game engines.
+   The Engines tab drives Godot 4, Unity, Unreal Engine 5, Cocos Creator and
+   LOVE installations you already have. Point it at a game project folder and
+   use build/export/run. No engine is downloaded or bundled; if one is
+   missing, the tab shows the exact install hint. LOVE .love packaging works
+   without an engine. The same actions are available as POST /api/engines and
+   the codeforge_engine agent tool.
 
 Offline inference runs on this machine; the optional online brain calls your configured provider. Models and the runtime are downloaded on
 demand and are not part of this archive.

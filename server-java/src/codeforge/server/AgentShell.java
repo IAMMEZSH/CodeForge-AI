@@ -168,6 +168,7 @@ public final class AgentShell {
     private final Path workspace;
     private final ToolchainManager toolchains;
     private final ToolProvisioner provisioner;
+    private final EngineSupport engines;
     private volatile Map<String, Object> cachedCaps;
     private volatile long cachedCapsAt;
     private volatile List<Map<String, Object>> cachedSoftware;
@@ -207,6 +208,7 @@ public final class AgentShell {
         this.workspace = root.resolve("workspace");
         this.toolchains = toolchains;
         this.provisioner = new ToolProvisioner(root, toolchains);
+        this.engines = new EngineSupport(root);
     }
 
     public ToolProvisioner provisioner() {
@@ -752,6 +754,11 @@ public final class AgentShell {
                 "supported", true,
                 "requires_permission", true,
                 "allow_publish_setting", "agent.allow_publish"));
+        Map<String, Object> engineStatus = engines.status(refresh);
+        caps.put("engines", engineStatus.get("engines"));
+        caps.put("engine_count", engineStatus.get("count"));
+        caps.put("engines_installed", engineStatus.get("installed"));
+        caps.put("engine_not_bundled", true);
         caps.put("detected_at", System.currentTimeMillis());
         cachedCaps = caps;
         cachedCapsAt = now;
@@ -785,6 +792,7 @@ OPERATING RULES
 8. You may install any missing dependency or package (pip, npm, winget, choco, scoop, apt, brew, cargo, go install, dotnet tool) and use it immediately. The user's console switch "auto install tools" is their consent; while it is on, install without asking. If it is off, say exactly what is missing and wait for the user.
 9. The conversation is one continuous task. Every new user message — including short interjections such as "also…", "add…", "change…", "还要…", "再加…" — extends the current task. Continue from the last completed step and apply the new condition on top of existing files, code, paths and decisions. Never restart the task from scratch and never redo work unless the user explicitly asks. If generation was interrupted, resume from the last finished step.
 10. Persistent memory is stored on this machine for every exchange until the user deletes it. Use the memory shown in context to stay consistent across sessions; never claim to remember anything that is not in the context.
+11. When the task involves a Godot, Unity, Unreal Engine, Cocos Creator or LÖVE project — or the user asks to build, export or run a game — use codeforge_engine, not codeforge_build. The adapter only drives engines already installed on this machine; it never downloads or bundles one. If an engine is missing, report the exact install_hint instead of pretending the build succeeded. LÖVE projects can always be packaged to .love without any engine installed.
 
 BUILD AND DELIVER — one block, nothing else:
 <codeforge_build>
@@ -802,6 +810,10 @@ Paths may be absolute or relative to the working directory. Write every file of 
 TEST THE PROJECT — run the real suite and read the real result:
 <codeforge_test>{"path":"C:\\project","timeout":900}</codeforge_test>
 The host auto-detects pytest, npm/pnpm/yarn/bun, Maven, Gradle, Cargo, Go, .NET, PHPUnit, CTest, Makefile and RSpec, installs missing dependencies when allowed, and runs the tests. After a successful build of a source project, the host also runs the detected suite automatically. If tests fail, read the failing test and stack trace, fix the source, and test again. Never delete, skip or weaken tests to manufacture a pass. If the result is "no-tests", no test ran: do not claim tests passed; add real tests when appropriate or state honestly that the project has no test suite.
+
+GAME ENGINES — Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE:
+<codeforge_engine>{"action":"detect|build|export|run|status","path":"C:\\games\\MyGame","engine":"godot|unity|unreal|cocos|love","target":"windows|linux|macos|web","preset":"Godot export preset name","output":"optional exact folder","debug":false,"headless":false,"timeout":1800}</codeforge_engine>
+detect finds projects by their real markers (project.godot, ProjectSettings/ProjectVersion.txt plus Assets/, *.uproject, Cocos package.json plus assets/, main.lua). build imports/compiles, export produces a player or package, run launches the project or built artifact. The host detects engines from environment variables, PATH, Unity Hub, Epic Games and the usual install folders; status lists what is installed. Never invent a successful export: an engine that is not installed fails with an install_hint, and export success is verified against the real artifact on disk. Godot exports require a preset in export_presets.cfg. Unity builds need scenes added to Build Settings in the editor. Unreal packaging uses RunUAT BuildCookRun. Cocos builds are verified by their generated index.html. LÖVE .love packages need no engine; a fused .exe is produced when love.exe is installed.
 
 RUN A COMMAND — output exactly one block and nothing else:
 <codeforge_shell>

@@ -3,7 +3,7 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
-## 1.0.8 — 2026-11-20
+## 1.0.9 — 2026-11-20
 
 ### Added
 
@@ -46,17 +46,33 @@ All notable changes to CodeForge AI are documented here. Versions follow
   stable tag with the running build. The console checks on load and every six
   hours, then shows a dismissible banner linking to the release. Only release
   metadata is fetched. `"updates": {"enabled": false}` in `config.json`
-  disables the check. Builds older than 1.0.8 have no checker, so their first
-  upgrade is manual; the release banner and README say so explicitly.
+  disables the check. A build that predates the checker must upgrade manually
+  once; the release banner and README say so explicitly.
+- **Game engine adapters.** A new **Engines** tab and `codeforge_engine` agent
+  tool drive Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE without
+  bundling any of them. The adapter detects user-installed engines from
+  environment variables, PATH, Unity Hub, Epic Games and the standard install
+  folders; finds projects by their real markers (`project.godot`,
+  `ProjectSettings/ProjectVersion.txt` plus `Assets/`, `*.uproject`, Cocos
+  `package.json` plus `assets/`, `main.lua`); parses Godot export presets and
+  per-engine targets; then builds, exports and runs with the engine's own CLI
+  (Godot headless import/export, Unity batchmode player builds, Unreal
+  BuildCookRun, Cocos Creator CLI, LÖVE runner). Every export is verified
+  against the artifact on disk, and a missing engine returns an exact install
+  hint instead of a false success. LÖVE `.love` packaging works with no engine
+  installed, and a fused `.exe` is produced when `love.exe` exists.
+  `GET /api/engines` reports detection; `POST /api/engines` runs
+  detect/build/export/run/status.
 
 ### Changed
 
 - README, user manual, API reference, security notes, architecture notes,
   quick starts, diagrams, banner and console screenshots were refreshed for
-  1.0.8 and now document the static inspector, the secret vault, the publish
-  workflow and the file/research tools.
+  1.0.9 and now document the static inspector, the secret vault, the publish
+  workflow, the file/research tools and the engine adapters.
 - The server jar, native binaries, web console, mobile projects and release
-  manifest all report 1.0.8.
+  manifest all report 1.0.9. The console rail now has eight views:
+  Chat, Debug, Models, Keys, Publish, Inspect, Engines and Env.
 
 ### Security
 

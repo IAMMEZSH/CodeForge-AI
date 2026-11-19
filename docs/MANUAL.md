@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.8 · 2026-11-20**
+**Version 1.0.9 · 2026-11-20**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -28,7 +28,7 @@ software can produce. It assumes no prior knowledge of the codebase.
 5. [The Chat tab](#5-the-chat-tab)
 6. [The Debug tab](#6-the-debug-tab)
 7. [Models and the inference runtime](#7-models-and-the-inference-runtime)
-8. [The System tab](#8-the-system-tab)
+8. [The Environment tab](#8-the-environment-tab)
 9. [End-to-end workflows](#9-end-to-end-workflows)
 10. [Configuration reference](#10-configuration-reference)
 11. [Command-line reference](#11-command-line-reference)
@@ -139,7 +139,7 @@ is configured and the network probe succeeds. The Java server places
 the online endpoint again and falls back to local inference if the probe or the
 completion fails. Every response reports `route` and, when a fallback happened,
 `route_error`; the console shows them in the message provenance strip and the
-System tab.
+Environment tab.
 
 The **memory store** (`memory/memories.jsonl`) is append-only. Tokenization
 handles Chinese bigrams and Latin words, SHA-256 prevents duplicates, and
@@ -545,7 +545,7 @@ native\bin\cforge_native.exe sysinfo
 ```
 
 Finally start the server and open the console. The top chips (Core, LLM,
-Runtime) and the System view confirm the full chain.
+Runtime) and the Environment view confirm the full chain.
 
 ---
 
@@ -603,7 +603,7 @@ chat/debug/run return a JSON error. Rebuild with `bootstrap.py --all`.
 
 | Area | Description |
 |---|---|
-| Left rail | Chat, Debug, Models, Keys, Publish, Inspect, Env. Click or press `Ctrl+1`…`Ctrl+7` |
+| Left rail | Chat, Debug, Models, Keys, Publish, Inspect, Engines, Env. Click or press `Ctrl+1`…`Ctrl+8` |
 | Update banner | Appears below the top bar when the public release index reports a newer stable version. **Download** opens the release page; **×** dismisses that version |
 | Top chips | Core (C++ core reachable), LLM (inference backend usable), Runtime (llama.cpp state) |
 | Clock | Local time |
@@ -806,10 +806,10 @@ model at all:
 | Compile + run | **RUN** on any code block, **AUTO COMPILE**, `/run`, or “run it” | Python, C, C++, Java, JavaScript, TypeScript, Go, Rust, PHP, C# |
 | HTML/CSS preview | **PREVIEW** on an HTML or CSS block | Sandboxed iframe from a temporary `workspace/run-*` session |
 | Save code anywhere | **SAVE**, `/save <path>`, or “save this to D:\path” | Exact path; missing folders are confirmed first; every block can target its own path |
-| Download a language runtime | **INSTALL** in System → Toolchains, `/install go`, or “install the Go environment” | Background download into `native/toolchains` with live progress |
-| Place the project anywhere | System → Place project anywhere, `/place <path>`, or “put the project in E:\apps” | Never copies models, runtime, workspace, logs, memory or build caches |
-| Place any file or folder | System → Place any file or folder, `/copy <source> <destination>`, `/move <source> <destination>`, or “把 C:\path\a.pdf 放到 D盘根目录” | Exact destination, `desktop`/`桌面`, or a bare drive (`D`, `D盘`, `D盘根目录`; C works too); copies or moves one file or a whole folder, retries locked files and asks before overwriting |
-| Create a launcher anywhere | System → Launcher anywhere, `/launcher <path>`, or “create a shortcut in D:\apps” | Windows `.lnk`, Linux `.desktop`, macOS `.command` |
+| Download a language runtime | **INSTALL** in Environment → Toolchains, `/install go`, or “install the Go environment” | Background download into `native/toolchains` with live progress |
+| Place the project anywhere | Environment → Place project anywhere, `/place <path>`, or “put the project in E:\apps” | Never copies models, runtime, workspace, logs, memory or build caches |
+| Place any file or folder | Environment → Place any file or folder, `/copy <source> <destination>`, `/move <source> <destination>`, or “把 C:\path\a.pdf 放到 D盘根目录” | Exact destination, `desktop`/`桌面`, or a bare drive (`D`, `D盘`, `D盘根目录`; C works too); copies or moves one file or a whole folder, retries locked files and asks before overwriting |
+| Create a launcher anywhere | Environment → Launcher anywhere, `/launcher <path>`, or “create a shortcut in D:\apps” | Windows `.lnk`, Linux `.desktop`, macOS `.command` |
 
 **AUTO COMPILE** is a toggle in the chat header. When enabled it compiles and
 runs the first runnable block of every new answer, preferring the language you
@@ -862,6 +862,7 @@ the real result returns to the model, and the model decides the next step.
 <codeforge_deep_search>{"query":"SQLite WAL mode","pages":6}</codeforge_deep_search>
 <codeforge_build>{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}</codeforge_build>
 <codeforge_inspect>{"path":"C:\\samples\\suspect.exe","depth":0,"max_files":1,"quarantine":true,"shred_quarantine":false}</codeforge_inspect>
+<codeforge_engine>{"action":"export","path":"C:\\games\\star-runner","engine":"godot","target":"windows","preset":"Windows Desktop"}</codeforge_engine>
 ```
 
 | Capability | Behavior |
@@ -876,6 +877,7 @@ the real result returns to the model, and the model decides the next step.
 | File tools | `read` returns numbered lines from a real file; `list` walks a directory; `write` creates or appends; `edit` performs exact literal replacement; `test` detects and runs the project's own test command |
 | Universal API | `api` calls any HTTP/HTTPS endpoint with method, headers, query, body and timeout. A named secret from the vault is injected in memory and is never returned |
 | Static inspection | `inspect` analyses a file or project without executing it, returns file facts and risk evidence, optionally creates read-only quarantine copies and can shred only those copies after writing the report |
+| Game engines | `engine` detects installed Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE, finds their projects and builds, exports or runs them through the engine's own CLI. No engine is downloaded or bundled; a missing engine returns an install hint |
 | Long loops | The step limit is adjustable from **1 to 512** (default 128) in the Command Agent panel. Older tool output is compacted before each model call while the system prompt and newest results are kept; every executed call remains in `tool_calls` even if the model call fails |
 | Publishing | Local commits, builds, packages and exports always work. Remote/public actions are blocked until **Allow publishing** is enabled, or a single API run passes `allow_publish=true`. The **Publish** tab can create or update a GitHub/GitCode release, upload every file in `release/`, overwrite assets and optionally delete older releases |
 
@@ -886,7 +888,7 @@ returns `blocked: true`, `permission_required: true` and `publish_guard: true`.
 When this happens, the agent explains what would be published, where, and under
 which account instead of retrying.
 
-**Settings panel.** System → **Command Agent** shows detected commands,
+**Settings panel.** Environment → **Command Agent** shows detected commands,
 installed applications, the deduplicated auto-provisionable list and the online
 learning state. It edits `agent.max_steps` (1–512, default 128),
 `agent.command_timeout_sec`, `agent.install_timeout_sec`,
@@ -997,6 +999,8 @@ modified.
 The **Publish** rail item drives GitHub and GitCode releases through their REST
 APIs. It never prints or returns a token.
 
+![Publish view with GitHub and GitCode targets, tag v1.0.9 and the local asset folder](images/console-publish.png)
+
 | Field | Meaning |
 |---|---|
 | Repository | `owner/repo` for GitHub and GitCode; defaults come from the server status |
@@ -1017,6 +1021,36 @@ shows the value. Use **Save token** on the right to store one in the vault once.
 release lookup, asset upload, overwrite and delete-older. The result lists the
 release URL and every uploaded asset. Publishing is a real public action: it is
 never triggered by opening the tab, and the button must be pressed explicitly.
+
+### 5.12 Engines tab
+
+**Engines** drives game projects with engines you have installed. CodeForge
+never downloads, installs or bundles an engine; the tab only detects what is on
+the machine and calls its command-line tools.
+
+![Engines view listing five adapters, install hints, project detection and build/export controls](images/console-engines.png)
+
+| Control | Meaning |
+|---|---|
+| Engine cards | One card per adapter (Godot 4, Unity, Unreal Engine 5, Cocos Creator, LÖVE) with installed state, version, executable path, source and install hint |
+| Refresh | Rescans environment variables, PATH, Unity Hub, Epic Games and standard install folders (the API caches detection for 60 seconds) |
+| Project folder / depth | Folder to scan for projects, depth 0–4 |
+| Find projects | Walks the folder and lists projects with engine, version, markers, presets and supported targets |
+| Action | `build`, `export` or `run`; LÖVE can `build` without an engine installed |
+| Engine / target / preset | Optional engine override, export target (`windows`, `linux`, `macos`, `web`), Godot preset name, output folder, debug and headless flags |
+| Run action | Executes the selected action and streams stdout/stderr to the log |
+
+Project markers are the real ones used by each engine: `project.godot`;
+`ProjectSettings/ProjectVersion.txt` plus `Assets/`; `*.uproject`; a Cocos
+Creator `package.json` plus `assets/`; `main.lua`. Godot export presets are
+parsed from `export_presets.cfg`, so the preset selector lists what the project
+actually defines.
+
+Every action verifies its result on disk: an exported Godot/Unity/Unreal
+artifact must exist, Cocos must produce an `index.html`, and a missing engine
+stops with the exact install hint and `engine_not_bundled: true`. The same
+operation is exposed as `POST /api/engines` and the `codeforge_engine` agent
+tool; `GET /api/engines` returns the detection snapshot.
 
 ---
 
@@ -1430,9 +1464,9 @@ requires the server to reload its installed map to reflect the change.
 
 ---
 
-## 8. The System tab
+## 8. The Environment tab
 
-![System view](images/console-environment.png)
+![Environment view](images/console-environment.png)
 
 | Panel | Contents |
 |---|---|
@@ -1649,7 +1683,7 @@ clamped after both layers are applied.
 ### 10.8 `agent` section
 
 The Command Agent reads and writes these keys through `GET/POST /api/agent`
-and the System → Command Agent panel.
+and the Environment → Command Agent panel.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
@@ -1767,11 +1801,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.8-source.zip`
-- `CodeForge-AI-1.0.8-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.8-docs.zip`
+- `CodeForge-AI-1.0.9-source.zip`
+- `CodeForge-AI-1.0.9-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.0.9-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.8.json`
+- `manifest-1.0.9.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -1819,6 +1853,8 @@ Full request/response schemas, status codes and examples are in
 | GET | `/api/online/fetch?url=&max_chars=` | Fetch one page as readable text |
 | POST | `/api/inspect` | Static scan with reports, quarantine and optional shredding |
 | GET | `/api/quarantine` | Quarantine vault entries and shredded state |
+| GET | `/api/engines?refresh=1` | Detected game engines and install hints |
+| POST | `/api/engines` | Detect game projects or build/export/run one via its engine |
 | GET/POST | `/api/secrets` | List secret names or store one named secret |
 | POST | `/api/secrets/delete` | Delete a named secret |
 | POST | `/api/api-call` | Universal outbound HTTP call with optional named-secret injection |

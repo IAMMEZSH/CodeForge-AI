@@ -2,7 +2,7 @@
 
 Every command you need, for every supported platform.
 
-Version 1.0.8
+Version 1.0.9
 
 ---
 
@@ -306,7 +306,7 @@ curl.exe -s http://127.0.0.1:8765/api/status |
 
 A native ARM64 build of the C++ core requires an ARM64 C++17 toolchain and an
 ARM64 JDK 17; the runtime installer then prefers `win-cpu-arm64` and falls back
-to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.8;
+to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.0.9;
 the emulated x64 bundle is the supported route.
 
 Native build with MSYS2 CLANGARM64:
@@ -1112,6 +1112,11 @@ Environment overrides:
 | `CODEFORGE_COMPILE_TIMEOUT_MS` | 5 000–600 000 |
 | `CODEFORGE_SERVER_PORT` | 1024–65535 |
 | `CODEFORGE_LLAMA_SERVER` | Absolute or relative path to a llama-server binary; overrides the managed runtime |
+| `GODOT_BIN` | Godot 4 executable used by the engine adapter |
+| `UNITY_EDITOR` | Unity Editor executable |
+| `UE_ROOT` | Unreal Engine 5 folder containing `Engine/` |
+| `COCOS_CREATOR` | Cocos Creator executable |
+| `LOVE_BIN` | LÖVE executable |
 
 ### 11.2 Core CLI
 
@@ -1341,7 +1346,38 @@ df -h ~
 
 ---
 
-## 15. Related documents
+## 15. Game engine support by platform
+
+The engine adapters call engines you installed yourself. No engine, SDK or
+template is downloaded or bundled by CodeForge.
+
+| Engine | Windows | Linux | macOS | Notes |
+| --- | --- | --- | --- | --- |
+| Godot 4 | Yes | Yes | Yes | Detection from `GODOT_BIN`, PATH and standard folders; headless import/export with a project preset |
+| Unity | Yes | Yes | Yes | Detection from `UNITY_EDITOR`, Unity Hub and `Program Files\Unity`; batchmode player build using the project's Build Settings scenes |
+| Unreal Engine 5 | Yes | Yes | Yes (Epic launcher installs) | Detection from `UE_ROOT` and Epic Games folders; `RunUAT BuildCookRun` |
+| Cocos Creator | Yes | Yes | Yes | Detection from `COCOS_CREATOR` and PATH; CLI build, verified by an `index.html` artifact |
+| LÖVE | Yes | Yes | Yes | `build` needs no engine (plain `.love` ZIP); `export` fuses a Windows `.exe` when `love.exe` exists |
+
+Configure detection with the environment variables in section 11.1 or install
+the engine in its default location. Check the result with:
+
+```bash
+curl -s "http://127.0.0.1:8765/api/engines?refresh=1"
+curl -s -X POST http://127.0.0.1:8765/api/engines \
+  -H "Content-Type: application/json" \
+  -d '{"action":"detect","path":"/home/you/games","depth":2}'
+```
+
+Build settings, scenes, plugins, import pipelines and code signing belong to
+the engine project. CodeForge verifies that the exported artifact exists on
+disk; a missing engine returns the install hint instead of a false success.
+On phones (Termux/iSH) the adapters are usually used against a desktop host,
+because mobile engine editors are not command-line build targets.
+
+---
+
+## 16. Related documents
 
 - [Manual](MANUAL.md) — complete operating walkthrough
 - [API](API.md) — endpoint reference

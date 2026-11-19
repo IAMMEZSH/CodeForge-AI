@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.0.8";
+    public static final String VERSION = "1.0.9";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private static final class BadRequest extends IOException {
@@ -64,6 +64,7 @@ public final class ApiHandler implements HttpHandler {
     private final FileTools fileTools;
     private final TestRunner testRunner;
     private final CodeInspector codeInspector;
+    private final EngineSupport engines;
     private final Publisher publisher;
     private final UpdateChecker updateChecker;
     private final FileService files;
@@ -114,6 +115,10 @@ public final class ApiHandler implements HttpHandler {
             "(?is)<codeforge_inspect>\\s*(.*?)\\s*</codeforge_inspect>");
     private static final Pattern AGENT_INSPECT_FENCE = Pattern.compile(
             "(?is)```(?:codeforge_inspect|inspect-json)\\s*\\n?(.*?)```");
+    private static final Pattern AGENT_ENGINE = Pattern.compile(
+            "(?is)<codeforge_engine>\\s*(.*?)\\s*</codeforge_engine>");
+    private static final Pattern AGENT_ENGINE_FENCE = Pattern.compile(
+            "(?is)```(?:codeforge_engine|engine-json)\\s*\\n?(.*?)```");
     private static final Pattern AGENT_API = Pattern.compile(
             "(?is)<codeforge_api>\\s*(.*?)\\s*</codeforge_api>");
     private static final Pattern AGENT_BUILD = Pattern.compile(
@@ -213,7 +218,7 @@ public final class ApiHandler implements HttpHandler {
                     + "save\\s+to|output\\s+to|deliver\\s+to|put\\s+(?:it\\s+)?in|copy\\s+to|into");
     private static final Pattern TOOL_OPEN = Pattern.compile(
             "(?is)<codeforge_(shell|build|search|fetch|learn|api|write|read|list|edit|test|"
-                    + "crawl|deep_search|deep_research|research|corpus|inspect)\\b[^>]*>");
+                    + "crawl|deep_search|deep_research|research|corpus|inspect|engine)\\b[^>]*>");
     private static final Pattern NATIVE_INVOKE = Pattern.compile(
             "(?is)<([^>]{0,40}?)invoke\\s+name\\s*=\\s*[\"']?"
                     + "([A-Za-z0-9_.:-]+)[\"']?[^>]*>(.*?)"
@@ -322,6 +327,7 @@ public final class ApiHandler implements HttpHandler {
         this.fileTools = new FileTools(root);
         this.testRunner = new TestRunner(root, agentShell);
         this.codeInspector = new CodeInspector(root);
+        this.engines = new EngineSupport(root);
         this.publisher = new Publisher(root, keyStore);
         this.updateChecker = new UpdateChecker(root);
         this.files = new FileService(root);
@@ -582,6 +588,16 @@ public final class ApiHandler implements HttpHandler {
             case "/api/inspect": {
                 requirePost(method);
                 sendJson(exchange, 200, codeInspector.inspect(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/engines": {
+                if ("GET".equals(method)) {
+                    boolean refresh = "1".equals(query.getOrDefault("refresh", "0"));
+                    sendJson(exchange, 200, engines.status(refresh));
+                    return;
+                }
+                requirePost(method);
+                sendJson(exchange, 200, engines.handle(readJsonObject(exchange)));
                 return;
             }
             case "/api/quarantine": {
@@ -1560,23 +1576,30 @@ public final class ApiHandler implements HttpHandler {
                             kind + " " + Json.str(tool, "path", "");
                     case "test" -> "tests " + Json.str(tool, "path", ".");
                     case "inspect" -> "inspect " + Json.str(tool, "path", "");
+                    case "engine" -> (Json.str(tool, "engine", "") + " "
+                            + Json.str(tool, "action", "detect") + " "
+                            + Json.str(tool, "path", "")).trim();
                     case "build" -> (Json.str(tool, "language", "")
                             + " " + Json.str(tool, "name", "")).trim();
                     default -> "";
                 };
                 boolean buildStep = "build".equals(kind);
                 boolean testStep = "test".equals(kind);
+                boolean engineStep = "engine".equals(kind);
                 boolean fileStep = "write".equals(kind) || "read".equals(kind)
                         || "list".equals(kind) || "edit".equals(kind)
                         || "inspect".equals(kind);
                 ChatStep webStep = new ChatStep((buildStep ? "build-"
-                        : testStep ? "test-" : fileStep ? "file-" : "web-") + number,
+                        : testStep ? "test-" : engineStep ? "engine-"
+                        : fileStep ? "file-" : "web-") + number,
                         (buildStep ? "Build" : testStep ? "Tests"
+                                : engineStep ? "Engine"
                                 : "inspect".equals(kind) ? "Inspect"
                                 : fileStep ? "Files" : "Web " + kind) + " #" + number,
                         cap(target, 200), "active", started - progress.startedMs);
                 progress.steps.add(webStep);
-                progress.phase = buildStep ? "build" : testStep ? "test" : "web";
+                progress.phase = buildStep || engineStep ? "build"
+                        : testStep ? "test" : "web";
                 progress.commandRunning = false;
                 boolean reusedBuild = false;
                 Path autoTestRoot = buildStep ? testProjectRoot(tool) : null;
@@ -1642,6 +1665,8 @@ public final class ApiHandler implements HttpHandler {
                     }
                     result = testRunner.run(testRequest, cancelFlag, autoInstall,
                             installTimeout, installListener);
+                } else if (engineStep) {
+                    result = engines.handle(new LinkedHashMap<>(tool));
                 } else if ("api".equals(kind) && !allowPublish
                         && !List.of("GET", "HEAD", "OPTIONS").contains(
                         Json.str(tool, "method", "GET").trim().toUpperCase(Locale.ROOT))) {
@@ -1689,12 +1714,32 @@ public final class ApiHandler implements HttpHandler {
                         lastBuildFailure = "";
                         lastCommandFailure = "";
                     }
+                } else if (engineStep) {
+                    String engineAction = Json.str(result, "action", "");
+                    boolean deliverable = "build".equals(engineAction)
+                            || "export".equals(engineAction);
+                    if (ok) {
+                        if (deliverable) {
+                            lastBuildFailure = "";
+                            lastBuildContext = "";
+                            autoFixAttempts = 0;
+                        }
+                    } else if (deliverable) {
+                        lastBuildFailure = webError.isBlank()
+                                ? "engine " + engineAction + " failed" : webError;
+                        lastBuildContext = cap(Json.str(result, "stderr", "")
+                                + "\n" + Json.str(result, "stdout", "")
+                                + "\n" + Json.str(result, "install_hint", ""), 6000);
+                        lastCommandFailure = "";
+                    }
                 }
                 webStep.status = "done";
                 String testStatus = Json.str(result, "status", "");
                 webStep.detail = (ok
                         ? (buildStep ? "ready" : testStep
-                        ? firstNonBlank(testStatus, "ok") : "ok") : "failed")
+                        ? firstNonBlank(testStatus, "ok")
+                        : engineStep ? firstNonBlank(
+                        Json.str(result, "phase", ""), "ok") : "ok") : "failed")
                         + (reusedBuild ? " · already delivered" : "")
                         + " · " + Json.integer(result, "duration_ms", 0) + " ms"
                         + (webError.isBlank() ? "" : " · " + cap(webError, 180))
@@ -2819,6 +2864,10 @@ public final class ApiHandler implements HttpHandler {
         if (test != null) {
             return test;
         }
+        Map<String, Object> engine = engineRequest(reply);
+        if (engine != null) {
+            return engine;
+        }
         Map<String, Object> build = buildRequest(reply);
         if (build != null) {
             return build;
@@ -2904,6 +2953,7 @@ public final class ApiHandler implements HttpHandler {
             case "codeforge_list", "list_files", "list_dir" -> kind = "list";
             case "codeforge_edit", "edit_file", "replace_in_file" -> kind = "edit";
             case "codeforge_test", "test", "run_tests", "test_project" -> kind = "test";
+            case "codeforge_engine", "engine", "game_engine" -> kind = "engine";
             case "codeforge_build", "build", "compile", "deliver" -> kind = "build";
             default -> {
                 return null;
@@ -3113,6 +3163,33 @@ public final class ApiHandler implements HttpHandler {
             }
             return out;
         }
+        if ("engine".equals(kind)) {
+            String action = params.getOrDefault("action",
+                    params.getOrDefault("do", "detect"));
+            out.put("action", action.isBlank() ? "detect" : action);
+            for (String key : new String[]{"path", "project", "source", "engine",
+                    "target", "output", "destination", "preset", "artifact", "exe"}) {
+                if (params.containsKey(key) && !params.get(key).isBlank()) {
+                    out.put(key, params.get(key));
+                }
+            }
+            for (String key : new String[]{"depth", "timeout", "frames"}) {
+                if (params.containsKey(key)) {
+                    Matcher digits = Pattern.compile("\\d+").matcher(params.get(key));
+                    if (digits.find()) {
+                        out.put(key, Integer.parseInt(digits.group()));
+                    }
+                }
+            }
+            for (String key : new String[]{"debug", "headless"}) {
+                if (params.containsKey(key)) {
+                    String value = params.get(key);
+                    out.put(key, "true".equalsIgnoreCase(value) || "1".equals(value)
+                            || "yes".equalsIgnoreCase(value));
+                }
+            }
+            return out;
+        }
         if ("build".equals(kind)) {
             String language = params.getOrDefault("language",
                     params.getOrDefault("lang", ""));
@@ -3185,6 +3262,30 @@ public final class ApiHandler implements HttpHandler {
             }
         }
         return out;
+    }
+
+    private static Map<String, Object> engineRequest(String reply) {
+        Matcher tag = AGENT_ENGINE.matcher(reply);
+        String body = null;
+        if (tag.find()) {
+            body = tag.group(1).trim();
+        } else {
+            Matcher fence = AGENT_ENGINE_FENCE.matcher(reply);
+            if (fence.find()) {
+                body = fence.group(1).trim();
+            }
+        }
+        if (body == null) {
+            return null;
+        }
+        Map<String, Object> parsed = parseToolJson(body);
+        if (parsed == null) {
+            return null;
+        }
+        parsed.put("kind", "engine");
+        String action = Json.str(parsed, "action", "").trim();
+        parsed.put("action", action.isBlank() ? "detect" : action);
+        return parsed;
     }
 
     private static Map<String, Object> buildRequest(String reply) {
@@ -3462,6 +3563,8 @@ public final class ApiHandler implements HttpHandler {
                 || lower.contains("```corpus-json")
                 || lower.contains("```codeforge_inspect")
                 || lower.contains("```inspect-json")
+                || lower.contains("```codeforge_engine")
+                || lower.contains("```engine-json")
                 || lower.contains("<invoke name");
     }
 
@@ -3475,10 +3578,12 @@ public final class ApiHandler implements HttpHandler {
         cleaned = AGENT_DEEP_SEARCH.matcher(cleaned).replaceAll("");
         cleaned = AGENT_CORPUS.matcher(cleaned).replaceAll("");
         cleaned = AGENT_INSPECT.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_ENGINE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_CRAWL_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_DEEP_SEARCH_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_CORPUS_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_INSPECT_FENCE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_ENGINE_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_API.matcher(cleaned).replaceAll("");
         cleaned = AGENT_API_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_BUILD.matcher(cleaned).replaceAll("");
@@ -3597,6 +3702,9 @@ public final class ApiHandler implements HttpHandler {
         } else if ("inspect".equals(kind)) {
             out = new LinkedHashMap<>(codeInspector.inspect(tool));
             out.put("kind", "inspect");
+        } else if ("engine".equals(kind)) {
+            out = new LinkedHashMap<>(engines.handle(tool));
+            out.put("kind", "engine");
         } else if ("api".equals(kind)) {
             out = new LinkedHashMap<>(apiClient.call(tool));
             out.put("kind", "api");
@@ -3697,6 +3805,60 @@ public final class ApiHandler implements HttpHandler {
                         }
                         out.append('\n');
                     }
+                }
+            }
+            case "engine" -> {
+                out.append("action: ").append(Json.str(result, "action", "")).append('\n');
+                out.append("engine: ").append(Json.str(result, "engine", ""))
+                        .append(" · version: ")
+                        .append(Json.str(result, "engine_version", "not detected")).append('\n');
+                String project = Json.str(result, "project", "");
+                if (!project.isBlank()) {
+                    out.append("project: ").append(project).append(" · ")
+                            .append(Json.str(result, "project_path", "")).append('\n');
+                }
+                String artifact = Json.str(result, "artifact", "");
+                if (!artifact.isBlank()) {
+                    out.append("artifact: ").append(artifact).append('\n');
+                }
+                String output = Json.str(result, "output", "");
+                if (!output.isBlank()) {
+                    out.append("output_folder: ").append(output).append('\n');
+                }
+                String hint = Json.str(result, "install_hint", "");
+                if (!hint.isBlank()) {
+                    out.append("install_hint: ").append(hint).append('\n');
+                }
+                if (Json.bool(result, "engine_not_bundled", false)) {
+                    out.append("engines_are_user_installed: CodeForge never downloads or ")
+                            .append("bundles an engine; it only drives an installation that ")
+                            .append("already exists on this machine.\n");
+                }
+                List<Object> engineProjects = Json.asList(result.get("projects"));
+                if (!engineProjects.isEmpty()) {
+                    out.append("\nPROJECTS DETECTED (").append(engineProjects.size())
+                            .append("):\n");
+                    int shown = 0;
+                    for (Object raw : engineProjects) {
+                        if (++shown > 40) {
+                            break;
+                        }
+                        Map<String, Object> item = Json.asObject(raw);
+                        out.append("- ").append(Json.str(item, "engine", "?"))
+                                .append(" · ").append(Json.str(item, "name", ""))
+                                .append(" · ").append(Json.str(item, "path", ""))
+                                .append(" · installed=")
+                                .append(Json.bool(item, "engine_installed", false))
+                                .append('\n');
+                    }
+                }
+                String stdout = Json.str(result, "stdout", "");
+                String stderr = Json.str(result, "stderr", "");
+                if (!stdout.isBlank()) {
+                    out.append("\nSTDOUT (tail):\n").append(cap(stdout, 4000)).append('\n');
+                }
+                if (!stderr.isBlank()) {
+                    out.append("\nSTDERR (tail):\n").append(cap(stderr, 4000)).append('\n');
                 }
             }
             case "inspect" -> {

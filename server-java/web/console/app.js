@@ -233,8 +233,9 @@ async function api(path, options = {}) {
 function tickClock() {
   const now = new Date();
   const time = now.toLocaleTimeString('en-GB', { hour12: false });
+  const pad = (n) => String(n).padStart(2, '0');
   $('#clock-time').textContent = time;
-  $('#clock-date').textContent = now.toISOString().slice(0, 10).replace(/-/g, ' · ');
+  $('#clock-date').textContent = `${now.getFullYear()} · ${pad(now.getMonth() + 1)} · ${pad(now.getDate())}`;
   $('#sb-time').textContent = time;
 }
 setInterval(tickClock, 1000);
@@ -305,18 +306,19 @@ function switchView(view, skipHash) {
   if (view === 'keys') loadKeys();
   if (view === 'publish') loadPublishStatus();
   if (view === 'inspect') loadInspectorView();
+  if (view === 'engines') loadEngines(false);
 }
 $$('.rail-btn').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
 window.addEventListener('hashchange', () => {
   const view = location.hash.replace('#', '');
-  if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'env'].includes(view) && view !== state.view) {
+  if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'engines', 'env'].includes(view) && view !== state.view) {
     switchView(view, true);
   }
 });
 document.addEventListener('keydown', event => {
-  if (event.ctrlKey && !event.shiftKey && ['1', '2', '3', '4', '5', '6', '7'].includes(event.key)) {
+  if (event.ctrlKey && !event.shiftKey && ['1', '2', '3', '4', '5', '6', '7', '8'].includes(event.key)) {
     event.preventDefault();
-    switchView(['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'env'][Number(event.key) - 1]);
+    switchView(['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'engines', 'env'][Number(event.key) - 1]);
   }
 });
 
@@ -2764,7 +2766,7 @@ $('#btn-agent-test').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.0.8 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.0.9 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- key vault ---------------- */
@@ -3308,6 +3310,175 @@ $('#inspect-path')?.addEventListener('keydown', event => {
   if (event.key === 'Enter') runInspection();
 });
 
+/* ---------------- engines ---------------- */
+let enginesLoading = false;
+
+function engineOkBadge(value, onText, offText) {
+  return '<span class="engine-state ' + (value ? 'on' : 'off') + '">' +
+    escapeHtml(value ? onText : offText) + '</span>';
+}
+
+function renderEngineCards(data) {
+  const box = $('#engine-cards');
+  if (!box) return;
+  const items = Array.isArray(data.engines) ? data.engines : [];
+  if (!items.length) {
+    box.innerHTML = '<div class="dim" style="font-size:11.5px">No engine adapters available.</div>';
+    return;
+  }
+  box.innerHTML = items.map(engine => {
+    const actions = Array.isArray(engine.actions) ? engine.actions.join(' · ') : '';
+    return '<div class="engine-card' + (engine.installed ? ' installed' : '') + '">' +
+      '<div class="engine-card-head"><b>' + escapeHtml(engine.name || engine.id) + '</b>' +
+      engineOkBadge(engine.installed, 'INSTALLED', 'NOT INSTALLED') + '</div>' +
+      '<div class="engine-card-meta">' + escapeHtml(engine.version || 'version unknown') +
+      (engine.license ? ' · ' + escapeHtml(engine.license) : '') + '</div>' +
+      (engine.executable ? '<div class="engine-card-path mono">' + escapeHtml(engine.executable) + '</div>' : '') +
+      (actions ? '<div class="engine-card-actions">' + escapeHtml(actions) + '</div>' : '') +
+      (!engine.installed && engine.install_hint ? '<div class="engine-card-hint">' + escapeHtml(engine.install_hint) + '</div>' : '') +
+      '</div>';
+  }).join('');
+  const badge = $('#engine-badge');
+  if (badge) badge.textContent = data.installed + '/' + data.count + ' INSTALLED · NEVER BUNDLED';
+}
+
+async function loadEngines(refresh) {
+  if (enginesLoading) return;
+  enginesLoading = true;
+  try {
+    const data = await api('/api/engines?refresh=' + (refresh ? '1' : '0'), { timeout: 120000 });
+    renderEngineCards(data);
+  } catch (err) {
+    const box = $('#engine-cards');
+    if (box) box.innerHTML = '<div class="dim" style="font-size:11.5px">Engine detection failed: ' +
+      escapeHtml(err.message) + '</div>';
+    toast('Engine detection failed: ' + err.message, 'err');
+  } finally {
+    enginesLoading = false;
+  }
+}
+
+function renderEngineProjects(data) {
+  const box = $('#engine-projects');
+  const count = $('#engine-project-count');
+  if (count) count.textContent = String(data.count || 0);
+  if (!box) return;
+  const items = Array.isArray(data.projects) ? data.projects : [];
+  if (!data.ok) {
+    box.innerHTML = '<div class="place-result err">' + escapeHtml(data.error || 'Project detection failed') + '</div>';
+    return;
+  }
+  if (!items.length) {
+    box.innerHTML = '<div class="dim" style="font-size:11.5px;margin-top:10px">' +
+      escapeHtml(data.message || 'No engine project markers found at this path.') + '</div>';
+    return;
+  }
+  box.innerHTML = items.map((project, index) => {
+    const presets = Array.isArray(project.presets) ? project.presets.map(p => p.name).filter(Boolean) : [];
+    const targets = Array.isArray(project.targets) ? project.targets : [];
+    return '<div class="engine-project">' +
+      '<div class="engine-project-head"><b>' + escapeHtml(project.engine) + '</b> · ' +
+      escapeHtml(project.name || '') + engineOkBadge(project.engine_installed, 'INSTALLED', 'MISSING') + '</div>' +
+      '<div class="engine-project-path mono">' + escapeHtml(project.path || '') + '</div>' +
+      (targets.length ? '<div class="engine-project-meta">targets: ' + escapeHtml(targets.join(', ')) + '</div>' : '') +
+      (presets.length ? '<div class="engine-project-meta">presets: ' + escapeHtml(presets.join(', ')) + '</div>' : '') +
+      (!project.engine_installed && project.install_hint ? '<div class="engine-card-hint">' + escapeHtml(project.install_hint) + '</div>' : '') +
+      '<button class="btn ghost sm" data-engine-use="' + index + '">USE</button>' +
+      '</div>';
+  }).join('');
+  $$('#engine-projects [data-engine-use]').forEach(button => {
+    button.addEventListener('click', () => {
+      const project = items[Number(button.dataset.engineUse)];
+      if (!project) return;
+      const pathInput = $('#engine-path');
+      const engineInput = $('#engine-name');
+      if (pathInput) pathInput.value = project.path || '';
+      if (engineInput) engineInput.value = project.engine || '';
+      toast('Selected ' + project.engine + ' project · ' + (project.name || project.path), '');
+    });
+  });
+}
+
+async function detectEngineProjects() {
+  const path = $('#engine-path') ? $('#engine-path').value.trim() : '';
+  if (!path) {
+    toast('Enter a project folder or engine project file', 'err');
+    return;
+  }
+  const button = $('#btn-engine-detect');
+  if (button) button.disabled = true;
+  try {
+    const data = await api('/api/engines', {
+      method: 'POST',
+      body: { action: 'detect', path, depth: Number($('#engine-depth')?.value || 2) || 2 },
+      timeout: 120000,
+    });
+    renderEngineProjects(data);
+    if (data.ok) toast('Detected ' + (data.count || 0) + ' engine project(s)', '');
+  } catch (err) {
+    renderEngineProjects({ ok: false, error: err.message });
+    toast(err.message, 'err');
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function runEngineAction() {
+  const path = $('#engine-path') ? $('#engine-path').value.trim() : '';
+  if (!path) {
+    toast('Enter the project path first', 'err');
+    return;
+  }
+  const button = $('#btn-engine-run');
+  const stateLabel = $('#engine-state');
+  const log = $('#engine-log');
+  if (button) button.disabled = true;
+  if (stateLabel) stateLabel.textContent = 'RUNNING…';
+  if (log) log.textContent = 'Running engine action. Compiles and exports can take several minutes…';
+  const body = {
+    action: $('#engine-action') ? $('#engine-action').value : 'build',
+    path,
+    engine: $('#engine-name') ? $('#engine-name').value : '',
+    target: $('#engine-target') ? $('#engine-target').value : '',
+    preset: $('#engine-preset') ? $('#engine-preset').value.trim() : '',
+    output: $('#engine-output') ? $('#engine-output').value.trim() : '',
+    debug: !!$('#engine-debug')?.checked,
+    headless: !!$('#engine-headless')?.checked,
+  };
+  try {
+    const data = await api('/api/engines', { method: 'POST', body, timeout: 7200000 });
+    const lines = [];
+    lines.push((data.ok ? 'OK' : 'FAILED') + ' · ' + (data.engine || body.engine || 'auto') +
+      ' · ' + (data.action || body.action) + ' · ' + (data.duration_ms || 0) + ' ms');
+    if (data.project) lines.push('project: ' + data.project + ' · ' + (data.project_path || ''));
+    if (data.engine_version) lines.push('engine: ' + (data.engine_name || '') + ' ' + data.engine_version);
+    if (data.artifact) lines.push('artifact: ' + data.artifact);
+    if (data.output) lines.push('output: ' + data.output);
+    if (data.message) lines.push('message: ' + data.message);
+    if (data.warning) lines.push('warning: ' + data.warning);
+    if (data.error) lines.push('error: ' + data.error);
+    if (data.install_hint) lines.push('install hint: ' + data.install_hint);
+    if (data.stdout) lines.push('\nSTDOUT (tail):\n' + data.stdout);
+    if (data.stderr) lines.push('\nSTDERR (tail):\n' + data.stderr);
+    if (log) log.textContent = lines.join('\n');
+    toast(data.ok ? 'Engine action complete' : (data.error || 'Engine action failed'), data.ok ? '' : 'err');
+    if (data.ok && (data.action === 'build' || data.action === 'export')) loadEngines(false);
+  } catch (err) {
+    if (log) log.textContent = 'Engine action failed:\n' + err.message;
+    toast(err.message, 'err');
+  } finally {
+    if (button) button.disabled = false;
+    if (stateLabel) stateLabel.textContent = 'IDLE';
+  }
+}
+
+$('#btn-engines-refresh')?.addEventListener('click', () => loadEngines(true));
+$('#btn-engine-detect')?.addEventListener('click', detectEngineProjects);
+$('#btn-engine-run')?.addEventListener('click', runEngineAction);
+$('#engine-path')?.addEventListener('keydown', event => {
+  if (event.key === 'Enter') detectEngineProjects();
+});
+
 /* ---------------- publish ---------------- */
 let publishBusy = false;
 
@@ -3577,7 +3748,7 @@ setInterval(() => {
   if (state.view === 'chat' && state.status) updateSessionStats();
 }, 6000);
 const initialView = location.hash.replace('#', '');
-if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'env'].includes(initialView)) switchView(initialView, true);
+if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'engines', 'env'].includes(initialView)) switchView(initialView, true);
 checkUpdate();
 setInterval(checkUpdate, 6 * 60 * 60 * 1000);
 chatInput.focus();

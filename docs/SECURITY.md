@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.0.8 · Last reviewed 2026-11-20
+Version 1.0.9 · Last reviewed 2026-11-20
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:
@@ -262,6 +262,22 @@ the local Git credential helper, in that order. `/api/publish/status` reports
 only token presence and source, never a value. Publishing is an explicit
 button/API action; the agent's general publish guard remains separate.
 
+### 4.11 Game engine adapters
+
+`/api/engines` and `codeforge_engine` do not ship or download an engine. They
+locate an engine you installed, read the project's marker files and invoke the
+engine's own command-line tools with a bounded timeout. This keeps the trust
+boundary in the engine vendor's installer and licensing, and means the adapter
+adds no new download channel.
+
+Engine builds and exports execute code from the game project (editor scripts,
+build hooks, plugins and asset importers) under your user account, exactly like
+running a compiler on source you supplied. Treat an unknown game project the
+same way as unknown source code: review it, or build it in a VM or sandbox.
+Detection only reads executables, paths and version strings; it never runs a
+project merely to inspect it. A missing engine returns an install hint and does
+not attempt a silent install.
+
 ---
 
 ## 5. What is NOT defended
@@ -280,6 +296,7 @@ button/API action; the agent's general publish guard remains separate.
 | Data at rest | Workspace, memory and models are unencrypted | Use full-disk encryption (BitLocker/FileVault/LUKS); delete `memory/` to reset the brain |
 | Memory poisoning | A wrong or malicious lesson is recalled later with high weight | Review `memory/memories.jsonl`, delete bad lines, or set `memory.enabled` to false |
 | Prompt injection via research | Untrusted snippets enter the prompt | Results are filtered and labelled as evidence; keep `online.research` off for sensitive work |
+| Untrusted game project | Engine build/export executes project scripts and plugins as you | Build unknown projects in a VM or sandbox; review project files first |
 | Online provider logging | Prompts, memory hits and snippets reach a third party | Leave `llm.online.api_key` empty for fully local operation |
 
 ---
@@ -382,6 +399,7 @@ icacls workspace /inheritance:r /grant:r "<user>:(OI)(CI)(F)"
 | Any host passed to `/api/api-call` or `codeforge_api` | explicit API call | method, URL, headers, query and body supplied by the caller; the injected secret stays in the request only |
 | `api.github.com`, `uploads.github.com`, `api.gitcode.com` | Publish tab or approved publish action | repository, release metadata and uploaded asset bytes |
 | Any host the agent is explicitly asked to fetch or publish to | agent web tools or an approved publish action | the command or content the task requires |
+| Game engine vendors | never by CodeForge | no traffic: engines are user-installed and never downloaded or bundled |
 
 If you point `openai_url` or `llm.online.base_url` at a cloud provider, **your
 code and prompts leave the machine**. That is a configuration decision, not a

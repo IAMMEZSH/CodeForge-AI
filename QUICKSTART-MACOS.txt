@@ -1,4 +1,4 @@
-CodeForge AI 1.0.8 — macOS quick start
+CodeForge AI 1.0.9 — macOS quick start
 ======================================
 
 This package is a source bundle for Intel and Apple Silicon Macs. It builds
@@ -27,7 +27,7 @@ Verify:
 2. Build and test
 -----------------
 
-    cd CodeForge-AI-1.0.8
+    cd CodeForge-AI-1.0.9
     python3 aux-python/bootstrap.py --all
 
 Outputs:
@@ -62,7 +62,7 @@ Server only, without Python:
 
 If macOS quarantines a downloaded archive or binary:
 
-    xattr -dr com.apple.quarantine CodeForge-AI-1.0.8
+    xattr -dr com.apple.quarantine CodeForge-AI-1.0.9
 
 5. First model
 --------------
@@ -72,7 +72,15 @@ fits your unified memory (Qwen3 4B needs about 6 GB), then press
 "Start inference". The runtime resolver picks macos-arm64 or macos-x64.
 Inference binds to 127.0.0.1:8080.
 
-6. Optional background service
+6. Optional: game engines
+-------------------------
+
+Install Godot 4, Unity, Unreal Engine 5, Cocos Creator or LOVE yourself, then
+use the Engines tab (or POST /api/engines) to detect projects and build,
+export or run them with the engine's own CLI. CodeForge never downloads or
+bundles an engine; a missing engine reports the exact install hint.
+
+7. Optional background service
 ------------------------------
 
 A launchd user agent template is in docs/PLATFORMS.md section 5.3.

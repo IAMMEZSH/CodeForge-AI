@@ -19,7 +19,7 @@
   .clients .node { min-height: 88px; }
   .clients .n-icon { font-size: 18px; color: var(--cyan); }
 
-  .server { padding: 16px 18px; display: grid; grid-template-columns: 1.15fr 1.2fr 1.2fr 0.9fr; gap: 12px; }
+  .server { padding: 16px 18px; display: grid; grid-template-columns: 1fr 1.1fr 1.1fr 1fr 0.95fr; gap: 10px; }
   .server .mod {
     border-left: 2px solid rgba(139,92,246,0.55);
     padding-left: 12px;
@@ -96,7 +96,7 @@
     <div class="layer">
       <div class="layer-label"><b>01 · CLIENTS</b><i></i>Any screen</div>
       <div class="clients">
-        <div class="node"><div class="n-icon">▣</div><div class="n-title">Web console</div><div class="n-sub">Chat · Debug · Models · Keys · Inspect · Publish</div></div>
+        <div class="node"><div class="n-icon">▣</div><div class="n-title">Web console</div><div class="n-sub">Chat · Debug · Models · Keys · Publish · Inspect · Engines · Env</div></div>
         <div class="node"><div class="n-icon">◈</div><div class="n-title">Win32 control center</div><div class="n-sub">C++17 native shell + tray</div></div>
         <div class="node"><div class="n-icon">▤</div><div class="n-title">Android thin client</div><div class="n-sub">Kotlin · WebView</div></div>
         <div class="node"><div class="n-icon">▥</div><div class="n-title">iOS thin client</div><div class="n-sub">SwiftUI · WKWebView</div></div>
@@ -110,8 +110,9 @@
       <div class="panel violet server">
         <div class="mod"><span>REST API</span><h4>Local control plane</h4><p>8 MB body cap, JSON content-type and same-origin guards, request timeouts, static console.</p></div>
         <div class="mod"><span>AGENT</span><h4>Command + tool loop</h4><p>Shell · build · test · files · HTTP/secret API · crawl · research · publish. Steps 1–512.</p></div>
-        <div class="mod"><span>INSPECT</span><h4>Static analysis</h4><p>Hashes · entropy · imports · secrets · risk score · read-only quarantine · integrity re-hash.</p></div>
-        <div class="mod"><span>RUNTIME</span><h4>Lifecycle</h4><p>Resumable downloads, SHA-256 verify, llama.cpp health probe, process-tree stop.</p></div>
+        <div class="mod"><span>INSPECT</span><h4>Static analysis</h4><p>Hashes · entropy · imports · secrets · risk score · quarantine · integrity re-hash.</p></div>
+        <div class="mod"><span>ENGINES</span><h4>Game adapters</h4><p>Godot 4 · Unity · Unreal 5 · Cocos · LÖVE. Detect, build, export, run; never bundled.</p></div>
+        <div class="mod"><span>RUNTIME</span><h4>Lifecycle</h4><p>Resumable downloads · SHA-256 verify · llama.cpp health probe · process-tree stop.</p></div>
       </div>
     </div>
 
@@ -183,7 +184,7 @@
     <span class="sep"></span>
     <span>C17 · C++17 · Java 17 · Python 3</span>
     <span class="sep"></span>
-    <span>CodeForge AI v1.0.8</span>
+    <span>CodeForge AI v1.0.9</span>
   </div>
 </div>
 </body>

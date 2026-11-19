@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.8 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.0.9 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -56,14 +56,15 @@ supervise and kill process trees.
                 │ spawns / HTTP
 ┌───────────────▼──────────────────────────────────────────────────────────┐
 │ Web console  server-java/web/console                                    │
-│  Chat · Debug · Models · Inspect · Publish · Environment                 │
+│  Chat · Debug · Models · Keys · Publish · Inspect · Engines · Env        │
 └───────────────┬──────────────────────────────────────────────────────────┘
                 │ REST /api/*
 ┌───────────────▼──────────────────────────────────────────────────────────┐
 │ Java control server  com.sun.net.httpserver on 127.0.0.1:8765           │
 │  ApiHandler · ModelManager · RuntimeManager · MemoryStore · ProjectIndex │
 │  OnlineService · AgentShell · ToolProvisioner · TestRunner · KeyStore    │
-│  ApiClient · Publisher · CodeInspector · CoreBridge · AppSettings        │
+│  ApiClient · Publisher · CodeInspector · EngineSupport · CoreBridge      │
+│  AppSettings                                                             │
 └───┬──────────────┬──────────────┬──────────────┬────────────────────────┘
     │ JSON command │ HTTPS        │ HTTPS        │ local files
 ┌───▼───────────┐ ┌▼────────────┐ ┌▼───────────┐ ┌▼─────────────────────┐
@@ -387,8 +388,8 @@ is true; it is a policy layer, not an OS sandbox, because the process runs
 with the user's privileges.
 
 The agent also exposes file tools (`read`, `list`, `write`, `edit`), `test`,
-web tools (`crawl`, `deep_search`, `corpus`), `api` and `inspect`. The step
-limit is clamped to 1–512 and defaults to 128.
+web tools (`crawl`, `deep_search`, `corpus`), `api`, `inspect` and `engine`.
+The step limit is clamped to 1–512 and defaults to 128.
 
 ### 5.8 Static inspection pipeline
 
@@ -430,9 +431,41 @@ GET /api/update[?refresh=1]
 
 The console calls this endpoint on load and every six hours, then shows a
 dismissible banner when `update_available` is true. No prompt, file, key or
-usage data is sent. Builds older than 1.0.8 do not contain this checker, so
-their first move to 1.0.8 is a manual download; from 1.0.8 onward the banner
+usage data is sent. Builds older than 1.0.9 do not contain this checker, so
+their first move to 1.0.9 is a manual download; from 1.0.9 onward the banner
 reaches installed copies without a manual check.
+
+### 5.10 Game engine adapters
+
+```
+GET /api/engines[?refresh=1]
+  → EngineSupport.status: detect five adapters (60 s cache)
+       env vars → PATH → Unity Hub → Epic Games → standard folders
+       probe <engine> --version for the reported version
+  → each entry: installed, executable, engine_root, version, source,
+                actions, install_hint, license, capabilities{bundled:false}
+
+POST /api/engines {action, path, engine, target, preset, output, ...}
+  detect → findProjects: walk with a depth cap, match real markers
+  build  → engine-specific setup (Godot import, Unity batchmode compile,
+           Unreal editor target, Cocos build, LÖVE ZIP packaging)
+  export → Godot preset export, Unity BuildSettings player,
+           Unreal BuildCookRun, Cocos Creator build, LÖVE fusion
+  run    → launch project or the exported artifact
+```
+
+The adapter layer shells out to the user's own engine installation. It never
+downloads, installs or redistributes an engine, so a missing engine is a
+reported failure with an exact install hint rather than an attempt to fetch
+gigabytes of SDK. Every export is verified against the artifact on disk
+(Godot executable, Unity player, Unreal package, Cocos `index.html`) before
+`ok:true` is returned. LÖVE is the exception that needs no engine for `build`:
+the `.love` file is a plain ZIP written by Java; `export` fuses it with
+`love.exe` only when that binary is present.
+
+Detected engine status is also injected into the agent prompt, and the
+`codeforge_engine` tool maps one-to-one onto `POST /api/engines`, so an
+online or offline model drives the same adapters as the console.
 
 ---
 
@@ -701,35 +734,42 @@ for the two reference implementations.
 
 | File | Lines | Role |
 | --- | ---: | --- |
-| `core/main.cpp` | 512 | CLI entry, command dispatch, status, self-test |
+| `core/main.cpp` | 523 | CLI entry, command dispatch, status, self-test |
 | `core/debugger.cpp` | 358 | Repair loop, block extraction, route, report |
 | `core/runners.cpp` | 488 | Detection, compilers, execution, toolchains |
-| `core/process.cpp` | 446 | Win32/POSIX process supervision |
-| `core/llm.cpp` | 274 | Backend detection, HTTP clients, prompts |
-| `core/http.cpp` | 273 | WinHTTP / libcurl |
+| `core/process.cpp` | 594 | Win32/POSIX process supervision |
+| `core/llm.cpp` | 646 | Backend detection, HTTP clients, prompts |
+| `core/http.cpp` | 335 | WinHTTP / libcurl |
 | `core/util.cpp` | 292 | Encoding, file IO, formatting |
-| `core/config.cpp` | 163 | Config load + defaults + env overrides |
+| `core/config.cpp` | 166 | Config load + defaults + env overrides |
 | `core/json.hpp` | 443 | JSON parser/writer |
 | `native-c/native_tool.c` | 300 | Hash/verify/sysinfo CLI |
 | `native-c/sha256.c` | 241 | SHA-256 implementation |
-| `server-java/.../ModelManager.java` | 1176 | Registry, downloads, extraction, runtime files |
-| `server-java/.../ApiHandler.java` | 2438 | Routes, chat/agent/debug orchestration, progress/cancel, static serving |
-| `server-java/.../AgentShell.java` | 1211 | Cross-platform command execution, app discovery, software reference, publish guard |
-| `server-java/.../ToolProvisioner.java` | 1436 | Portable toolchains, package-manager mappings, PATH refresh, tool discovery |
-| `server-java/.../KeyStore.java` | 740 | Provider vault, active key mirroring, agent settings, token limit |
-| `server-java/.../OnlineService.java` | 1208 | Parallel search, page fetch, relevance filter, result persistence |
-| `server-java/.../MemoryStore.java` | 496 | Tokenizer, scoring, dedupe, pruning |
-| `server-java/.../ProjectIndex.java` | 325 | Workspace scan, search, context builder |
-| `server-java/.../RuntimeManager.java` | 296 | llama-server lifecycle |
-| `server-java/.../AppSettings.java` | 262 | Typed config + environment |
-| `server-java/.../CoreBridge.java` | 194 | Core spawn + JSON pipe + per-request cancellation |
+| `server-java/.../ApiHandler.java` | 5042 | Routes, chat/agent/debug orchestration, tool parsing, progress/cancel, static serving |
+| `server-java/.../EngineSupport.java` | 1984 | Engine detection, project discovery, build/export/run adapters |
+| `server-java/.../CodeInspector.java` | 2596 | Static scanner, reports, quarantine, integrity, shredding |
+| `server-java/.../OnlineService.java` | 1891 | Parallel search, page fetch, relevance filter, result persistence |
+| `server-java/.../ToolchainManager.java` | 1576 | Language runtime downloads and provisioning |
+| `server-java/.../ModelManager.java` | 1442 | Registry, downloads, extraction, runtime files |
+| `server-java/.../ToolProvisioner.java` | 1457 | Portable toolchains, package-manager mappings, PATH refresh, tool discovery |
+| `server-java/.../AgentShell.java` | 1291 | Cross-platform command execution, app discovery, software reference, publish guard |
+| `server-java/.../BuildDelivery.java` | 1222 | Build-and-deliver packaging for every supported language |
+| `server-java/.../KeyStore.java` | 854 | Provider vault, active key mirroring, agent settings, token limit |
+| `server-java/.../FileService.java` | 828 | Exact-path writes, placement, launchers |
+| `server-java/.../Publisher.java` | 761 | GitHub/GitCode release publishing |
+| `server-java/.../MemoryStore.java` | 488 | Tokenizer, scoring, dedupe, pruning |
+| `server-java/.../RuntimeManager.java` | 471 | llama-server lifecycle |
+| `server-java/.../ProjectIndex.java` | 345 | Workspace scan, search, context builder |
+| `server-java/.../AppSettings.java` | 301 | Typed config + environment |
+| `server-java/.../CoreBridge.java` | 198 | Core spawn + JSON pipe + per-request cancellation |
+| `server-java/.../UpdateChecker.java` | 200 | Public release index and version comparison |
 | `server-java/.../NativeTools.java` | 175 | Native helper bridge |
 | `server-java/.../ServerMain.java` | 183 | Server bootstrap, shutdown |
-| `server-java/.../Json.java` | 343 | Java JSON |
-| `client/main.cpp` | 921 | Win32 shell |
-| `server-java/web/console/app.js` | 1293 | UI logic, live trace, interjection, provenance chips |
-| `server-java/web/console/styles.css` | 1043 | UI styling |
-| `aux-python/bootstrap.py` | 383 | Build orchestration |
+| `server-java/.../Json.java` | 393 | Java JSON |
+| `client/main.cpp` | 918 | Win32 shell |
+| `server-java/web/console/app.js` | 3753 | UI logic, live trace, interjection, provenance chips, engine view |
+| `server-java/web/console/styles.css` | 1579 | UI styling |
+| `aux-python/bootstrap.py` | 429 | Build orchestration |
 | `aux-python/mock_llm.py` | 282 | Development backend |
 
 ---
@@ -749,8 +789,13 @@ for the two reference implementations.
   full download/verify/start path is exercised on Windows x64, and the POSIX
   build is compile-validated. Confirm the selected asset with
   `GET /api/status → runtime.platform`.
-- There is no GPU configuration UI. `llama-server` runs with CPU defaults; edit
-  the command in `RuntimeManager` or run your own server for GPU builds.
+- GPU acceleration depends on the CUDA llama.cpp build being installed; the
+  runtime panel selects Auto/CPU/CUDA and the server adds `-ngl 99` for CUDA.
+  There is no per-layer offload slider, and non-NVIDIA GPUs use the CPU build.
+- Engine adapters require the engine's own editor/SDK to be installed and
+  licensed by you. Project-specific build settings, scenes, plugins and
+  signing are the engine's responsibility; CodeForge verifies the artifact but
+  does not configure engine projects.
 - Model downloads trust the configured mirror/Hugging Face TLS and pinned file
   names; there is no independent signature layer.
 - Memory retrieval is lexical (CJK bigrams and Latin tokens), not embedding
