@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.1.0 · 2026-11-20**
+**Version 1.2.0 · 2026-11-21**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -672,7 +672,7 @@ Notes:
 
 | Element | Function |
 |---|---|
-| **Neural Console** head | Active model badge; **AUTO COMPILE** toggle; **Save code** button; **New session** clears the conversation |
+| **Neural Console** head | Active model badge; **AUTO COMPILE** toggle (persisted as `agent.auto_compile`); **Save code** button; **New session** clears the conversation |
 | Message stream | User and assistant bubbles with markdown |
 | Composer | Multi-line input, grows up to 190 px; stays editable while the model runs |
 | Send / Interject button | Submits the message; while a turn is running it becomes **INTERJECT** (with text) or **STOP** (empty box) |
@@ -816,12 +816,15 @@ model at all:
 | Place any file or folder | Environment → Place any file or folder, `/copy <source> <destination>`, `/move <source> <destination>`, or “把 C:\path\a.pdf 放到 D盘根目录” | Exact destination, `desktop`/`桌面`, or a bare drive (`D`, `D盘`, `D盘根目录`; C works too); copies or moves one file or a whole folder, retries locked files and asks before overwriting |
 | Create a launcher anywhere | Environment → Launcher anywhere, `/launcher <path>`, or “create a shortcut in D:\apps” | Windows `.lnk`, Linux `.desktop`, macOS `.command` |
 
-**AUTO COMPILE** is a toggle in the chat header. When enabled it compiles and
-runs the first runnable block of every new answer, preferring the language you
-asked for. It is persisted in `localStorage` as `cf-auto-run`, applies only to
-new answers (never to re-rendered history), and shows the result inline:
-exit code, duration, stdout/stderr, the session folder, or a live preview.
-If the answer has no runnable block nothing happens.
+**AUTO COMPILE** is a toggle in the chat header and is now the same persisted
+setting as `agent.auto_compile` in Environment → Command Agent. When enabled,
+the first runnable block of every new answer still runs inline for a quick
+preview, and every generated program is additionally built, delivered to the
+destination you named, opened and verified as described in §5.9.1. The setting
+is stored on the server, mirrored in `localStorage` as `cf-auto-run`, and applies
+only to new answers (never to re-rendered history). If the answer has no
+runnable block nothing happens inline; build delivery is handled by the agent
+tool loop.
 
 **SAVE** opens a path dialog pre-filled with the last destination. Each file in
 the answer is listed with its own optional path, so one answer can save
@@ -897,7 +900,7 @@ which account instead of retrying.
 installed applications, the deduplicated auto-provisionable list and the online
 learning state. It edits `agent.max_steps` (1–512, default 128),
 `agent.command_timeout_sec`, `agent.install_timeout_sec`,
-`agent.auto_install_tools`, `agent.auto_learn_software` and
+`agent.auto_install_tools`, `agent.auto_compile`, `agent.auto_learn_software` and
 `agent.allow_publish`, saves them to `config.json`, and can run a test command
 locally without calling a model. The
 test result shows the exit code, duration, provisioning outcome and output;
@@ -945,6 +948,38 @@ errors, the diagnostics return to the model, which fixes the source and calls
 the tool again. The agent never hands back only unbuilt source and never asks
 the user to compile, copy, move or install anything manually. The same
 operation is available directly as `POST /api/agent/build`.
+
+### 5.9.1 Auto-compile, open and verify
+
+The chat-header **AUTO COMPILE** toggle and Environment → Command Agent edit the
+same setting, `agent.auto_compile` (default `true`). While it is on:
+
+- Every explicit `<codeforge_build>` call and the automatic delivery fallback
+  carry `open_after_build: true`, so the host — not the model — performs the
+  build, placement and launch.
+- Generated Python files are import-scanned and missing packages are installed
+  through domestic and international pip mirrors. Node projects install missing
+  npm dependencies, Go modules resolve before the build, and every delivered
+  artifact runs a startup self-check.
+- GUI artifacts are launched visibly: Python GUI apps with `pythonw`, Java GUI
+  apps with `javaw`, native executables directly, and web deliveries in the
+  default browser. On Windows the host polls `MainWindowHandle` and
+  `MainWindowTitle` for up to 15 seconds.
+- Success returns `opened`, `open_check` (`window-open`, `process-alive`,
+  `startup-verified` or `browser`) and `window_title`. A build result with a
+  live process but no window returns `open_check:"process-alive"` plus an
+  `open_warning`.
+- A process that exits or never draws a window returns `phase:"verify"` with
+  the captured `open_log`. That result re-enters the automatic repair loop, so
+  the next step fixes the runtime or window error and rebuilds. The agent is
+  instructed not to claim success until `opened` is true.
+- Rebuilding the same artifact closes the previous window opened by the host,
+  so repeated attempts do not accumulate stale instances.
+
+Turning the switch off keeps compilation and delivery available through explicit
+build calls, but skips the visible launch and window verification. Use that mode
+for CI-like packaging. The switch is persisted in `config.json` and reported by
+`GET /api/agent` as `auto_compile`.
 
 ### 5.10 Static inspection, quarantine and shredding
 
@@ -1004,7 +1039,7 @@ modified.
 The **Publish** rail item drives GitHub and GitCode releases through their REST
 APIs. It never prints or returns a token.
 
-![Publish view with GitHub and GitCode targets, tag v1.1.0 and the local asset folder](images/console-publish.png)
+![Publish view with GitHub and GitCode targets, tag v1.2.0 and the local asset folder](images/console-publish.png)
 
 | Field | Meaning |
 |---|---|
@@ -1880,6 +1915,7 @@ and the Environment → Command Agent panel.
 | `command_timeout_sec` | `3600` | 1–86400 | Default timeout for a shell command |
 | `max_feedback_chars` | `48000` | 4000–200000 | Size budget for tool output returned to the model; also drives context compaction |
 | `auto_install_tools` | `true` | boolean | Download a missing command, refresh PATH and retry once |
+| `auto_compile` | `true` | boolean | Compile every generated program, deliver it to the requested location, launch it and verify a real window; failures re-enter the repair loop. Shared with the chat-header AUTO COMPILE toggle |
 | `install_timeout_sec` | `1800` | 60–86400 | Maximum time for one tool installation |
 | `auto_learn_software` | `true` | boolean | Research a missing simple command online and feed the sources back into the loop |
 | `allow_publish` | `false` | boolean | Allow public/remote publishing actions. Local builds, commits, packages and exports are never blocked |
@@ -1989,11 +2025,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.1.0-source.zip`
-- `CodeForge-AI-1.1.0-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.1.0-docs.zip`
+- `CodeForge-AI-1.2.0-source.zip`
+- `CodeForge-AI-1.2.0-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.2.0-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.1.0.json`
+- `manifest-1.2.0.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.

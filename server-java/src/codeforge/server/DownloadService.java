@@ -1516,7 +1516,7 @@ public final class DownloadService {
 
     private static String userAgent() {
         return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                + "(KHTML, like Gecko) Chrome/126.0 Safari/537.36 CodeForge-AI/1.1.0";
+                + "(KHTML, like Gecko) Chrome/126.0 Safari/537.36 CodeForge-AI/1.2.0";
     }
 
     private static String hex(byte[] bytes) {

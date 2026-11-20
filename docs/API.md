@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.1.0 · Java 17 HTTP server · C++ core bridge
+Version 1.2.0 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -165,7 +165,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -214,7 +214,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -334,19 +334,19 @@ check. Only release metadata is fetched — no prompt, file, key or usage data.
 {
   "ok": true,
   "enabled": true,
-  "current": "1.1.0",
-  "latest": "1.1.0",
+  "current": "1.2.0",
+  "latest": "1.2.0",
   "update_available": true,
   "source": "gitcode",
-  "name": "CodeForge AI v1.1.0",
+  "name": "CodeForge AI v1.2.0",
   "published_at": "2026-12-01T10:00:00+08:00",
-  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.1.0",
+  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.2.0",
   "checked_at": "2026-12-01T02:10:00Z"
 }
 ```
 
 With `"updates": {"enabled": false}` in `config.json` the response is
-`{"ok": true, "enabled": false, "current": "1.1.0", "update_available": false}`.
+`{"ok": true, "enabled": false, "current": "1.2.0", "update_available": false}`.
 If both release indexes are unreachable, `ok` is `false` with an `error`
 string; the console shows no banner.
 
@@ -734,7 +734,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -1187,6 +1187,7 @@ capability cache and rescans tools and applications.
   "max_feedback_chars": 48000,
   "auto_install_tools": true,
   "install_timeout_sec": 1800,
+  "auto_compile": true,
   "auto_learn_software": true,
   "allow_publish": false,
   "capabilities": {
@@ -1210,8 +1211,14 @@ capability snapshot.
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/agent \
   -H "Content-Type: application/json" \
-  -d '{"max_steps":96,"auto_install_tools":true,"auto_learn_software":true}'
+  -d '{"max_steps":96,"auto_install_tools":true,"auto_compile":true,"auto_learn_software":true}'
 ```
+
+`auto_compile` (default `true`) is the switch shared with the chat-header AUTO
+COMPILE toggle. When on, explicit builds and the automatic delivery fallback
+compile, deliver, launch and verify the artifact, and a missing window re-enters
+the repair loop. When off, builds and delivery still work but no visible launch
+or window check is performed.
 
 `allow_publish` is the safety boundary: when false (default), remote/public
 actions such as `git push`, release creation, registry/container pushes,
@@ -1428,7 +1435,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.1.0", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.2.0", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1766,7 +1773,7 @@ result into a per-app folder, and creates a real shortcut on the Desktop.
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/agent/build \
   -H "Content-Type: application/json" \
-  -d '{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}'
+  -d '{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false,"open_after_build":true}'
 ```
 
 | Field | Type | Required | Notes |
@@ -1777,16 +1784,24 @@ curl -s -X POST http://127.0.0.1:8765/api/agent/build \
 | `name` | string | no | App and folder name (defaults to the source filename) |
 | `gui` | boolean | no | Windowed mode: `.pyw` for Python, `WinExe` for C# |
 | `destination` | string | no | Target folder; empty means the current user's Desktop |
+| `open_after_build` | boolean | no | Launch and verify the delivered artifact. Defaults to `agent.auto_compile`; web deliveries open in the browser, GUI apps must produce a visible window |
+| `auto_install` | boolean | no | Allow dependency and toolchain installation for this build (defaults to the agent auto-install settings) |
 
 Response: `ok`, `success`, `language`, `language_id`, `name`, `phase` (`ready`
-on success), `runtime`, `compiler`, `folder`, `artifact`, `artifact_kind`,
-`launcher`, `shortcut`, `command`, `stdout`, `stderr`, `exit_code`,
-`duration_ms`, `message`. C, C++, Go, Rust and C# produce a native executable;
+on success, `verify` when launch verification failed), `runtime`, `compiler`,
+`folder`, `artifact`, `artifact_kind`, `launcher`, `shortcut`, `command`,
+`open_command`, `opened`, `open_check` (`window-open`, `process-alive`,
+`startup-verified` or `browser`), `window_title`, `opened_pid`, `open_log`,
+`open_warning`, `open_error`, `stdout`, `stderr`, `exit_code`, `duration_ms`,
+`message`. C, C++, Go, Rust and C# produce a native executable;
 Java produces a runnable jar with a launcher; Python, JavaScript, TypeScript and
 PHP produce script plus interpreter-pinned launcher; HTML/CSS produces an
 `index.html` page and a shortcut. On a compiler error `ok` is false and
 `stderr`/`stdout` carry the diagnostics so the model can fix the source and
-retry. In chat the same tool is emitted as
+retry. If `open_after_build` is true and the app exits or shows no window within
+15 seconds, `ok` is false with `phase:"verify"` and `open_log` carries the
+captured output; the agent repair loop fixes the runtime or window error and
+rebuilds. In chat the same tool is emitted as
 `<codeforge_build>{...}</codeforge_build>`; legacy XML and DSML envelopes with
 a bare JSON body are accepted too.
 
@@ -2011,7 +2026,7 @@ from the release folder:
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/publish \
   -H "Content-Type: application/json" \
-  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.1.0","name":"CodeForge AI v1.1.0","body":"…","folder":"release","overwrite":true,"delete_older":true}'
+  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.2.0","name":"CodeForge AI v1.2.0","body":"…","folder":"release","overwrite":true,"delete_older":true}'
 ```
 
 | Field | Type | Default | Notes |

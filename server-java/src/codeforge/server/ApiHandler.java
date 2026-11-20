@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.1.0";
+    public static final String VERSION = "1.2.0";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private static final class BadRequest extends IOException {
@@ -723,10 +723,13 @@ public final class ApiHandler implements HttpHandler {
             case "/api/agent/build": {
                 requirePost(method);
                 Map<String, Object> request = readJsonObject(exchange);
+                Map<String, Object> cfg = keyStore.agentSettings();
                 if (!request.containsKey("auto_install")) {
-                    Map<String, Object> cfg = keyStore.agentSettings();
                     request.put("auto_install", Json.bool(cfg, "auto_install_tools", true)
                             && settings.autoToolchain());
+                }
+                if (!request.containsKey("open_after_build")) {
+                    request.put("open_after_build", Json.bool(cfg, "auto_compile", true));
                 }
                 sendJson(exchange, 200, buildDelivery.build(request));
                 return;
@@ -1495,6 +1498,7 @@ public final class ApiHandler implements HttpHandler {
                     "max_steps", Json.integer(agentCfg, "max_steps", 128),
                     "command_timeout_sec", Json.integer(agentCfg, "command_timeout_sec", 3600),
                     "auto_install_tools", Json.bool(agentCfg, "auto_install_tools", true),
+                    "auto_compile", Json.bool(agentCfg, "auto_compile", true),
                     "install_timeout_sec", Json.integer(agentCfg, "install_timeout_sec", 1800),
                     "auto_learn_software", Json.bool(agentCfg, "auto_learn_software", true),
                     "allow_publish", Json.bool(agentCfg, "allow_publish", false),
@@ -1516,7 +1520,8 @@ public final class ApiHandler implements HttpHandler {
                 if (!cancelFlag.get()) {
                     autoDeliver(userText, response, progress,
                             Json.bool(agentCfg, "auto_install_tools", true)
-                                    && settings.autoToolchain());
+                                    && settings.autoToolchain(),
+                            Json.bool(agentCfg, "auto_compile", true));
                     sanitizeDeliveryClaims(userText, response, progress);
                 }
                 String reply = Json.str(response, "reply", "");
@@ -1576,6 +1581,7 @@ public final class ApiHandler implements HttpHandler {
         int feedbackChars = Math.max(4000, Math.min(200000,
                 Json.integer(agentCfg, "max_feedback_chars", 48000)));
         boolean autoInstall = Json.bool(agentCfg, "auto_install_tools", true);
+        boolean autoCompile = Json.bool(agentCfg, "auto_compile", true);
         boolean autoLearn = Json.bool(agentCfg, "auto_learn_software", true);
         boolean allowPublish = Json.bool(agentCfg, "allow_publish", false);
         int installTimeout = Math.max(60, Math.min(86400,
@@ -1587,6 +1593,7 @@ public final class ApiHandler implements HttpHandler {
         boolean rebuildRequired = Json.str(request, "context", "")
                 .contains("[Continuation turn — rebuild required]");
         boolean rebuildNudged = false;
+        boolean autoCompileNudged = false;
         List<Object> messages = new ArrayList<>(Json.asList(request.get("messages")));
         Map<String, Object> call = new LinkedHashMap<>(request);
         call.put("context", cap(Json.str(request, "context", "") + "\n\n"
@@ -1754,6 +1761,47 @@ public final class ApiHandler implements HttpHandler {
                     progress.remainTokens = 0;
                     continue;
                 }
+                if (autoCompile && !autoCompileNudged
+                        && lastBuildFailure.isBlank() && lastTestFailure.isBlank()
+                        && lastCommandFailure.isBlank()
+                        && !hasBuildCall(progress)
+                        && DELIVER_INTENT.matcher(userText).find()
+                        && !reply.contains("```") && !hasToolMarkup(reply)
+                        && step <= maxSteps) {
+                    autoCompileNudged = true;
+                    messages.add(Json.map("role", "assistant", "content", reply));
+                    messages.add(Json.map("role", "user", "content",
+                            "AUTO-COMPILE IS ON. Your last answer did not build anything. "
+                                    + "For the program, game, tool or app the user asked for, "
+                                    + "reply now with exactly one <codeforge_build> block "
+                                    + "containing the complete source in \"code\" (or the entry "
+                                    + "file in \"source\"), a \"name\", \"gui\" as appropriate, "
+                                    + "and the user's requested destination. The host will "
+                                    + "compile it, place it at that destination, open it for a "
+                                    + "real check and repair it if it fails. Do not answer with "
+                                    + "text only and do not ask the user to compile."));
+                    progress.streamPath = root.resolve("logs").resolve("chat-stream-"
+                            + requestId + "-autocompile.jsonl").toString();
+                    try {
+                        Files.createDirectories(Path.of(progress.streamPath).getParent());
+                    } catch (IOException ignored) {
+                    }
+                    stream = Path.of(progress.streamPath);
+                    progress.streamOffset = 0;
+                    progress.streamThinkChars = 0;
+                    progress.streamTextChars = 0;
+                    progress.streamLastMs = 0;
+                    progress.streamResetPending = true;
+                    progress.phase = "generate";
+                    progress.genStartedMs = System.currentTimeMillis();
+                    progress.generatedTokens = 0;
+                    progress.lastSampleMs = 0;
+                    progress.lastSampleTokens = 0;
+                    progress.tokensPerSecond = 0;
+                    progress.lastTokenMs = 0;
+                    progress.remainTokens = 0;
+                    continue;
+                }
                 if (hasToolMarkup(reply)) {
                     Map<String, Object> cleaned = new LinkedHashMap<>(response);
                     cleaned.put("reply", "The model returned an incomplete tool call, so it "
@@ -1870,6 +1918,9 @@ public final class ApiHandler implements HttpHandler {
                 if (buildStep) {
                     prepareBuildRequest(tool, messages,
                             autoInstall && settings.autoToolchain());
+                    if (autoCompile) {
+                        tool.put("open_after_build", true);
+                    }
                     String fingerprint = buildFingerprint(tool);
                     Map<String, Object> previous = deliveredBuilds.get(fingerprint);
                     if (previous != null && lastTestFailure.isBlank()
@@ -2004,6 +2055,8 @@ public final class ApiHandler implements HttpHandler {
                         : engineStep ? firstNonBlank(
                         Json.str(result, "phase", ""), "ok") : "ok") : "failed")
                         + (reusedBuild ? " · already delivered" : "")
+                        + (buildStep && Json.bool(result, "opened", false)
+                        ? " · opened" : "")
                         + " · " + Json.integer(result, "duration_ms", 0) + " ms"
                         + (webError.isBlank() ? "" : " · " + cap(webError, 180))
                         + (testStep && !Json.str(result, "framework", "").isBlank()
@@ -2028,12 +2081,15 @@ public final class ApiHandler implements HttpHandler {
                 if (buildStep) {
                     for (String key : new String[]{"language", "name", "phase", "folder",
                             "artifact", "artifact_kind", "launcher", "shortcut", "runtime",
-                            "command", "stdout", "stderr"}) {
+                            "command", "stdout", "stderr", "open_check", "window_title",
+                            "open_log", "open_warning", "open_error"}) {
                         if (result.containsKey(key)) {
                             webCall.put(key, result.get(key));
                         }
                     }
                     webCall.put("exit_code", Json.integer(result, "exit_code", -1));
+                    webCall.put("opened", Json.bool(result, "opened", false));
+                    webCall.put("opened_pid", result.get("opened_pid"));
                     webCall.put("reused", reusedBuild);
                 } else if (testStep) {
                     for (String key : new String[]{"framework", "status", "command",
@@ -2346,6 +2402,15 @@ public final class ApiHandler implements HttpHandler {
         return finalResponse;
     }
 
+    private static boolean hasBuildCall(ChatProgress progress) {
+        for (Object raw : progress.toolCalls) {
+            if ("build".equals(Json.str(Json.asObject(raw), "kind", ""))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*
      * The local model often answers with a code block and manual compile
      * instructions instead of calling codeforge_build. When the user clearly
@@ -2353,7 +2418,8 @@ public final class ApiHandler implements HttpHandler {
      * here so the result still lands at the requested path.
      */
     private void autoDeliver(String userText, Map<String, Object> response,
-                             ChatProgress progress, boolean consentInstall) {
+                             ChatProgress progress, boolean consentInstall,
+                             boolean autoCompile) {
         if (userText == null || userText.isBlank()
                 || !DELIVER_INTENT.matcher(userText).find()) {
             return;
@@ -2424,13 +2490,14 @@ public final class ApiHandler implements HttpHandler {
         req.put("name", name);
         req.put("gui", looksWindowed(code));
         req.put("auto_install", consentInstall);
+        req.put("open_after_build", autoCompile);
         if (!targetPath.isBlank()) {
             req.put("destination", targetPath);
         }
         int number = ++progress.toolSteps;
         long started = System.currentTimeMillis();
         ChatStep step = new ChatStep("build-" + number, "Auto-build reply code #" + number,
-                "compiling " + language.name + " · "
+                "compiling " + language.name + (autoCompile ? " · open + verify" : "") + " · "
                         + (targetPath.isBlank() ? "Desktop" : targetPath), "active",
                 started - progress.startedMs);
         progress.steps.add(step);
@@ -2443,6 +2510,9 @@ public final class ApiHandler implements HttpHandler {
         String error = Json.str(result, "error", "");
         step.status = "done";
         step.detail = (ok ? "ready" : "failed") + " · "
+                + (Json.bool(result, "opened", false) ? "opened · "
+                : "startup-verified".equals(Json.str(result, "open_check", ""))
+                ? "startup verified · " : "")
                 + Json.integer(result, "duration_ms", 0) + " ms · "
                 + cap(firstNonBlank(artifact, folder, error), 160);
         Map<String, Object> call = new LinkedHashMap<>();
@@ -2459,6 +2529,10 @@ public final class ApiHandler implements HttpHandler {
         call.put("artifact_kind", Json.str(result, "artifact_kind", ""));
         call.put("shortcut", shortcut);
         call.put("runtime", Json.str(result, "runtime", ""));
+        call.put("opened", Json.bool(result, "opened", false));
+        call.put("open_check", Json.str(result, "open_check", ""));
+        call.put("window_title", Json.str(result, "window_title", ""));
+        call.put("opened_pid", result.get("opened_pid"));
         call.put("error", error);
         call.put("duration_ms", Json.integer(result, "duration_ms", 0));
         progress.toolCalls.add(call);
@@ -2488,6 +2562,13 @@ public final class ApiHandler implements HttpHandler {
         } else if (!artifact.isBlank()) {
             text.append('\n').append(chinese
                     ? "双击可执行文件即可运行。" : "Double-click the executable to run.");
+        }
+        if (Json.bool(result, "opened", false)) {
+            text.append('\n').append(chinese ? "已实际打开并验证运行。"
+                    : "Opened and verified running.");
+        } else if ("startup-verified".equals(Json.str(result, "open_check", ""))) {
+            text.append('\n').append(chinese ? "已通过启动自检。"
+                    : "Startup check passed.");
         }
         return text.toString();
     }
@@ -5232,7 +5313,17 @@ public final class ApiHandler implements HttpHandler {
         out.append("name: ").append(Json.str(result, "name", "")).append('\n');
         out.append("phase: ").append(Json.str(result, "phase", "")).append('\n');
         for (String key : new String[]{"runtime", "folder", "artifact", "artifact_kind",
-                "launcher", "shortcut", "command"}) {
+                "launcher", "shortcut", "command", "open_command"}) {
+            String value = Json.str(result, key, "");
+            if (!value.isBlank()) {
+                out.append(key).append(": ").append(value).append('\n');
+            }
+        }
+        if (result.containsKey("opened")) {
+            out.append("opened: ").append(Json.bool(result, "opened", false)).append('\n');
+        }
+        for (String key : new String[]{"open_check", "window_title", "open_log",
+                "open_warning"}) {
             String value = Json.str(result, key, "");
             if (!value.isBlank()) {
                 out.append(key).append(": ").append(value).append('\n');
@@ -5312,11 +5403,29 @@ public final class ApiHandler implements HttpHandler {
                         .append("final answer in the user's language with the artifact and shortcut ")
                         .append("paths and how to open it.");
             }
+            if (Json.bool(result, "opened", false)) {
+                out.append("\nThe host already opened the app and verified a visible window ")
+                        .append("(opened: true). Do not launch it again; tell the user it is ")
+                        .append("already open and verified.");
+            } else if ("startup-verified".equals(Json.str(result, "open_check", ""))) {
+                out.append("\nThe console program passed the real startup check. Do not run it ")
+                        .append("again; tell the user the startup check passed.");
+            }
         } else {
-            out.append("\nThe build failed. Read the compiler errors, fix the source file, ")
-                    .append("then call codeforge_build again with the same source path. Do not ")
-                    .append("hand back uncompiled source and do not ask the user to compile.")
-                    .append("\n<codeforge_build>{\"language\":\"")
+            boolean openFailed = !Json.str(result, "open_error", "").isBlank()
+                    || "verify".equals(Json.str(result, "phase", ""));
+            if (openFailed) {
+                out.append("\nThe compile succeeded, but the app failed its real open check. ")
+                        .append("Read the captured runtime output above, fix the startup or ")
+                        .append("window error, then call codeforge_build again with the same ")
+                        .append("destination. Do not claim it works until opened: true.");
+            } else {
+                out.append("\nThe build failed. Read the compiler errors, fix the source file, ")
+                        .append("then call codeforge_build again with the same source path. ")
+                        .append("Do not hand back uncompiled source and do not ask the user ")
+                        .append("to compile.");
+            }
+            out.append("\n<codeforge_build>{\"language\":\"")
                     .append(Json.str(result, "language_id", ""))
                     .append("\",\"source\":\"")
                     .append(Json.str(result, "source", ""))

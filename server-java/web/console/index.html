@@ -193,7 +193,7 @@
     <header class="topbar">
       <div class="title-block">
         <div class="eyebrow">Local-first intelligent dev workbench</div>
-        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.1.0</span></div>
+        <div class="product">CODE<em>FORGE</em> AI <span class="dim" style="font-size:12px;font-weight:400;letter-spacing:.2em">/ v1.2.0</span></div>
       </div>
       <div class="top-chips">
         <span class="chip off" id="chip-core"><i class="dot"></i>Core</span>
@@ -572,11 +572,11 @@
                   </div>
                   <div>
                     <label class="small">Tag</label>
-                    <input class="field mono" id="publish-tag" placeholder="v1.1.0" spellcheck="false">
+                    <input class="field mono" id="publish-tag" placeholder="v1.2.0" spellcheck="false">
                   </div>
                 </div>
                 <label class="small" style="margin-top:12px;display:block">Release title</label>
-                <input class="field" id="publish-name" placeholder="CodeForge AI v1.1.0" spellcheck="false">
+                <input class="field" id="publish-name" placeholder="CodeForge AI v1.2.0" spellcheck="false">
                 <label class="small" style="margin-top:12px;display:block">Release notes</label>
                 <textarea class="field" id="publish-body" rows="5" placeholder="What changed in this release…" spellcheck="false"></textarea>
                 <label class="small" style="margin-top:12px;display:block">Assets folder</label>
@@ -845,6 +845,8 @@
                   <label class="small">Tool install timeout (seconds)</label>
                   <input class="field mono" id="agent-install-timeout" type="number" min="60" max="86400" value="1800">
                   <label class="agent-check"><input type="checkbox" id="agent-auto-install" checked> Auto-download missing tools and retry</label>
+                  <label class="agent-check"><input type="checkbox" id="agent-auto-compile" checked> 自动编译、交付到指定位置并打开试运行（Auto-compile, open and verify）</label>
+                  <div class="hint" id="agent-auto-compile-hint">开关开启时：生成的程序自动编译并放到你指定的位置，编译后真实打开检查；打不开或启动崩溃会自动修复并重试。</div>
                   <label class="agent-check"><input type="checkbox" id="agent-auto-learn" checked> Autonomously learn unfamiliar software online</label>
                   <label class="agent-check"><input type="checkbox" id="agent-allow-publish"> Allow publishing (git push, package upload, deploy)</label>
                   <div class="hint" id="agent-publish-hint">Publishing is blocked by default. Local builds, commits, packages and exports are always allowed; public/remote actions need this switch, or a direct API run with allow_publish=true for that one action.</div>

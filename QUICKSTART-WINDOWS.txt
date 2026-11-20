@@ -1,4 +1,4 @@
-CodeForge AI 1.1.0 — Windows quick start
+CodeForge AI 1.2.0 — Windows quick start
 =====================================================
 
 1. Install Java 17 or newer (winget install EclipseAdoptium.Temurin.17.JDK),

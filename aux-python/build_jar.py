@@ -99,7 +99,7 @@ def main() -> int:
             "Main-Class: codeforge.server.ServerMain\r\n"
             "Multi-Release: true\r\n"
             "Implementation-Title: CodeForge AI\r\n"
-            "Implementation-Version: 1.1.0\r\n"
+            "Implementation-Version: 1.2.0\r\n"
             "\r\n"
         )
         out.writestr("META-INF/MANIFEST.MF", manifest.encode("utf-8"))

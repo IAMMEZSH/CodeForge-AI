@@ -15,8 +15,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ai.codeforge.thin
         PRODUCT_NAME: CodeForge
-        MARKETING_VERSION: "1.1.0"
-        CURRENT_PROJECT_VERSION: "4"
+        MARKETING_VERSION: "1.2.0"
+        CURRENT_PROJECT_VERSION: "5"
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: NO
@@ -25,8 +25,8 @@ targets:
       path: CodeForge/Info.plist
       properties:
         CFBundleDisplayName: CodeForge AI
-        CFBundleShortVersionString: "1.1.0"
-        CFBundleVersion: "4"
+        CFBundleShortVersionString: "1.2.0"
+        CFBundleVersion: "5"
         UILaunchScreen: {}
         UIRequiresFullScreen: false
         UISupportedInterfaceOrientations:

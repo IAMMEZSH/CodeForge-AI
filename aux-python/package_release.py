@@ -26,12 +26,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {
     ".git", ".idea", ".vscode", "__pycache__",
-    "models", "runtime", "workspace", "logs", "release", "memory",
+    "models", "runtime", "workspace", "logs", "release", "downloads", "memory",
     "toolchains", "jdk", "build", "classes", ".gradle", "DerivedData",
     "node_modules",
 }

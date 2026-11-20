@@ -1171,7 +1171,14 @@ $('#chk-auto-run').checked = state.autoRun;
 $('#chk-auto-run').addEventListener('change', event => {
   state.autoRun = event.target.checked;
   localStorage.setItem('cf-auto-run', state.autoRun ? '1' : '0');
-  toast(state.autoRun ? 'Auto compile enabled — every answer runs its first runnable block' : 'Auto compile disabled');
+  api('/api/agent', {
+    method: 'POST',
+    body: { auto_compile: state.autoRun },
+    timeout: 30000
+  }).catch(() => {});
+  toast(state.autoRun
+    ? 'Auto compile + open enabled — answers build, deliver and verify; the first runnable block also runs inline'
+    : 'Auto compile + open disabled');
 });
 $('#btn-chat-save').addEventListener('click', () => openSaveDialog(latestCodeFiles()));
 $('#save-confirm').addEventListener('click', () => performSave(false));
@@ -2602,7 +2609,8 @@ async function loadAgentPanel(refresh = false) {
     $('#agent-badge').textContent = data.enabled === false ? 'DISABLED' : 'ENABLED';
     $('#agent-badge').className = 'badge ' + (data.enabled === false ? 'fail' : 'ok');
     $('#agent-tools').textContent = (caps.tool_count || 0) + ' command-line tools · ' +
-      (caps.auto_install ? 'auto-install on' : 'auto-install off');
+      (caps.auto_install ? 'auto-install on' : 'auto-install off') + ' · ' +
+      (data.auto_compile !== false ? 'auto-compile + open on' : 'auto-compile + open off');
     $('#agent-app-summary').textContent = software.length + ' applications · ' +
       software.slice(0, 8).map(app => app.name).join(', ') +
       (software.length > 8 ? ' …' : '');
@@ -2622,6 +2630,10 @@ async function loadAgentPanel(refresh = false) {
     $('#agent-command-timeout').value = data.command_timeout_sec || 3600;
     $('#agent-install-timeout').value = data.install_timeout_sec || 1800;
     $('#agent-auto-install').checked = data.auto_install_tools !== false;
+    $('#agent-auto-compile').checked = data.auto_compile !== false;
+    state.autoRun = data.auto_compile !== false;
+    $('#chk-auto-run').checked = state.autoRun;
+    localStorage.setItem('cf-auto-run', state.autoRun ? '1' : '0');
     $('#agent-auto-learn').checked = data.auto_learn_software !== false;
     $('#agent-allow-publish').checked = !!data.allow_publish;
     $('#agent-publish-hint').textContent = data.allow_publish
@@ -2738,6 +2750,7 @@ $('#btn-agent-save').addEventListener('click', async () => {
         command_timeout_sec: Number($('#agent-command-timeout').value),
         install_timeout_sec: Number($('#agent-install-timeout').value),
         auto_install_tools: $('#agent-auto-install').checked,
+        auto_compile: $('#agent-auto-compile').checked,
         auto_learn_software: $('#agent-auto-learn').checked,
         allow_publish: publish
       },
@@ -2785,7 +2798,7 @@ $('#btn-agent-test').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.1.0 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.2.0 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- key vault ---------------- */

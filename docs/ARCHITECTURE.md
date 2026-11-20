@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.1.0 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.2.0 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -438,8 +438,8 @@ GET /api/update[?refresh=1]
 
 The console calls this endpoint on load and every six hours, then shows a
 dismissible banner when `update_available` is true. No prompt, file, key or
-usage data is sent. Builds older than 1.1.0 do not contain this checker, so
-their first move to 1.1.0 is a manual download; from 1.1.0 onward the banner
+usage data is sent. Builds older than 1.2.0 do not contain this checker, so
+their first move to 1.2.0 is a manual download; from 1.2.0 onward the banner
 reaches installed copies without a manual check.
 
 ### 5.10 Game engine adapters

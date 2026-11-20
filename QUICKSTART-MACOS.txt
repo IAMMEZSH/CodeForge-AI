@@ -1,4 +1,4 @@
-CodeForge AI 1.1.0 — macOS quick start
+CodeForge AI 1.2.0 — macOS quick start
 ======================================
 
 This package is a source bundle for Intel and Apple Silicon Macs. It builds
@@ -27,7 +27,7 @@ Verify:
 2. Build and test
 -----------------
 
-    cd CodeForge-AI-1.1.0
+    cd CodeForge-AI-1.2.0
     python3 aux-python/bootstrap.py --all
 
 Outputs:
@@ -62,7 +62,7 @@ Server only, without Python:
 
 If macOS quarantines a downloaded archive or binary:
 
-    xattr -dr com.apple.quarantine CodeForge-AI-1.1.0
+    xattr -dr com.apple.quarantine CodeForge-AI-1.2.0
 
 5. First model
 --------------

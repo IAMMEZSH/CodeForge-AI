@@ -13,10 +13,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,10 +49,90 @@ public final class BuildDelivery {
             "\\b(?:class|interface|enum|record)\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)");
     private static final long MAX_COPY_BYTES = 64L * 1024 * 1024;
     private static final int MAX_COPY_FILES = 500;
+    private static final Pattern PY_MODULE_NAME =
+            Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
+    private static final List<String> PYPI_INDEXES = List.of(
+            "https://pypi.tuna.tsinghua.edu.cn/simple",
+            "https://mirrors.aliyun.com/pypi/simple/",
+            "https://mirrors.ustc.edu.cn/pypi/simple",
+            "https://mirrors.cloud.tencent.com/pypi/simple",
+            "https://repo.huaweicloud.com/repository/pypi/simple",
+            "https://pypi.org/simple");
+    private static final List<String> NPM_REGISTRIES = List.of(
+            "https://registry.npmmirror.com",
+            "https://mirrors.cloud.tencent.com/npm/",
+            "https://registry.npmjs.org");
+    private static final Set<String> NODE_BUILTINS = Set.of(
+            "assert", "async_hooks", "buffer", "child_process", "cluster", "console",
+            "constants", "crypto", "dgram", "diagnostics_channel", "dns", "domain",
+            "events", "fs", "http", "http2", "https", "inspector", "module", "net",
+            "os", "path", "perf_hooks", "process", "punycode", "querystring",
+            "readline", "repl", "stream", "string_decoder", "sys", "test", "timers",
+            "tls", "trace_events", "tty", "url", "util", "v8", "vm", "wasi",
+            "worker_threads", "zlib", "fs/promises", "stream/web", "timers/promises",
+            "dns/promises", "readline/promises", "util/types", "stream/consumers");
+    private static final Pattern NODE_SPECIFIER = Pattern.compile(
+            "(?:require\\s*\\(\\s*['\"]([^'\"]+)['\"]"
+                    + "|\\bfrom\\s+['\"]([^'\"]+)['\"]"
+                    + "|\\bimport\\s+['\"]([^'\"]+)['\"]"
+                    + "|\\bimport\\s*\\(\\s*['\"]([^'\"]+)['\"]\\s*\\))");
+    private static final String GO_PROXY = "https://goproxy.cn,https://proxy.golang.org,direct";
+    /** Import name to PyPI project name where the two differ. */
+    private static final Map<String, String> PY_PIP_NAMES = Map.ofEntries(
+            Map.entry("PIL", "Pillow"),
+            Map.entry("cv2", "opencv-python"),
+            Map.entry("yaml", "PyYAML"),
+            Map.entry("bs4", "beautifulsoup4"),
+            Map.entry("sklearn", "scikit-learn"),
+            Map.entry("skimage", "scikit-image"),
+            Map.entry("dotenv", "python-dotenv"),
+            Map.entry("dateutil", "python-dateutil"),
+            Map.entry("Crypto", "pycryptodome"),
+            Map.entry("serial", "pyserial"),
+            Map.entry("pkg_resources", "setuptools"),
+            Map.entry("OpenGL", "PyOpenGL"),
+            Map.entry("wx", "wxPython"),
+            Map.entry("pymysql", "PyMySQL"),
+            Map.entry("mysql", "mysql-connector-python"));
+    private static final String PY_IMPORT_SCAN = """
+            import ast, sys
+            with open(sys.argv[1], 'r', encoding='utf-8-sig') as fh:
+                tree = ast.parse(fh.read(), filename=sys.argv[1])
+            names = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        names.add(alias.name.split('.')[0])
+                elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                    names.add(node.module.split('.')[0])
+            for name in sorted(names):
+                if name and name != '__future__':
+                    print(name)
+            """;
+    private static final String PY_DEPENDENCY_PROBE = """
+            import importlib.util, os, sys
+            base = sys.argv[1]
+            stdlib = getattr(sys, 'stdlib_module_names', set())
+            for name in sys.argv[2:]:
+                if name in stdlib:
+                    continue
+                if os.path.isfile(os.path.join(base, name + '.py')) or os.path.isdir(os.path.join(base, name)):
+                    continue
+                print('T ' + name)
+                try:
+                    found = importlib.util.find_spec(name) is not None
+                except Exception:
+                    found = False
+                if not found:
+                    print('M ' + name)
+            """;
 
     private final Path root;
     private final Path workspace;
     private final ToolchainManager toolchains;
+    /** Apps opened by the host, keyed by artifact path, so a rebuild replaces the old window. */
+    private static final ConcurrentHashMap<String, Process> OPEN_APPS =
+            new ConcurrentHashMap<>();
     /** Set per build() call from the user-approved auto_install flag. */
     private final ThreadLocal<Boolean> installConsent = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
@@ -150,7 +233,7 @@ public final class BuildDelivery {
                     buildCsharp(source, name, gui, appDir, work, out);
                     break;
                 case "python":
-                    buildPython(source, name, gui, appDir, out);
+                    buildPython(source, name, gui, appDir, work, out);
                     break;
                 case "javascript":
                 case "typescript":
@@ -167,6 +250,10 @@ public final class BuildDelivery {
                     throw new BuildFailure("This language cannot be delivered yet: " + language.name, null);
             }
 
+            if (Json.bool(request, "open_after_build", false)) {
+                out.put("phase", "verify");
+                openDelivered(out, appDir);
+            }
             out.put("ok", true);
             out.put("success", true);
             out.put("phase", "ready");
@@ -177,7 +264,7 @@ public final class BuildDelivery {
         } catch (BuildFailure ex) {
             out.put("ok", false);
             out.put("success", false);
-            out.put("phase", "build");
+            out.put("phase", "verify".equals(Json.str(out, "phase", "")) ? "verify" : "build");
             out.put("error", ex.getMessage());
             if (ex.exec != null) {
                 putExec(out, ex.exec);
@@ -188,13 +275,21 @@ public final class BuildDelivery {
         } catch (Exception ex) {
             out.put("ok", false);
             out.put("success", false);
-            out.put("phase", "build");
+            out.put("phase", "verify".equals(Json.str(out, "phase", "")) ? "verify" : "build");
             out.put("error", ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
             if (appDir != null) {
                 out.put("folder", appDir.toString());
             }
         }
         out.put("duration_ms", System.currentTimeMillis() - started);
+        Object openCommand = out.get("open_command");
+        if (openCommand instanceof List<?> list) {
+            List<String> parts = new ArrayList<>();
+            for (Object item : list) {
+                parts.add(String.valueOf(item));
+            }
+            out.put("open_command", commandText(parts));
+        }
         installConsent.remove();
         return out;
     }
@@ -231,6 +326,8 @@ public final class BuildDelivery {
         out.put("artifact_kind", "executable");
         out.put("stdout", tail(result.out, 8000));
         out.put("stderr", tail(result.err, 8000));
+        startupCheck(List.of(exe.toString()), null, appDir, out);
+        out.put("open_command", List.of(exe.toString()));
         finish(out, name, exe, "", appDir, null);
     }
 
@@ -307,6 +404,34 @@ public final class BuildDelivery {
         out.put("launcher", launcher.toString());
         out.put("stdout", tail(compile.out, 8000));
         out.put("stderr", tail(compile.err, 8000));
+        List<String> startup = new ArrayList<>();
+        startup.add(javaExe.toString());
+        startup.add("-Dfile.encoding=UTF-8");
+        if (Files.isRegularFile(jar)) {
+            startup.add("-jar");
+            startup.add(jar.getFileName().toString());
+        } else {
+            startup.add("-cp");
+            startup.add("classes");
+            startup.add(fqcn);
+        }
+        startupCheck(startup, null, appDir, out);
+        Path openJava = gui ? sibling(runtime, "javaw" + exeSuffix()) : null;
+        if (openJava == null) {
+            openJava = javaExe;
+        }
+        List<String> openCommand = new ArrayList<>();
+        openCommand.add(openJava.toString());
+        openCommand.add("-Dfile.encoding=UTF-8");
+        if (Files.isRegularFile(jar)) {
+            openCommand.add("-jar");
+            openCommand.add(jar.toString());
+        } else {
+            openCommand.add("-cp");
+            openCommand.add(appDir.resolve("classes").toString());
+            openCommand.add(fqcn);
+        }
+        out.put("open_command", openCommand);
         finish(out, name, launcher, "", appDir, null);
     }
 
@@ -314,12 +439,41 @@ public final class BuildDelivery {
                          Map<String, Object> out) throws Exception {
         ToolchainManager.Resolved runtime = require("go",
                 "Go is not installed. Install Go and retry.");
+        String code = Files.readString(source, StandardCharsets.UTF_8);
         String exeName = name + (WINDOWS ? ".exe" : "");
         Path localSource = appDir.resolve("main.go");
-        copy(source, localSource);
+        write(localSource, code);
         Path exe = appDir.resolve(exeName);
+        Map<String, String> goEnv = new LinkedHashMap<>(runtime.environment);
+        String configuredProxy = System.getenv("GOPROXY");
+        if (configuredProxy == null || configuredProxy.isBlank()) {
+            goEnv.put("GOPROXY", GO_PROXY);
+        }
+        String configuredSumdb = System.getenv("GOSUMDB");
+        if (configuredSumdb == null || configuredSumdb.isBlank()) {
+            goEnv.put("GOSUMDB", "sum.golang.google.cn");
+        }
+        List<String> requirements = scanGoImports(code);
+        List<String> installed = new ArrayList<>();
+        if (!requirements.isEmpty()) {
+            if (!Files.isRegularFile(appDir.resolve("go.mod"))) {
+                Exec init = exec(List.of(runtime.executable.toString(), "mod", "init",
+                        "codeforgeapp"), goEnv, appDir, 60);
+                if (!init.launched || init.timedOut || init.exitCode != 0) {
+                    throw new BuildFailure("Go module initialization failed", init);
+                }
+            }
+            List<String> get = new ArrayList<>(List.of(runtime.executable.toString(), "get"));
+            get.addAll(requirements);
+            Exec deps = exec(get, goEnv, appDir, 300);
+            if (!deps.launched || deps.timedOut || deps.exitCode != 0) {
+                throw new BuildFailure("Go dependency installation failed for "
+                        + String.join(", ", requirements), deps);
+            }
+            installed.addAll(requirements);
+        }
         Exec build = exec(List.of(runtime.executable.toString(), "build", "-trimpath",
-                "-o", exeName, "main.go"), runtime.environment, appDir, 240);
+                "-o", exeName, "main.go"), goEnv, appDir, 240);
         if (!build.launched || build.timedOut || build.exitCode != 0 || !Files.isRegularFile(exe)) {
             throw new BuildFailure("Go compilation failed", build);
         }
@@ -327,8 +481,12 @@ public final class BuildDelivery {
         out.put("compiler", runtime.executable.toString());
         out.put("artifact", exe.toString());
         out.put("artifact_kind", "executable");
+        out.put("dependencies", requirements);
+        out.put("dependencies_installed", installed);
         out.put("stdout", tail(build.out, 8000));
         out.put("stderr", tail(build.err, 8000));
+        startupCheck(List.of(exe.toString()), goEnv, appDir, out);
+        out.put("open_command", List.of(exe.toString()));
         finish(out, name, exe, "", appDir, null);
     }
 
@@ -351,6 +509,8 @@ public final class BuildDelivery {
         out.put("artifact_kind", "executable");
         out.put("stdout", tail(compile.out, 8000));
         out.put("stderr", tail(compile.err, 8000));
+        startupCheck(List.of(exe.toString()), null, appDir, out);
+        out.put("open_command", List.of(exe.toString()));
         finish(out, name, exe, "", appDir, null);
     }
 
@@ -404,11 +564,13 @@ public final class BuildDelivery {
         out.put("artifact_kind", "executable");
         out.put("stdout", tail(publish.out, 8000));
         out.put("stderr", tail(publish.err, 8000));
+        startupCheck(List.of(exe.toString()), null, appDir, out);
+        out.put("open_command", List.of(exe.toString()));
         finish(out, name, exe, "", appDir, null);
     }
 
     private void buildPython(Path source, String name, boolean gui,
-                             Path appDir, Map<String, Object> out) throws Exception {
+                             Path appDir, Path work, Map<String, Object> out) throws Exception {
         ToolchainManager.Resolved runtime = require("python",
                 "Python is not installed. Install Python 3 and retry.");
         String code = Files.readString(source, StandardCharsets.UTF_8);
@@ -420,7 +582,83 @@ public final class BuildDelivery {
             throw new BuildFailure("Python syntax check failed", check);
         }
         deleteTree(appDir.resolve("__pycache__"));
+
+        List<String> modules = scanPythonImports(runtime, script, work);
+        List<String> thirdParty = new ArrayList<>();
+        List<String> missing = probePythonModules(runtime, appDir, modules, work, thirdParty);
+        List<String> installed = new ArrayList<>();
+        for (String module : missing) {
+            if ("tkinter".equals(module)) {
+                throw new BuildFailure("This Python has no tkinter. Install the official "
+                        + "Python from python.org (it includes tkinter), then retry.", null);
+            }
+            String packageName = PY_PIP_NAMES.getOrDefault(module, module);
+            Exec pip = pipInstall(runtime, packageName, work);
+            if (pip.launched && !pip.timedOut && pip.exitCode == 0) {
+                installed.add(packageName);
+            } else {
+                throw new BuildFailure("The app imports \"" + module + "\", which is missing, "
+                        + "and installing " + packageName + " failed. Install it with: "
+                        + runtime.executable + " -m pip install " + packageName, pip);
+            }
+        }
+        if (!missing.isEmpty()) {
+            List<String> refreshed = new ArrayList<>();
+            List<String> stillMissing = probePythonModules(runtime, appDir, modules, work, refreshed);
+            for (String module : refreshed) {
+                if (!thirdParty.contains(module)) {
+                    thirdParty.add(module);
+                }
+            }
+            if (!stillMissing.isEmpty()) {
+                throw new BuildFailure("Missing Python modules after installation: "
+                        + String.join(", ", stillMissing), null);
+            }
+        }
+        if (!thirdParty.isEmpty()) {
+            StringBuilder requirements = new StringBuilder();
+            for (String module : thirdParty) {
+                requirements.append(PY_PIP_NAMES.getOrDefault(module, module)).append('\n');
+            }
+            Path requirementsFile = write(appDir.resolve("requirements.txt"),
+                    requirements.toString());
+            out.put("requirements", requirementsFile.toString());
+        }
+        out.put("dependencies", thirdParty);
+        out.put("dependencies_installed", installed);
+
+        Map<String, String> smokeEnv = new LinkedHashMap<>(runtime.environment);
+        String lowerCode = code.toLowerCase(Locale.ROOT);
+        if (lowerCode.contains("pyside") || lowerCode.contains("pyqt")) {
+            smokeEnv.put("QT_QPA_PLATFORM", "offscreen");
+        }
+        if (lowerCode.contains("pygame")) {
+            smokeEnv.put("SDL_VIDEODRIVER", "dummy");
+            smokeEnv.put("SDL_AUDIODRIVER", "dummy");
+        }
+        Exec smoke = exec(List.of(runtime.executable.toString(), "-X", "utf8", "-u",
+                script.getFileName().toString()), smokeEnv, appDir, 10);
+        out.put("startup_check_command", smoke.command);
+        if (!smoke.launched) {
+            throw new BuildFailure("The Python app could not be started for a startup check: "
+                    + smoke.error, smoke);
+        }
+        if (!smoke.timedOut && smoke.exitCode != 0) {
+            throw new BuildFailure("The Python app crashed during the startup check (exit "
+                    + smoke.exitCode + "). Fix the runtime error and retry.", smoke);
+        }
+        out.put("startup_check", smoke.timedOut ? "started" : "exited-cleanly");
+
         Path python = runtime.executable;
+        List<String> openCommand = new ArrayList<>();
+        openCommand.add((gui ? pythonForGui(runtime) : python).toString());
+        if (!gui) {
+            openCommand.add("-X");
+            openCommand.add("utf8");
+            openCommand.add("-u");
+        }
+        openCommand.add(script.toString());
+        out.put("open_command", openCommand);
         String command;
         if (gui) {
             Path pythonw = sibling(runtime, "pythonw.exe");
@@ -434,6 +672,12 @@ public final class BuildDelivery {
                     + "\" -X utf8 -u \"" + cmdQuote(script.getFileName().toString()) + "\"";
         }
         Path launcher = gui ? null : writeCmd(appDir, name + ".cmd", command, true);
+        if (gui) {
+            Path diagnostic = writeCmd(appDir, name + "-启动诊断.cmd",
+                    "\"" + cmdQuote(python.toString()) + "\" -X utf8 -u \""
+                            + cmdQuote(script.getFileName().toString()) + "\"", true);
+            out.put("diagnostic_launcher", diagnostic.toString());
+        }
         out.put("runtime", runtime.name + " " + runtime.version);
         out.put("artifact", script.toString());
         out.put("artifact_kind", "python");
@@ -444,6 +688,372 @@ public final class BuildDelivery {
         out.put("stderr", tail(check.err, 4000));
         finish(out, name, launcher != null ? launcher : script, "", appDir,
                 gui ? new ShortcutTarget(pythonForGui(runtime), "\"" + script + "\"", false) : null);
+    }
+
+    /**
+     * External Go module paths (they contain a domain) from import statements.
+     * Standard-library paths have no dot in their first segment.
+     */
+    private List<String> scanGoImports(String code) {
+        List<String> found = new ArrayList<>();
+        boolean block = false;
+        for (String raw : code.split("\\R")) {
+            String line = raw.strip();
+            if (line.startsWith("import (")) {
+                block = true;
+                continue;
+            }
+            if (block && line.startsWith(")")) {
+                block = false;
+                continue;
+            }
+            if (!block && !line.startsWith("import ")) {
+                continue;
+            }
+            Matcher quoted = Pattern.compile("\"([^\"]+)\"").matcher(line);
+            while (quoted.find()) {
+                String path = quoted.group(1);
+                int slash = path.indexOf('/');
+                if (slash <= 0 || !path.substring(0, slash).contains(".")) {
+                    continue;
+                }
+                if (!found.contains(path)) {
+                    found.add(path);
+                }
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Opens the finished app for a real check and leaves it running when it
+     * works. A GUI app that crashes or never shows a window is a failed
+     * delivery: the captured runtime error goes back to the repair loop.
+     */
+    private void openDelivered(Map<String, Object> out, Path appDir) throws BuildFailure {
+        String artifactKind = Json.str(out, "artifact_kind", "");
+        out.put("opened", false);
+        if ("web".equals(artifactKind)) {
+            Path index = Path.of(Json.str(out, "artifact", ""));
+            try {
+                if (java.awt.Desktop.isDesktopSupported()
+                        && java.awt.Desktop.getDesktop().isSupported(
+                        java.awt.Desktop.Action.OPEN)) {
+                    java.awt.Desktop.getDesktop().open(index.toFile());
+                } else {
+                    Exec open = exec(WINDOWS
+                            ? List.of("rundll32.exe", "url.dll,FileProtocolHandler",
+                            index.toString())
+                            : MAC ? List.of("open", index.toString())
+                            : List.of("xdg-open", index.toString()), null, appDir, 20);
+                    if (!open.launched || (!open.timedOut && open.exitCode != 0)) {
+                        throw new BuildFailure("The page was built but could not be "
+                                + "opened in a browser: "
+                                + firstNonBlank(open.err, open.error, "unknown error"), open);
+                    }
+                }
+                out.put("opened", true);
+                out.put("open_check", "browser");
+                out.put("open_command", "open " + index);
+                return;
+            } catch (BuildFailure ex) {
+                out.put("open_error", ex.getMessage());
+                throw ex;
+            } catch (Exception ex) {
+                out.put("open_error", ex.getMessage());
+                throw new BuildFailure("The page was built but could not be opened "
+                        + "in a browser: " + ex.getMessage(), null);
+            }
+        }
+        if (!Json.bool(out, "gui", false)) {
+            out.put("open_check", "startup-verified");
+            return;
+        }
+        List<String> command = stringList(out.get("open_command"));
+        if (command.isEmpty()) {
+            throw new BuildFailure("The app was built, but its launch command is missing.", null);
+        }
+        Path log = root.resolve("logs").resolve("open-"
+                + LocalDateTime.now().format(STAMP) + "-"
+                + UUID.randomUUID().toString().substring(0, 6) + ".log");
+        try {
+            Files.createDirectories(log.getParent());
+        } catch (IOException ignored) {
+        }
+        String artifact = Json.str(out, "artifact", "");
+        Process previous = OPEN_APPS.remove(artifact);
+        if (previous != null && previous.isAlive()) {
+            previous.descendants().forEach(ProcessHandle::destroyForcibly);
+            previous.destroyForcibly();
+        }
+        ProcessBuilder builder = new ProcessBuilder(command).directory(appDir.toFile());
+        builder.redirectErrorStream(true);
+        builder.redirectOutput(log.toFile());
+        builder.redirectInput(ProcessBuilder.Redirect.from(
+                WINDOWS ? new File("NUL") : new File("/dev/null")));
+        Process process;
+        try {
+            process = builder.start();
+        } catch (IOException ex) {
+            out.put("open_error", ex.getMessage());
+            throw new BuildFailure("The app was built but could not be opened: "
+                    + ex.getMessage(), null);
+        }
+        OPEN_APPS.put(artifact, process);
+        out.put("opened_pid", process.pid());
+        out.put("open_log", log.toString());
+        String probe;
+        if (WINDOWS) {
+            probe = waitForWindow(process.pid());
+        } else {
+            try {
+                probe = process.waitFor(6, TimeUnit.SECONDS) ? "EXITED" : "ALIVE";
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                probe = "ALIVE";
+            }
+        }
+        if (probe.startsWith("OK\t")) {
+            try {
+                Thread.sleep(1200);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            if (!process.isAlive()) {
+                probe = "EXITED";
+            }
+        }
+        String logTail = tail(readText(log), 6000);
+        if (probe.startsWith("OK\t")) {
+            out.put("opened", true);
+            out.put("open_check", "window-open");
+            String title = probe.substring(3).strip();
+            if (!title.isBlank()) {
+                out.put("window_title", title);
+            }
+            return;
+        }
+        if (probe.startsWith("PROBE-ERROR") && process.isAlive()) {
+            out.put("opened", true);
+            out.put("open_check", "process-alive");
+            out.put("open_warning", "The app process is running, but the window probe "
+                    + "failed: " + probe);
+            return;
+        }
+        process.descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
+        OPEN_APPS.remove(artifact, process);
+        out.put("open_error", probe.startsWith("NOWINDOW")
+                ? "The app process is running, but no visible window appeared within 15 seconds."
+                : "The app exited before its window appeared.");
+        Exec failure = new Exec();
+        failure.launched = true;
+        failure.command = commandText(command);
+        failure.exitCode = probe.startsWith("NOWINDOW") ? -1 : process.exitValue();
+        failure.err = logTail;
+        failure.error = Json.str(out, "open_error", "");
+        throw new BuildFailure(Json.str(out, "open_error", "The app did not open."),
+                failure);
+    }
+
+    /** Waits for the real main window and returns OK/TAB/title, EXITED, NOWINDOW or an error. */
+    private String waitForWindow(long pid) {
+        Path script = root.resolve("logs").resolve("open-probe-"
+                + UUID.randomUUID().toString().substring(0, 8) + ".ps1");
+        try {
+            Files.createDirectories(script.getParent());
+            String ps = "$ErrorActionPreference = 'SilentlyContinue'\n"
+                    + "$p = Get-Process -Id " + pid + "\n"
+                    + "if ($null -eq $p) { Write-Output 'EXITED'; exit 0 }\n"
+                    + "$deadline = (Get-Date).AddSeconds(15)\n"
+                    + "while ((Get-Date) -lt $deadline) {\n"
+                    + "  $p.Refresh()\n"
+                    + "  if ($p.HasExited) { Write-Output 'EXITED'; exit 0 }\n"
+                    + "  if ($p.MainWindowHandle -ne 0) {\n"
+                    + "    Write-Output ('OK' + [char]9 + $p.MainWindowTitle)\n"
+                    + "    exit 0\n"
+                    + "  }\n"
+                    + "  Start-Sleep -Milliseconds 300\n"
+                    + "}\n"
+                    + "Write-Output 'NOWINDOW'\n";
+            Files.writeString(script, ps, StandardCharsets.UTF_8);
+            Exec probe = exec(List.of("powershell.exe", "-NoLogo", "-NoProfile",
+                    "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                    "-File", script.toString()), Map.of(), root, 25);
+            for (String line : probe.out.split("\\R")) {
+                String value = line.strip();
+                if (value.startsWith("OK\t") || "EXITED".equals(value)
+                        || "NOWINDOW".equals(value)) {
+                    return value;
+                }
+            }
+            return "PROBE-ERROR " + (probe.out.isBlank() ? probe.error : probe.out.strip());
+        } catch (Exception ex) {
+            return "PROBE-ERROR " + ex.getMessage();
+        } finally {
+            try {
+                Files.deleteIfExists(script);
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private static List<String> stringList(Object raw) {
+        List<String> values = new ArrayList<>();
+        if (raw instanceof List<?> list) {
+            for (Object item : list) {
+                if (item != null) {
+                    values.add(String.valueOf(item));
+                }
+            }
+        } else if (raw != null && !String.valueOf(raw).isBlank()) {
+            values.add(String.valueOf(raw));
+        }
+        return values;
+    }
+
+    private static String commandText(List<String> command) {
+        StringBuilder text = new StringBuilder();
+        for (String part : command) {
+            if (part == null) {
+                continue;
+            }
+            if (text.length() > 0) {
+                text.append(' ');
+            }
+            if (part.indexOf(' ') >= 0 || part.indexOf('\t') >= 0) {
+                text.append('"').append(part.replace("\"", "\\\"")).append('"');
+            } else {
+                text.append(part);
+            }
+        }
+        return text.toString();
+    }
+
+    private static String readText(Path file) {
+        try {
+            return Files.isRegularFile(file)
+                    ? Encodings.decode(Files.readAllBytes(file)) : "";
+        } catch (Exception ex) {
+            return "";
+        }
+    }
+
+    /** A short real launch that catches import failures and instant crashes. */
+    private void startupCheck(List<String> command, Map<String, String> extraEnv,
+                              Path workdir, Map<String, Object> out) throws BuildFailure {
+        Exec run = exec(command, extraEnv, workdir, 8);
+        out.put("startup_check_command", run.command);
+        if (!run.launched) {
+            throw new BuildFailure("The app could not be started for a startup check: "
+                    + run.error, run);
+        }
+        if (!run.timedOut && run.exitCode != 0) {
+            throw new BuildFailure("The app exited with code " + run.exitCode
+                    + " during the startup check. Fix the runtime error and retry.", run);
+        }
+        out.put("startup_check", run.timedOut ? "started" : "exited-cleanly");
+    }
+
+    /** Top-level module names imported anywhere in the generated script. */
+    private List<String> scanPythonImports(ToolchainManager.Resolved runtime,
+                                           Path script, Path work) throws IOException {
+        Path scanner = write(work.resolve("cf-import-scan.py"), PY_IMPORT_SCAN);
+        Exec scan = exec(List.of(runtime.executable.toString(), "-X", "utf8",
+                scanner.toString(), script.toString()), runtime.environment, work, 60);
+        List<String> modules = new ArrayList<>();
+        if (!scan.launched || scan.timedOut || scan.exitCode != 0) {
+            return modules;
+        }
+        for (String line : scan.out.split("\\R")) {
+            String module = line.strip();
+            if (PY_MODULE_NAME.matcher(module).matches() && !modules.contains(module)) {
+                modules.add(module);
+            }
+        }
+        return modules;
+    }
+
+    /**
+     * Splits imports into third-party (printed as "T name") and not importable
+     * ("M name"). Anything that cannot be probed is treated as unknown so a
+     * broken probe never triggers bogus pip installs.
+     */
+    private List<String> probePythonModules(ToolchainManager.Resolved runtime,
+                                            Path appDir, List<String> modules,
+                                            Path work, List<String> thirdParty)
+            throws IOException {
+        List<String> missing = new ArrayList<>();
+        if (modules.isEmpty()) {
+            return missing;
+        }
+        Path probe = write(work.resolve("cf-dependency-probe.py"), PY_DEPENDENCY_PROBE);
+        List<String> command = new ArrayList<>(List.of(runtime.executable.toString(),
+                "-X", "utf8", probe.toString(), appDir.toString()));
+        command.addAll(modules);
+        Exec result = exec(command, runtime.environment, work, 120);
+        if (!result.launched || result.timedOut || result.exitCode != 0) {
+            return missing;
+        }
+        for (String line : result.out.split("\\R")) {
+            String entry = line.strip();
+            String module = entry.length() > 2 ? entry.substring(2).strip() : "";
+            if (!PY_MODULE_NAME.matcher(module).matches()) {
+                continue;
+            }
+            if (entry.startsWith("T ") && !thirdParty.contains(module)) {
+                thirdParty.add(module);
+            } else if (entry.startsWith("M ") && !missing.contains(module)) {
+                missing.add(module);
+            }
+        }
+        return missing;
+    }
+
+    /** Installs one package, mirror first unless the user configured an index. */
+    private Exec pipInstall(ToolchainManager.Resolved runtime, String packageName,
+                            Path work) {
+        Exec first = pipInstallAttempt(runtime, packageName, work, false);
+        if (first.launched && !first.timedOut && first.exitCode == 0) {
+            return first;
+        }
+        String text = (first.err + " " + first.out).toLowerCase(Locale.ROOT);
+        boolean permissionProblem = text.contains("permission")
+                || text.contains("access is denied") || text.contains("not writeable")
+                || text.contains("externally-managed") || text.contains("virtualenv")
+                || text.contains("--user");
+        if (permissionProblem) {
+            Exec perUser = pipInstallAttempt(runtime, packageName, work, true);
+            if (perUser.launched && !perUser.timedOut && perUser.exitCode == 0) {
+                return perUser;
+            }
+            return perUser;
+        }
+        return first;
+    }
+
+    private Exec pipInstallAttempt(ToolchainManager.Resolved runtime, String packageName,
+                                   Path work, boolean perUser) {
+        List<String> command = new ArrayList<>(List.of(
+                runtime.executable.toString(), "-X", "utf8", "-m", "pip", "install",
+                "--upgrade", "--disable-pip-version-check", "--no-input",
+                "--prefer-binary", "--timeout", "45", "--retries", "1"));
+        if (perUser) {
+            command.add("--user");
+        }
+        command.add(packageName);
+        String configuredIndex = System.getenv("PIP_INDEX_URL");
+        if (configuredIndex == null || configuredIndex.isBlank()) {
+            for (String index : PYPI_INDEXES) {
+                List<String> mirrored = new ArrayList<>(command);
+                mirrored.addAll(mirrored.size() - 1, List.of("-i", index));
+                Exec viaMirror = exec(mirrored, runtime.environment, work, 240);
+                if (viaMirror.launched && !viaMirror.timedOut && viaMirror.exitCode == 0) {
+                    return viaMirror;
+                }
+            }
+        }
+        return exec(command, runtime.environment, work, 240);
     }
 
     private void buildNode(Path source, LanguageSupport.Language language, String name,
@@ -476,6 +1086,31 @@ public final class BuildDelivery {
                 throw new BuildFailure("JavaScript syntax check failed", check);
             }
         }
+        List<String> requirements = scanNodePackages(code);
+        List<String> missing = new ArrayList<>();
+        for (String packageName : requirements) {
+            if (!Files.isDirectory(appDir.resolve("node_modules").resolve(packageName))) {
+                missing.add(packageName);
+            }
+        }
+        List<String> installed = new ArrayList<>();
+        if (!missing.isEmpty()) {
+            Path npm = sibling(runtime, "npm.cmd", "npm");
+            Path npmCli = runtime.binDir == null ? null
+                    : runtime.binDir.resolve("node_modules/npm/bin/npm-cli.js");
+            for (String packageName : missing) {
+                Exec npmResult = npmInstall(runtime.executable, npmCli, npm, appDir, packageName);
+                if (!(npmResult.launched && !npmResult.timedOut && npmResult.exitCode == 0)
+                        || !Files.isDirectory(appDir.resolve("node_modules").resolve(packageName))) {
+                    throw new BuildFailure("The app imports \"" + packageName
+                            + "\", which is missing, and installing it failed.", npmResult);
+                }
+                installed.add(packageName);
+            }
+        }
+        out.put("dependencies", requirements);
+        out.put("dependencies_installed", installed);
+
         String command = "\"" + cmdQuote(runtime.executable.toString()) + "\"" + flag
                 + " \"" + cmdQuote(script.getFileName().toString()) + "\"";
         Path launcher = writeCmd(appDir, name + ".cmd", command, true);
@@ -483,7 +1118,92 @@ public final class BuildDelivery {
         out.put("artifact", script.toString());
         out.put("artifact_kind", typescript ? "typescript" : "javascript");
         out.put("launcher", launcher.toString());
+        List<String> startup = new ArrayList<>();
+        startup.add(runtime.executable.toString());
+        if (!flag.isBlank()) {
+            startup.add(flag.trim());
+        }
+        startup.add(script.getFileName().toString());
+        startupCheck(startup, null, appDir, out);
+        out.put("open_command", new ArrayList<>(startup));
         finish(out, name, launcher, "", appDir, null);
+    }
+
+    private List<String> scanNodePackages(String code) {
+        LinkedHashSet<String> found = new LinkedHashSet<>();
+        Matcher matcher = NODE_SPECIFIER.matcher(code);
+        while (matcher.find()) {
+            String specifier = null;
+            for (int i = 1; i <= matcher.groupCount(); ++i) {
+                if (matcher.group(i) != null) {
+                    specifier = matcher.group(i);
+                    break;
+                }
+            }
+            if (specifier == null || specifier.startsWith(".") || specifier.startsWith("/")
+                    || specifier.startsWith("\\") || specifier.contains("://")
+                    || specifier.startsWith("node:")) {
+                continue;
+            }
+            String packageName;
+            if (specifier.startsWith("@")) {
+                String[] parts = specifier.split("/");
+                if (parts.length < 2 || parts[0].length() < 2) {
+                    continue;
+                }
+                packageName = parts[0] + "/" + parts[1];
+            } else {
+                packageName = specifier.split("/")[0];
+            }
+            if (NODE_BUILTINS.contains(specifier) || NODE_BUILTINS.contains(packageName)) {
+                continue;
+            }
+            if (!packageName.matches("@?[A-Za-z0-9_.~-]+(?:/[A-Za-z0-9_.~-]+)?")) {
+                continue;
+            }
+            found.add(packageName);
+        }
+        return new ArrayList<>(found);
+    }
+
+    private Exec npmInstall(Path nodeExe, Path npmCli, Path npm, Path appDir,
+                            String packageName) throws IOException {
+        Path manifest = appDir.resolve("package.json");
+        if (!Files.isRegularFile(manifest)) {
+            write(manifest, "{\n  \"name\": \"codeforge-app\",\n  \"private\": true\n}\n");
+        }
+        Exec last = null;
+        for (String registry : NPM_REGISTRIES) {
+            List<String> command = new ArrayList<>();
+            if (npmCli != null && Files.isRegularFile(npmCli)) {
+                command.add(nodeExe.toString());
+                command.add(npmCli.toString());
+            } else if (npm != null) {
+                if (WINDOWS) {
+                    command.add("cmd.exe");
+                    command.add("/c");
+                }
+                command.add(npm.toString());
+            } else {
+                break;
+            }
+            command.add("install");
+            command.add("--no-audit");
+            command.add("--no-fund");
+            command.add("--loglevel=error");
+            command.add("--registry");
+            command.add(registry);
+            command.add(packageName);
+            last = exec(command, null, appDir, 300);
+            if (last.launched && !last.timedOut && last.exitCode == 0) {
+                return last;
+            }
+        }
+        if (last == null) {
+            last = new Exec();
+            last.error = "npm is not available for this Node runtime";
+        }
+        return last;
     }
 
     private void buildPhp(Path source, String name, Path appDir,
@@ -508,6 +1228,10 @@ public final class BuildDelivery {
         out.put("artifact", script.toString());
         out.put("artifact_kind", "php");
         out.put("launcher", launcher.toString());
+        startupCheck(List.of(runtime.executable.toString(),
+                script.getFileName().toString()), null, appDir, out);
+        out.put("open_command", List.of(runtime.executable.toString(),
+                script.toString()));
         finish(out, name, launcher, "", appDir, null);
     }
 

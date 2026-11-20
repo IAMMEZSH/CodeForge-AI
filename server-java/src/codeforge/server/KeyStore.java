@@ -224,6 +224,13 @@ public final class KeyStore {
                 }
                 agent.put("auto_learn_software", flag);
             }
+            if (request.containsKey("auto_compile")) {
+                Object compile = request.get("auto_compile");
+                if (!(compile instanceof Boolean flag)) {
+                    return failure("auto_compile must be true or false");
+                }
+                agent.put("auto_compile", flag);
+            }
             if (request.containsKey("allow_publish")) {
                 Object publish = request.get("allow_publish");
                 if (!(publish instanceof Boolean flag)) {
@@ -250,6 +257,7 @@ public final class KeyStore {
         out.put("max_feedback_chars",
                 clamp(Json.integer(agent, "max_feedback_chars", 48000), 4000, 200000));
         out.put("auto_install_tools", Json.bool(agent, "auto_install_tools", true));
+        out.put("auto_compile", Json.bool(agent, "auto_compile", true));
         out.put("install_timeout_sec",
                 clamp(Json.integer(agent, "install_timeout_sec", 1800), 60, 86400));
         out.put("auto_learn_software", Json.bool(agent, "auto_learn_software", true));
@@ -498,7 +506,7 @@ public final class KeyStore {
                     .timeout(Duration.ofSeconds(30))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + key)
-                    .header("User-Agent", "CodeForgeAI/1.1.0")
+                    .header("User-Agent", "CodeForgeAI/1.2.0")
                     .POST(HttpRequest.BodyPublishers.ofString(
                             Json.write(payload), StandardCharsets.UTF_8))
                     .build();
