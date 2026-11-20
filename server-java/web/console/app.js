@@ -294,31 +294,50 @@ tickClock();
 })();
 
 /* ---------------- navigation ---------------- */
+const RAIL_VIEWS = ['chat', 'agent', 'workspace', 'search', 'tools', 'settings'];
+const ALL_VIEWS = RAIL_VIEWS.concat(['debug', 'models', 'keys', 'publish', 'inspect',
+  'engines', 'env', 'office', 'files', 'mail', 'downloads']);
+const VIEW_PRIMARY = {
+  chat: 'chat', agent: 'agent', workspace: 'workspace', search: 'search',
+  tools: 'tools', settings: 'settings',
+  debug: 'tools', publish: 'tools', inspect: 'tools', engines: 'tools',
+  office: 'tools', files: 'tools', mail: 'tools', downloads: 'tools',
+  models: 'settings', keys: 'settings', env: 'settings'
+};
 function switchView(view, skipHash) {
   state.view = view;
-  $$('.rail-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+  const primary = VIEW_PRIMARY[view] || 'chat';
+  $$('.rail-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === primary));
   $$('.view').forEach(section => section.classList.toggle('active', section.id === 'view-' + view));
   if (!skipHash && location.hash !== '#' + view) {
     history.replaceState(null, '', '#' + view);
   }
+  if (view === 'workspace') initWorkspaceView();
+  if (view === 'search') initSearchView();
+  if (view === 'agent') loadAgentQuest();
+  if (view === 'tools') initToolsView();
   if (view === 'env') { refreshStatus(true); loadLanguages(); loadAgentPanel(); }
   if (view === 'models') loadModels();
   if (view === 'keys') loadKeys();
   if (view === 'publish') loadPublishStatus();
   if (view === 'inspect') loadInspectorView();
   if (view === 'engines') loadEngines(false);
+  if (view === 'office') initOfficeView();
+  if (view === 'files') initFilesView();
+  if (view === 'mail') initMailView();
+  if (view === 'downloads') initDownloadsView();
 }
 $$('.rail-btn').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
 window.addEventListener('hashchange', () => {
   const view = location.hash.replace('#', '');
-  if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'engines', 'env'].includes(view) && view !== state.view) {
+  if (ALL_VIEWS.includes(view) && view !== state.view) {
     switchView(view, true);
   }
 });
 document.addEventListener('keydown', event => {
-  if (event.ctrlKey && !event.shiftKey && ['1', '2', '3', '4', '5', '6', '7', '8'].includes(event.key)) {
+  if (event.ctrlKey && !event.shiftKey && ['1', '2', '3', '4', '5', '6'].includes(event.key)) {
     event.preventDefault();
-    switchView(['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'engines', 'env'][Number(event.key) - 1]);
+    switchView(RAIL_VIEWS[Number(event.key) - 1]);
   }
 });
 
@@ -2251,7 +2270,7 @@ function renderModels() {
     maxTokensInput.value = String(state.rtMaxTokens || rt.max_tokens || 393216);
   }
 
-  const queue = $('#dl-jobs');
+  const queue = $('#model-dl-jobs');
   if (!jobs.length) {
     queue.innerHTML = '<div class="dim" style="font-size:11.5px">No transfers in this session. Downloads resume automatically after interruption.</div>';
   } else {
@@ -2766,7 +2785,7 @@ $('#btn-agent-test').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.0.9 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.1.0 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- key vault ---------------- */
@@ -3747,8 +3766,1537 @@ setInterval(() => refreshStatus(state.view === 'env'), 20000);
 setInterval(() => {
   if (state.view === 'chat' && state.status) updateSessionStats();
 }, 6000);
-const initialView = location.hash.replace('#', '');
-if (['chat', 'debug', 'models', 'keys', 'publish', 'inspect', 'engines', 'env'].includes(initialView)) switchView(initialView, true);
 checkUpdate();
 setInterval(checkUpdate, 6 * 60 * 60 * 1000);
 chatInput.focus();
+
+/* ================= six-slot sidebar: workspace / search / quest / tools ================= */
+const side = {
+  wsBooted: false,
+  wsRoot: '',
+  wsFile: '',
+  wsDirty: false,
+  termHistory: [],
+  termIndex: -1,
+  termBusy: false,
+  searchMode: 'local',
+  agentBooted: false,
+  agentLoading: false,
+  toolsBooted: false,
+  keyless: [],
+};
+
+function prettyJson(value) {
+  try { return JSON.stringify(value, null, 2); }
+  catch (err) { return String(value); }
+}
+
+function switchWsTab(tab) {
+  $$('[data-ws-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.wsTab === tab));
+  $('#ws-file-pane').classList.toggle('active', tab === 'files');
+  $('#ws-term-pane').classList.toggle('active', tab === 'terminal');
+  if (tab === 'terminal') $('#ws-term-input').focus();
+}
+
+function initWorkspaceView() {
+  if (side.wsBooted) return;
+  side.wsBooted = true;
+  loadWsTree($('#ws-root-input').value.trim());
+}
+
+async function loadWsTree(path) {
+  const tree = $('#ws-tree');
+  tree.innerHTML = '<div class="dim ws-empty">加载中…</div>';
+  try {
+    const data = await api('/api/files/list?' + new URLSearchParams({ path: path || '', depth: '1' }), { timeout: 30000 });
+    if (!data.ok) throw new Error(data.error || '读取失败');
+    side.wsRoot = data.path || '';
+    $('#ws-root-label').textContent = data.path || 'PROJECT ROOT';
+    $('#ws-root-input').value = '';
+    tree.innerHTML = '';
+    if (!data.entries || !data.entries.length) {
+      tree.innerHTML = '<div class="dim ws-empty">空目录</div>';
+      return;
+    }
+    data.entries.forEach(entry => tree.appendChild(wsRow(entry, 0)));
+  } catch (err) {
+    tree.innerHTML = '<div class="dim ws-empty">' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+function wsRow(entry, level) {
+  const frag = document.createDocumentFragment();
+  const row = document.createElement('div');
+  row.className = 'ws-row' + (entry.type === 'dir' ? ' dir' : '');
+  row.style.paddingLeft = (7 + level * 14) + 'px';
+  row.title = entry.path || entry.name || '';
+  row.innerHTML = '<span class="caret">' + (entry.type === 'dir' ? '▸' : '') + '</span>' +
+    '<span class="tag">' + (entry.type === 'dir' ? 'DIR' : 'FILE') + '</span>' +
+    '<span class="name">' + escapeHtml(entry.name || '') + '</span>';
+  frag.appendChild(row);
+  if (entry.type === 'dir') {
+    const children = document.createElement('div');
+    children.className = 'ws-children collapsed';
+    frag.appendChild(children);
+    row.addEventListener('click', async () => {
+      const open = !row.classList.contains('open');
+      row.classList.toggle('open', open);
+      children.classList.toggle('collapsed', !open);
+      if (!open || children.dataset.loaded) return;
+      children.dataset.loaded = '1';
+      children.innerHTML = '<div class="dim ws-empty">加载中…</div>';
+      try {
+        const data = await api('/api/files/list?' + new URLSearchParams({ path: entry.path, depth: '1' }), { timeout: 30000 });
+        children.innerHTML = '';
+        if (!data.ok) throw new Error(data.error || '读取失败');
+        if (!data.entries || !data.entries.length) children.innerHTML = '<div class="dim ws-empty">空目录</div>';
+        else data.entries.forEach(child => children.appendChild(wsRow(child, level + 1)));
+      } catch (err) {
+        children.innerHTML = '<div class="dim ws-empty">' + escapeHtml(err.message) + '</div>';
+        children.dataset.loaded = '';
+      }
+    });
+  } else {
+    row.addEventListener('click', () => openWsFile(entry.path, row));
+  }
+  return frag;
+}
+
+async function openWsFile(path, row) {
+  try {
+    const data = await api('/api/files/raw?' + new URLSearchParams({ path }), { timeout: 30000 });
+    if (!data.ok) throw new Error(data.error || '读取失败');
+    side.wsFile = data.path;
+    side.wsDirty = false;
+    $('#ws-editor').value = data.content || '';
+    $('#ws-file-path').textContent = data.path;
+    $('#ws-file-meta').textContent = fmtBytes(data.bytes || 0);
+    $('#ws-status').textContent = '已打开 · ' + (data.content || '').split('\n').length + ' 行';
+    $$('.ws-row').forEach(node => node.classList.toggle('active', node === row));
+    switchWsTab('files');
+  } catch (err) {
+    toast('打开文件失败: ' + err.message, 'err');
+  }
+}
+
+async function saveWsFile() {
+  if (!side.wsFile) { toast('先选择一个文件', 'err'); return; }
+  const content = $('#ws-editor').value;
+  try {
+    const data = await api('/api/files/write', { method: 'POST', body: { path: side.wsFile, content }, timeout: 30000 });
+    if (!data.ok) throw new Error(data.error || '保存失败');
+    side.wsDirty = false;
+    $('#ws-status').textContent = '已保存 · ' + fmtBytes(data.bytes || byteSize(content));
+    toast('已保存 ' + side.wsFile);
+  } catch (err) {
+    toast('保存失败: ' + err.message, 'err');
+  }
+}
+
+function termAppend(text, cls) {
+  const out = $('#ws-term-out');
+  if (!out.dataset.started) {
+    out.textContent = '';
+    out.dataset.started = '1';
+  }
+  if (cls) {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text;
+    out.appendChild(span);
+  } else {
+    out.appendChild(document.createTextNode(text));
+  }
+  out.scrollTop = out.scrollHeight;
+}
+
+async function runTerminal(preset) {
+  if (side.termBusy) return;
+  const input = $('#ws-term-input');
+  const command = (preset === undefined ? input.value : preset).trim();
+  if (!command) return;
+  if (preset === undefined) {
+    side.termHistory.push(command);
+    side.termIndex = side.termHistory.length;
+    input.value = '';
+  }
+  side.termBusy = true;
+  const button = $('#ws-term-run');
+  button.disabled = true;
+  button.textContent = '运行中…';
+  termAppend('\n$ ' + command + '\n', 'term-cmd');
+  try {
+    const data = await api('/api/terminal', {
+      method: 'POST',
+      body: {
+        command,
+        cwd: $('#ws-term-cwd').value.trim(),
+        shell: $('#ws-term-shell').value,
+        timeout: 120,
+      },
+      timeout: 180000,
+    });
+    if (data.stdout_tail) termAppend(data.stdout_tail);
+    if (data.stderr_tail) termAppend('\n' + data.stderr_tail, 'term-err');
+    const exit = data.exit_code === undefined ? '?' : data.exit_code;
+    termAppend('\n[exit ' + exit + ' · ' + Math.round(data.duration_ms || 0) + ' ms]' +
+      (data.timed_out ? ' · 超时' : '') + (data.blocked ? ' · 已被发布保护拦截' : '') + '\n', 'term-meta');
+  } catch (err) {
+    termAppend('\n[失败] ' + err.message + '\n', 'term-err');
+  } finally {
+    side.termBusy = false;
+    button.disabled = false;
+    button.textContent = '运行';
+    input.focus();
+  }
+}
+
+function setSearchMode(mode) {
+  side.searchMode = mode;
+  $$('[data-search-mode]').forEach(btn => btn.classList.toggle('active', btn.dataset.searchMode === mode));
+  const input = $('#search-input');
+  const badge = $('#search-badge');
+  const hint = $('#search-hint');
+  if (mode === 'local') {
+    input.placeholder = '搜索工作区文件内容、符号或路径…';
+    badge.textContent = 'WORKSPACE INDEX';
+    hint.textContent = '本地搜索使用工作区索引，命中后可直接在编辑器中打开。';
+  } else if (mode === 'web') {
+    input.placeholder = '搜索实时网页资料…';
+    badge.textContent = 'LIVE WEB';
+    hint.textContent = '在线资料使用多引擎搜索，返回标题、来源与摘要，链接在新标签页打开。';
+  } else {
+    input.placeholder = '输入需要深度检索的问题…';
+    badge.textContent = 'DEEP RESEARCH';
+    hint.textContent = '深度检索会搜索多个引擎、读取页面正文并给出引用；耗时取决于网络。';
+  }
+}
+
+function initSearchView() {
+  if (!$('#search-results').dataset.started) {
+    $('#search-results').dataset.started = '1';
+    setSearchMode(side.searchMode);
+  }
+}
+
+function searchResultItem(inner) {
+  const node = document.createElement('div');
+  node.className = 'search-item';
+  node.innerHTML = inner;
+  return node;
+}
+
+async function openWorkspacePath(path) {
+  switchView('workspace');
+  await openWsFile(path, null);
+}
+
+async function runSearch() {
+  const query = $('#search-input').value.trim();
+  if (!query) return;
+  const results = $('#search-results');
+  const mode = side.searchMode;
+  results.innerHTML = '<div class="dim">' + (mode === 'deep' ? '深度检索中，正在搜索并读取页面…' : '搜索中…') + '</div>';
+  $('#search-badge').textContent = 'RUNNING';
+  try {
+    if (mode === 'local') {
+      const data = await api('/api/workspace?' + new URLSearchParams({ q: query, limit: '20' }), { timeout: 60000 });
+      const hits = data.hits || [];
+      $('#search-badge').textContent = hits.length + ' HITS';
+      results.innerHTML = '';
+      if (!hits.length) {
+        results.innerHTML = '<div class="dim">工作区索引中没有匹配结果。可在智能体视图中提交索引刷新任务。</div>';
+        return;
+      }
+      hits.forEach(hit => {
+        const item = searchResultItem(
+          '<div class="path">' + escapeHtml(hit.path || '') + '</div>' +
+          '<div class="excerpt">' + escapeHtml(hit.excerpt || '') + '</div>' +
+          '<div class="meta">score ' + escapeHtml(String(hit.score ?? '—')) + ' · 点击在编辑器中打开</div>'
+        );
+        item.addEventListener('click', () => openWorkspacePath(hit.path));
+        results.appendChild(item);
+      });
+      return;
+    }
+    if (mode === 'web') {
+      const data = await api('/api/online/research?' + new URLSearchParams({ q: query }), { timeout: 180000 });
+      const items = data.results || [];
+      $('#search-badge').textContent = items.length + ' RESULTS';
+      results.innerHTML = '';
+      if (!items.length) {
+        results.innerHTML = '<div class="dim">没有返回结果，可能是网络受限。请检查右上角在线状态后重试。</div>';
+        return;
+      }
+      items.forEach(item => {
+        const url = safeUrl(item.url);
+        const node = document.createElement('div');
+        node.className = 'search-item';
+        node.innerHTML =
+          '<div class="path"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' +
+          escapeHtml(item.title || url) + '</a></div>' +
+          '<div class="excerpt">' + escapeHtml(item.snippet || '') + '</div>' +
+          '<div class="meta">' + escapeHtml(item.source || 'web') + ' · 点击标题打开原文</div>';
+        results.appendChild(node);
+      });
+      return;
+    }
+    const data = await api('/api/online/research?' + new URLSearchParams({ q: query }), { timeout: 240000 });
+    const items = data.results || [];
+    const citations = data.citations || [];
+    $('#search-badge').textContent = items.length + ' RESULTS · ' + (data.pages_read || 0) + ' PAGES';
+    results.innerHTML = '';
+    if (data.evidence || citations.length) {
+      citations.forEach(cite => {
+        const url = safeUrl(cite.url);
+        const passages = (cite.passages || []).slice(0, 3)
+          .map(passage => '<div class="excerpt">· ' + escapeHtml(passage) + '</div>').join('');
+        const node = document.createElement('div');
+        node.className = 'search-item';
+        node.innerHTML =
+          '<div class="path"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' +
+          escapeHtml(cite.title || url) + '</a></div>' + passages +
+          '<div class="meta">已读取 ' + escapeHtml(String(cite.chars || 0)) + ' 字符</div>';
+        results.appendChild(node);
+      });
+    }
+    items.slice(0, 8).forEach(item => {
+      const url = safeUrl(item.url);
+      const node = document.createElement('div');
+      node.className = 'search-item';
+      node.innerHTML =
+        '<div class="path"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' +
+        escapeHtml(item.title || url) + '</a></div>' +
+        '<div class="excerpt">' + escapeHtml(item.snippet || '') + '</div>' +
+        '<div class="meta">' + escapeHtml(item.source || 'web') + '</div>';
+      results.appendChild(node);
+    });
+    if (!results.children.length) {
+      results.innerHTML = '<div class="dim">' + escapeHtml(data.note || '没有检索到可读页面。') + '</div>';
+    }
+  } catch (err) {
+    $('#search-badge').textContent = 'ERROR';
+    results.innerHTML = '<div class="dim">搜索失败：' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+async function loadAgentQuest(refresh) {
+  if (side.agentLoading) return;
+  if (side.agentBooted && !refresh) return;
+  side.agentLoading = true;
+  const box = $('#agent-caps');
+  try {
+    const data = await api('/api/agent' + (refresh ? '?refresh=1' : ''), { timeout: 90000 });
+    const caps = data.capabilities || {};
+    const tools = caps.tools || [];
+    $('#agent-cap-badge').textContent = (caps.tool_count || tools.length || 0) + ' TOOLS';
+    const chips = [
+      ['系统', caps.os || '—'],
+      ['Shell', caps.shell || '—'],
+      ['检测工具', String(caps.tool_count || tools.length || 0)],
+      ['已装软件', String(caps.software_count || 0)],
+      ['游戏引擎', String(caps.engine_count || 0)],
+      ['自动安装', caps.auto_install ? '开启' : '关闭'],
+      ['发布', '默认拦截'],
+    ];
+    let html = chips.map(chip => '<span class="quest-chip">' + escapeHtml(chip[0]) + ' <b>' +
+      escapeHtml(chip[1]) + '</b></span>').join('');
+    tools.slice(0, 18).forEach(tool => {
+      html += '<span class="quest-chip">' + escapeHtml(tool.name || '') + '</span>';
+    });
+    if (tools.length > 18) html += '<span class="quest-chip">+' + (tools.length - 18) + ' more</span>';
+    box.innerHTML = html;
+    if (!$('#agent-steps').value || Number($('#agent-steps').value) === 128) {
+      if (data.max_steps) $('#agent-steps').value = data.max_steps;
+    }
+    side.agentBooted = true;
+  } catch (err) {
+    box.innerHTML = '<span class="dim">读取智能体能力失败：' + escapeHtml(err.message) + '</span>';
+    $('#agent-cap-badge').textContent = 'OFFLINE';
+  } finally {
+    side.agentLoading = false;
+  }
+}
+
+async function startQuest() {
+  const goal = $('#agent-goal').value.trim();
+  if (!goal) { toast('请先输入任务目标', 'err'); $('#agent-goal').focus(); return; }
+  const steps = Math.max(1, Math.min(512, Number($('#agent-steps').value) || 128));
+  $('#agent-steps').value = steps;
+  const mode = $('#agent-mode').value;
+  api('/api/agent', { method: 'POST', body: { max_steps: steps }, timeout: 30000 }).catch(() => {});
+  const prompt = mode === 'ask'
+    ? '【只分析，不执行】' + goal + '\n请检索工作区与相关资料，给出完整分析和可执行方案，不要修改文件或系统。'
+    : '【智能体任务】目标：' + goal + '\n请直接开始端到端执行：读取项目结构，规划步骤，使用工作区文件、终端、构建与测试、在线搜索与抓取、免密钥数据和任意 API 工具推进。每一步说明结果，遇到错误自行诊断修复，完成后给出可验证的检查结果。步骤上限：' + steps + '。';
+  switchView('chat');
+  chatInput.value = prompt;
+  autoGrow();
+  updateSendMode();
+  chatInput.focus();
+  toast('任务已交给对话智能体，正在执行');
+  sendChat();
+}
+
+async function loadKeylessCatalog() {
+  try {
+    const data = await api('/api/keyless?list=1', { timeout: 30000 });
+    const services = data.services || [];
+    side.keyless = services;
+    const select = $('#tool-keyless-service');
+    select.innerHTML = '';
+    services.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.id + ' · ' + item.name;
+      select.appendChild(option);
+    });
+    if (services.length) {
+      $('#tool-keyless-out').textContent = services.length + ' 项免密钥服务已就绪。选择服务后填写参数即可调用。\n' +
+        services.map(item => item.id + ' — ' + item.name).join('\n');
+    } else {
+      $('#tool-keyless-out').textContent = '服务目录为空。';
+    }
+    select.onchange = () => {
+      const item = services.find(entry => entry.id === select.value);
+      if (!item) return;
+      $('#tool-keyless-params').placeholder = '参数：' + (item.params || '无需参数');
+      $('#tool-keyless-out').textContent = item.description + '\n来源：' + item.source + ' · 免密钥 · 无需注册';
+    };
+    if (services[0]) select.onchange();
+    side.toolsBooted = true;
+  } catch (err) {
+    $('#tool-keyless-out').textContent = '读取服务目录失败：' + err.message;
+  }
+}
+
+function initToolsView() {
+  if (side.toolsBooted) return;
+  loadKeylessCatalog();
+}
+
+function initSettingsView() {}
+
+function focusToolBox(boxSelector, fieldSelector) {
+  const box = $(boxSelector);
+  if (!box) return;
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const previous = box.style.borderColor;
+  box.style.borderColor = 'var(--cyan)';
+  setTimeout(() => { box.style.borderColor = previous; }, 1400);
+  const field = fieldSelector ? $(fieldSelector) : null;
+  if (field) setTimeout(() => field.focus(), 280);
+}
+
+async function runWeatherTool() {
+  const city = $('#tool-weather-city').value.trim();
+  if (!city) { toast('请输入城市', 'err'); $('#tool-weather-city').focus(); return; }
+  const out = $('#tool-weather-out');
+  out.textContent = '查询中…';
+  try {
+    const data = await api('/api/weather?' + new URLSearchParams({
+      location: city,
+      days: $('#tool-weather-days').value,
+    }), { timeout: 60000 });
+    if (!data || data.ok === false) {
+      out.textContent = '查询失败：' + ((data && data.error) || '未知错误');
+      return;
+    }
+    const lines = [data.summary || (city + ' 天气')];
+    const cur = data.current || {};
+    if (cur.temperature_c !== undefined) {
+      lines.push('当前 ' + cur.temperature_c + '°C · 体感 ' + (cur.feels_like_c ?? '—') +
+        '°C · ' + (cur.weather || '') + ' · 湿度 ' + (cur.humidity_percent ?? '—') + '%');
+    }
+    (data.daily || []).forEach(day => {
+      lines.push(day.date + '  ' + (day.weather || '') + '  ' +
+        (day.temp_min_c ?? '—') + '~' + (day.temp_max_c ?? '—') + '°C  降水 ' +
+        (day.precipitation_chance_percent ?? '—') + '%');
+    });
+    lines.push('');
+    lines.push('数据源：' + (data.source || '免密钥公共天气服务'));
+    out.textContent = lines.join('\n');
+  } catch (err) {
+    out.textContent = '查询失败：' + err.message;
+  }
+}
+
+async function runKeylessTool() {
+  const service = $('#tool-keyless-service').value;
+  if (!service) { toast('先选择服务', 'err'); return; }
+  const params = new URLSearchParams({ service });
+  $('#tool-keyless-params').value.trim().split('&').forEach(pair => {
+    const index = pair.indexOf('=');
+    if (index > 0) params.set(pair.slice(0, index).trim(), pair.slice(index + 1).trim());
+  });
+  const out = $('#tool-keyless-out');
+  out.textContent = '调用中…';
+  try {
+    const data = await api('/api/keyless?' + params, { timeout: 90000 });
+    const lines = [];
+    if (data.ok === false) lines.push('调用失败：' + (data.error || '未知错误'));
+    if (data.summary) lines.push(data.summary);
+    if (data.url) lines.push('URL：' + data.url);
+    if (data.source) lines.push('来源：' + data.source);
+    if (data.service) lines.push('服务：' + data.service);
+    lines.push('');
+    lines.push(prettyJson(data.data !== undefined ? data.data : data));
+    out.textContent = lines.join('\n');
+  } catch (err) {
+    out.textContent = '调用失败：' + err.message;
+  }
+}
+
+async function runApiTool() {
+  const url = $('#tool-api-url').value.trim();
+  if (!url) { toast('请输入 URL', 'err'); $('#tool-api-url').focus(); return; }
+  const method = $('#tool-api-method').value;
+  const rawBody = $('#tool-api-body').value.trim();
+  const body = { method, url };
+  if (rawBody) {
+    try { body.body = JSON.parse(rawBody); }
+    catch (err) { body.body = rawBody; }
+  }
+  const out = $('#tool-api-out');
+  out.textContent = '请求中…';
+  try {
+    const data = await api('/api/api-call', { method: 'POST', body, timeout: 150000 });
+    const head = (data.method || method) + ' ' + (data.url || url) + ' → ' +
+      (data.status === undefined ? '—' : data.status) + ' · ' +
+      (data.duration_ms || 0) + ' ms · ' + fmtBytes(data.bytes || 0) +
+      (data.truncated ? ' · 已截断' : '');
+    const payload = data.json !== undefined ? prettyJson(data.json) : (data.body || '');
+    out.textContent = (data.error ? '错误：' + data.error + '\n' : '') + head + '\n\n' + payload;
+  } catch (err) {
+    out.textContent = '请求失败：' + err.message;
+  }
+}
+
+document.addEventListener('click', event => {
+  const card = event.target.closest('.tool-card');
+  if (!card) return;
+  if (card.dataset.view) { switchView(card.dataset.view); return; }
+  if (card.dataset.tool === 'git') {
+    switchView('workspace');
+    switchWsTab('terminal');
+    runTerminal('git status');
+    return;
+  }
+  if (card.dataset.tool === 'terminal') {
+    switchView('workspace');
+    switchWsTab('terminal');
+    $('#ws-term-input').focus();
+    return;
+  }
+  const action = card.dataset.action;
+  if (!action) return;
+  if (action === 'search-web' || action === 'search-deep') {
+    switchView('search');
+    setSearchMode(action === 'search-web' ? 'web' : 'deep');
+    $('#search-input').focus();
+    if ($('#search-input').value.trim()) runSearch();
+    return;
+  }
+  if (action === 'build') { switchView('debug'); return; }
+  switchView('tools');
+  if (action === 'weather') focusToolBox('#tool-weather-box', '#tool-weather-city');
+  if (action === 'keyless') focusToolBox('#tool-keyless-box', '#tool-keyless-params');
+  if (action === 'api') focusToolBox('#tool-api-box', '#tool-api-url');
+});
+
+$$('[data-ws-tab]').forEach(btn => btn.addEventListener('click', () => switchWsTab(btn.dataset.wsTab)));
+$$('[data-search-mode]').forEach(btn => btn.addEventListener('click', () => setSearchMode(btn.dataset.searchMode)));
+$('#ws-refresh').addEventListener('click', () => loadWsTree($('#ws-root-input').value.trim() || side.wsRoot));
+$('#ws-root-open').addEventListener('click', () => loadWsTree($('#ws-root-input').value.trim()));
+$('#ws-root-input').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); loadWsTree($('#ws-root-input').value.trim()); }
+});
+$('#ws-save').addEventListener('click', saveWsFile);
+$('#ws-editor').addEventListener('input', () => {
+  side.wsDirty = true;
+  $('#ws-status').textContent = '未保存 · ' + $('#ws-editor').value.split('\n').length + ' 行';
+});
+$('#ws-editor').addEventListener('keydown', event => {
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    const start = event.target.selectionStart;
+    const end = event.target.selectionEnd;
+    event.target.setRangeText('    ', start, end, 'end');
+    side.wsDirty = true;
+  }
+});
+$('#ws-term-run').addEventListener('click', () => runTerminal());
+$('#ws-term-clear').addEventListener('click', () => {
+  const out = $('#ws-term-out');
+  out.textContent = '';
+  out.dataset.started = '1';
+});
+$('#ws-term-input').addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    runTerminal();
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (!side.termHistory.length) return;
+    side.termIndex = Math.max(0, Math.min(side.termHistory.length - 1, side.termIndex - 1));
+    event.target.value = side.termHistory[side.termIndex] || '';
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    side.termIndex = Math.min(side.termHistory.length, side.termIndex + 1);
+    event.target.value = side.termHistory[side.termIndex] || '';
+  }
+});
+$('#search-go').addEventListener('click', runSearch);
+$('#search-input').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); runSearch(); }
+});
+$('#agent-open-env').addEventListener('click', () => switchView('env'));
+$('#agent-start').addEventListener('click', startQuest);
+$('#tool-weather-go').addEventListener('click', runWeatherTool);
+$('#tool-weather-city').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); runWeatherTool(); }
+});
+$('#tool-keyless-go').addEventListener('click', runKeylessTool);
+$('#tool-keyless-params').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); runKeylessTool(); }
+});
+$('#tool-api-go').addEventListener('click', runApiTool);
+document.addEventListener('keydown', event => {
+  if (!event.ctrlKey || event.altKey || event.metaKey) return;
+  if (event.key.toLowerCase() === 's' && state.view === 'workspace' &&
+    $('#ws-file-pane').classList.contains('active')) {
+    event.preventDefault();
+    if (side.wsDirty) saveWsFile();
+  }
+});
+window.addEventListener('beforeunload', event => {
+  if (!side.wsDirty) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+
+
+/* ================= office studio ================= */
+const officeState = { path: '', data: null, pdfPage: 0, booted: false };
+
+function officeKindLabel(kind) {
+  return String(kind || '').toUpperCase();
+}
+
+function officeMetaLine(data) {
+  const parts = [officeKindLabel(data.kind), fmtBytes(data.bytes), data.modified || ''];
+  if (data.kind === 'docx' || data.kind === 'doc') {
+    parts.push((data.paragraph_count || 0) + ' 段');
+    if (data.tables) parts.push(data.tables + ' 表格');
+  }
+  if (data.kind === 'xlsx' || data.kind === 'xls' || data.kind === 'xlsm') {
+    parts.push((data.sheet_count || 0) + ' 工作表');
+  }
+  if (data.kind === 'pptx' || data.kind === 'ppt') {
+    parts.push((data.slide_count || 0) + ' 页');
+  }
+  if (data.kind === 'pdf') {
+    parts.push((data.page_count || 0) + ' 页');
+  }
+  return parts.filter(Boolean).join(' · ');
+}
+
+function officeRender(data) {
+  officeState.data = data;
+  officeState.path = data.path || officeState.path;
+  officeState.pdfPage = 0;
+  $('#office-path').value = officeState.path;
+  $('#office-meta').textContent = officeMetaLine(data);
+  $('#office-note').textContent = data.note || '';
+  const preview = $('#office-preview');
+  const pdf = $('#office-pdf');
+  if (data.kind === 'pdf') {
+    preview.hidden = true;
+    pdf.hidden = false;
+    officeShowPdfPage(0);
+  } else {
+    pdf.hidden = true;
+    preview.hidden = false;
+    if (data.html) {
+      preview.innerHTML = data.html;
+    } else if (data.text) {
+      preview.innerHTML = '<pre class="doc-text">' + escapeHtml(data.text) + '</pre>';
+    } else {
+      preview.innerHTML = '<div class="office-empty">没有可预览的内容</div>';
+    }
+  }
+  officeRenderControls();
+}
+
+function officeRenderControls() {
+  const data = officeState.data || {};
+  const box = $('#office-edit-controls');
+  const kind = data.kind || '';
+  if (data.editable === false) {
+    box.innerHTML = '<div class="dim office-tip">此格式当前为只读预览。' + escapeHtml(data.note || '') + '</div>';
+    return;
+  }
+  if (kind === 'docx') {
+    const paragraphs = data.paragraphs || [];
+    const options = paragraphs.slice(0, 300).map((p, i) =>
+      '<option value="' + i + '">' + String(i + 1).padStart(2, '0') + ' · ' +
+      escapeHtml((p.text || '(空段落)').slice(0, 70)) + '</option>').join('');
+    box.innerHTML =
+      '<label class="small">选择段落</label>' +
+      '<select class="field mono" id="office-para-select">' + options + '</select>' +
+      '<textarea class="field tool-body" id="office-para-text" rows="4" placeholder="段落文本"></textarea>' +
+      '<div class="office-row"><button class="btn sm" data-office-action="save-para">保存段落</button>' +
+      '<button class="btn ghost sm" data-office-action="delete-para">删除段落</button></div>' +
+      '<label class="small">追加段落</label>' +
+      '<textarea class="field tool-body" id="office-append-text" rows="3" placeholder="新段落文本"></textarea>' +
+      '<button class="btn ghost sm" data-office-action="append-para">追加</button>' +
+      '<label class="small">全文替换</label>' +
+      '<input class="field" id="office-find" placeholder="查找文本">' +
+      '<input class="field" id="office-replace" placeholder="替换为">' +
+      '<button class="btn ghost sm" data-office-action="replace-all">全部替换</button>' +
+      '<button class="btn red sm" data-office-action="delete-doc">移到办公回收站</button>';
+    const select = $('#office-para-select');
+    if (select && paragraphs[0]) $('#office-para-text').value = paragraphs[0].text || '';
+  } else if (kind === 'xlsx' || kind === 'xls' || kind === 'xlsm') {
+    const sheets = data.sheets || [];
+    const options = sheets.map(s => '<option value="' + escapeHtml(s.name) + '">' +
+      escapeHtml(s.name) + ' · ' + (s.rows || 0) + ' 行</option>').join('');
+    box.innerHTML =
+      '<label class="small">工作表</label><select class="field mono" id="office-sheet">' + options + '</select>' +
+      '<div class="office-row"><input class="field mono" id="office-cell" placeholder="单元格，例如 B3">' +
+      '<input class="field" id="office-cell-value" placeholder="值或 =公式"></div>' +
+      '<button class="btn sm" data-office-action="set-cell">写入单元格</button>' +
+      '<label class="small">新增一行</label>' +
+      '<input class="field mono" id="office-row-values" placeholder="值用 | 分隔，例如 张三|90|优秀">' +
+      '<button class="btn ghost sm" data-office-action="add-row">添加行</button>' +
+      '<div class="office-row"><input class="field mono" id="office-sheet-name" placeholder="新工作表名">' +
+      '<button class="btn ghost sm" data-office-action="add-sheet">新增工作表</button></div>' +
+      '<button class="btn red sm" data-office-action="delete-doc">移到办公回收站</button>';
+  } else if (kind === 'pptx' || kind === 'ppt') {
+    const slides = data.slides || [];
+    const options = slides.map(s => '<option value="' + s.index + '">第 ' + (s.index + 1) + ' 页 · ' +
+      escapeHtml((s.title || '无标题').slice(0, 60)) + '</option>').join('');
+    box.innerHTML =
+      '<label class="small">选择页面</label><select class="field mono" id="office-slide-select">' + options + '</select>' +
+      '<label class="small">文本框序号</label><input class="field mono" id="office-shape-index" type="number" min="0" value="0">' +
+      '<textarea class="field tool-body" id="office-slide-text" rows="4" placeholder="文本框内容"></textarea>' +
+      '<button class="btn sm" data-office-action="set-slide">保存文本框</button>' +
+      '<button class="btn ghost sm" data-office-action="delete-slide">删除本页</button>' +
+      '<label class="small">新增页面</label><input class="field" id="office-new-slide-title" placeholder="页面标题">' +
+      '<textarea class="field tool-body" id="office-new-slide-text" rows="3" placeholder="页面正文"></textarea>' +
+      '<button class="btn ghost sm" data-office-action="add-slide">添加页面</button>' +
+      '<button class="btn red sm" data-office-action="delete-doc">移到办公回收站</button>';
+    officeFillSlideText(0);
+  } else if (kind === 'pdf') {
+    box.innerHTML =
+      '<label class="small">新增页面文本</label><textarea class="field tool-body" id="office-pdf-text" rows="4" placeholder="新页面文本"></textarea>' +
+      '<button class="btn ghost sm" data-office-action="pdf-add-page">添加页面</button>' +
+      '<label class="small">当前页操作</label>' +
+      '<div class="office-row"><button class="btn ghost sm" data-office-action="pdf-rotate">旋转 90°</button>' +
+      '<button class="btn ghost sm" data-office-action="pdf-delete-page">删除当前页</button></div>' +
+      '<label class="small">PDF 元数据</label>' +
+      '<input class="field" id="office-pdf-title" placeholder="标题">' +
+      '<input class="field" id="office-pdf-author" placeholder="作者">' +
+      '<button class="btn ghost sm" data-office-action="pdf-meta">保存元数据</button>' +
+      '<label class="small">合并其他 PDF（每行一个绝对路径）</label>' +
+      '<textarea class="field mono tool-body" id="office-pdf-merge" rows="3"></textarea>' +
+      '<button class="btn ghost sm" data-office-action="pdf-merge">合并</button>' +
+      '<button class="btn red sm" data-office-action="delete-doc">移到办公回收站</button>';
+  } else if (['txt', 'md', 'markdown', 'csv', 'tsv', 'json', 'log'].includes(kind)) {
+    box.innerHTML =
+      '<div class="dim office-tip">预览可能截断大文件；保存全文会覆盖原文件。</div>' +
+      '<textarea class="field mono tool-body" id="office-text-all" rows="10">' +
+      escapeHtml(data.text || '') + '</textarea>' +
+      '<button class="btn sm" data-office-action="text-set">保存全文</button>' +
+      '<label class="small">追加内容</label>' +
+      '<textarea class="field mono tool-body" id="office-text-append" rows="4"></textarea>' +
+      '<button class="btn ghost sm" data-office-action="text-append">追加</button>' +
+      '<button class="btn red sm" data-office-action="delete-doc">移到办公回收站</button>';
+  } else {
+    box.innerHTML = '<div class="dim office-tip">此格式可预览，当前没有可用的编辑操作。</div>';
+  }
+}
+
+function officeFillSlideText(slideIndex) {
+  const data = officeState.data || {};
+  const slide = (data.slides || []).find(item => item.index === Number(slideIndex));
+  const shapes = (slide && slide.shapes) || [];
+  if (shapes[0]) $('#office-slide-text').value = shapes[0].text || '';
+}
+
+async function officeOpen(path) {
+  const raw = String(path || '').trim();
+  if (!raw) { toast('请输入文档路径', 'err'); $('#office-path').focus(); return; }
+  const preview = $('#office-preview');
+  preview.innerHTML = '<div class="office-empty">读取文档中…</div>';
+  try {
+    const data = await api('/api/office/open', { method: 'POST', body: { path: raw }, timeout: 120000 });
+    if (!data.ok) throw new Error(data.error || '无法打开文档');
+    officeRender(data);
+    toast('已打开 ' + (data.name || raw));
+  } catch (err) {
+    preview.innerHTML = '<div class="office-empty">打开失败<br><span>' + escapeHtml(err.message) + '</span></div>';
+    toast(err.message, 'err');
+  }
+}
+
+function officeShowPdfPage(page) {
+  const data = officeState.data || {};
+  const total = Math.max(1, data.page_count || 1);
+  officeState.pdfPage = Math.max(0, Math.min(total - 1, Number(page) || 0));
+  const params = new URLSearchParams({
+    path: officeState.path,
+    page: String(officeState.pdfPage),
+    scale: '1.6',
+    _: String(Date.now()),
+  });
+  $('#office-pdf-page').textContent = (officeState.pdfPage + 1) + ' / ' + total;
+  $('#office-pdf-img').src = '/api/office/pdf-page?' + params.toString();
+}
+
+async function officeUpdate(action, extra) {
+  if (!officeState.path) return;
+  const body = Object.assign({ path: officeState.path, action }, extra || {});
+  try {
+    const data = await api('/api/office/update', { method: 'POST', body, timeout: 120000 });
+    if (!data.ok) throw new Error(data.error || '保存失败');
+    officeRender(data);
+    toast('已保存 · ' + action);
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+async function officeDeleteDoc() {
+  if (!officeState.path) return;
+  if (!window.confirm('将文档移动到 CodeForge 办公回收站？\n' + officeState.path)) return;
+  try {
+    const data = await api('/api/office/delete', {
+      method: 'POST',
+      body: { path: officeState.path, confirm: true },
+    });
+    if (!data.ok) throw new Error(data.error || '删除失败');
+    toast('已移到回收站：' + data.path);
+    officeState.path = '';
+    officeState.data = null;
+    $('#office-meta').textContent = '文档已移到办公回收站。';
+    $('#office-preview').innerHTML = '<div class="office-empty">文档已移到办公回收站<br><span>' + escapeHtml(data.path) + '</span></div>';
+    $('#office-edit-controls').innerHTML = '<div class="dim office-tip">打开可编辑文档后，这里会出现对应的操作。</div>';
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+async function officeSearch() {
+  const query = $('#office-search-q').value.trim();
+  if (!query) { toast('请输入文档内容关键词', 'err'); return; }
+  const root = $('#office-search-root').value.trim();
+  const box = $('#office-hits');
+  box.innerHTML = '<div class="dim">搜索中…</div>';
+  try {
+    const data = await api('/api/office/search', {
+      method: 'POST',
+      body: { query, path: root, limit: 40, max_files: 600 },
+      timeout: 120000,
+    });
+    if (!data.ok) throw new Error(data.error || '搜索失败');
+    box.innerHTML = '';
+    if (!data.hits || !data.hits.length) {
+      box.innerHTML = '<div class="dim">没有找到包含该内容的文档。</div>';
+      return;
+    }
+    data.hits.forEach(hit => {
+      const node = document.createElement('div');
+      node.className = 'office-hit';
+      node.innerHTML = '<div class="p">' + escapeHtml(hit.path) + '</div>' +
+        '<div class="x">' + escapeHtml(hit.excerpt || '') + '</div>';
+      node.addEventListener('click', () => officeOpen(hit.path));
+      box.appendChild(node);
+    });
+    toast('找到 ' + data.count + ' 个文档');
+  } catch (err) {
+    box.innerHTML = '<div class="dim">搜索失败：' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+function initOfficeView() {
+  if (officeState.booted) return;
+  officeState.booted = true;
+  const controls = $('#office-edit-controls');
+  controls.addEventListener('change', event => {
+    const target = event.target;
+    if (target.id === 'office-para-select') {
+      const index = Number(target.value);
+      const paragraph = ((officeState.data || {}).paragraphs || [])[index];
+      if (paragraph) $('#office-para-text').value = paragraph.text || '';
+    }
+    if (target.id === 'office-slide-select') officeFillSlideText(target.value);
+  });
+  controls.addEventListener('click', event => {
+    const button = event.target.closest('[data-office-action]');
+    if (!button) return;
+    event.preventDefault();
+    const action = button.dataset.officeAction;
+    if (action === 'save-para') {
+      officeUpdate('set_paragraph', {
+        index: Number(($('#office-para-select') || {}).value || 0),
+        text: ($('#office-para-text') || {}).value || '',
+      });
+    } else if (action === 'delete-para') {
+      if (window.confirm('删除选中的段落？')) {
+        officeUpdate('delete_paragraph', {
+          index: Number(($('#office-para-select') || {}).value || 0),
+        });
+      }
+    } else if (action === 'append-para') {
+      officeUpdate('append_paragraph', { text: ($('#office-append-text') || {}).value || '' });
+    } else if (action === 'replace-all') {
+      const find = ($('#office-find') || {}).value || '';
+      if (!find) { toast('请输入要查找的文本', 'err'); return; }
+      officeUpdate('replace_all', { find, replace: ($('#office-replace') || {}).value || '' });
+    } else if (action === 'set-cell') {
+      officeUpdate('set_cell', {
+        sheet: ($('#office-sheet') || {}).value || '',
+        cell: ($('#office-cell') || {}).value || '',
+        value: ($('#office-cell-value') || {}).value || '',
+      });
+    } else if (action === 'add-row') {
+      const values = (($('#office-row-values') || {}).value || '').split('|');
+      officeUpdate('add_row', { sheet: ($('#office-sheet') || {}).value || '', values });
+    } else if (action === 'add-sheet') {
+      officeUpdate('add_sheet', { name: ($('#office-sheet-name') || {}).value || '' });
+    } else if (action === 'set-slide') {
+      officeUpdate('set_text', {
+        slide: Number(($('#office-slide-select') || {}).value || 0),
+        shape: Number(($('#office-shape-index') || {}).value || 0),
+        text: ($('#office-slide-text') || {}).value || '',
+      });
+    } else if (action === 'add-slide') {
+      officeUpdate('add_slide', {
+        title: ($('#office-new-slide-title') || {}).value || 'New slide',
+        text: ($('#office-new-slide-text') || {}).value || '',
+      });
+    } else if (action === 'delete-slide') {
+      if (window.confirm('删除当前页面？')) {
+        officeUpdate('delete_slide', {
+          slide: Number(($('#office-slide-select') || {}).value || 0),
+        });
+      }
+    } else if (action === 'pdf-add-page') {
+      officeUpdate('add_page', { text: ($('#office-pdf-text') || {}).value || '' });
+    } else if (action === 'pdf-rotate') {
+      officeUpdate('rotate_page', { page: officeState.pdfPage, degrees: 90 });
+    } else if (action === 'pdf-delete-page') {
+      if (window.confirm('删除 PDF 当前页？')) {
+        officeUpdate('delete_page', { page: officeState.pdfPage });
+      }
+    } else if (action === 'pdf-meta') {
+      officeUpdate('set_metadata', {
+        title: ($('#office-pdf-title') || {}).value || '',
+        author: ($('#office-pdf-author') || {}).value || '',
+      });
+    } else if (action === 'pdf-merge') {
+      const paths = (($('#office-pdf-merge') || {}).value || '')
+        .split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      if (!paths.length) { toast('请输入要合并的 PDF 路径', 'err'); return; }
+      officeUpdate('merge', { paths });
+    } else if (action === 'text-set') {
+      officeUpdate('set_text', { text: ($('#office-text-all') || {}).value || '' });
+    } else if (action === 'text-append') {
+      officeUpdate('append', { text: ($('#office-text-append') || {}).value || '' });
+    } else if (action === 'delete-doc') {
+      officeDeleteDoc();
+    }
+  });
+}
+
+/* ================= full filesystem ================= */
+const fsState = { cwd: '', selected: null, entries: [], hits: [], booted: false };
+
+function fsJoin(base, name) {
+  if (!base) return name;
+  const sep = base.includes('\\') ? '\\' : '/';
+  return base.replace(/[\\/]+$/, '') + sep + name;
+}
+
+function fsParent(path) {
+  if (!path) return '';
+  if (/^[A-Za-z]:[\\/]$/.test(String(path))) return String(path);
+  const cleaned = String(path).replace(/[\\/]+$/, '');
+  const index = Math.max(cleaned.lastIndexOf('\\'), cleaned.lastIndexOf('/'));
+  if (index <= 0) return cleaned;
+  if (index === 2 && /^[A-Za-z]:/.test(cleaned)) return cleaned.slice(0, 3);
+  return cleaned.slice(0, index);
+}
+
+function fsSelect(entry) {
+  fsState.selected = entry;
+  $('#fs-selected').textContent = entry ? (entry.path + (entry.type === 'dir' ? ' · 文件夹' : ' · ' + fmtBytes(entry.bytes))) : '未选择';
+  $('#fs-target').value = '';
+  $$('.fs-row').forEach(row => row.classList.toggle('active',
+    fsState.entries[Number(row.dataset.fsIndex)] === entry));
+}
+
+function fsRenderEntries(data) {
+  const list = $('#fs-list');
+  fsState.cwd = data.path || fsState.cwd;
+  $('#fs-path').value = fsState.cwd;
+  const entries = (data.entries || []).slice();
+  entries.sort((a, b) => {
+    if ((a.type === 'dir') !== (b.type === 'dir')) return a.type === 'dir' ? -1 : 1;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hans-CN');
+  });
+  fsState.entries = entries;
+  list.innerHTML = '';
+  if (!entries.length) {
+    list.innerHTML = '<div class="dim" style="padding:12px">文件夹为空。</div>';
+    return;
+  }
+  entries.forEach((entry, index) => {
+    const row = document.createElement('div');
+    row.className = 'fs-row';
+    row.dataset.fsIndex = String(index);
+    row.title = entry.path;
+    row.innerHTML = '<span class="t">' + (entry.type === 'dir' ? 'DIR' : 'FILE') + '</span>' +
+      '<span class="n">' + escapeHtml(entry.name || '') + '</span>' +
+      '<span class="s">' + (entry.type === 'dir' ? '—' : fmtBytes(entry.bytes)) + '</span>' +
+      '<span class="m">' + escapeHtml(entry.modified || '') + '</span>';
+    row.addEventListener('click', () => fsSelect(entry));
+    row.addEventListener('dblclick', () => {
+      if (entry.type === 'dir') fsOpen(entry.path);
+      else fsSelect(entry);
+    });
+    list.appendChild(row);
+  });
+  fsSelect(null);
+}
+
+async function fsLoadPermission() {
+  try {
+    const data = await api('/api/permissions', { timeout: 30000 });
+    $('#fs-perm-toggle').checked = !!data.full_filesystem;
+    $('#fs-perm-badge').textContent = data.full_filesystem ? '已授权全盘' : '未授权';
+    $('#fs-perm-badge').classList.toggle('ok', !!data.full_filesystem);
+    if (!data.full_filesystem) {
+      $('#fs-list').innerHTML = '<div class="dim" style="padding:12px">启用“允许全盘访问”后即可浏览、搜索与修改任意文件。所有写操作都会记录在 logs/file-access.jsonl。</div>';
+    }
+    fsLoadDrives();
+  } catch (err) {
+    $('#fs-perm-badge').textContent = '读取失败';
+  }
+}
+
+async function fsLoadDrives() {
+  try {
+    const data = await api('/api/fs/drives', { timeout: 30000 });
+    const box = $('#fs-drives');
+    box.innerHTML = '';
+    (data.drives || []).forEach(drive => {
+      const button = document.createElement('button');
+      button.className = 'fs-drive';
+      button.innerHTML = '<b>' + escapeHtml(drive.name || drive.path) + '</b><small>' +
+        fmtBytes(drive.free_bytes || 0) + ' free / ' + fmtBytes(drive.total_bytes || 0) + '</small>';
+      button.addEventListener('click', () => fsOpen(drive.path));
+      box.appendChild(button);
+    });
+  } catch (err) {
+    /* permission view already reports the error */
+  }
+}
+
+async function fsOpen(path) {
+  const raw = String(path || '').trim();
+  if (!raw) return;
+  try {
+    const data = await api('/api/fs/op', { method: 'POST', body: { op: 'list', path: raw, depth: 1 }, timeout: 120000 });
+    if (!data.ok) throw new Error(data.error || '无法打开文件夹');
+    fsRenderEntries(data);
+  } catch (err) {
+    $('#fs-list').innerHTML = '<div class="dim" style="padding:12px">' + escapeHtml(err.message) + '</div>';
+    toast(err.message, 'err');
+  }
+}
+
+function fsTargetPath() {
+  const target = $('#fs-target').value.trim();
+  if (!target) return '';
+  if (/^[A-Za-z]:[\\/]/.test(target) || target.startsWith('\\\\') || target.startsWith('/')) return target;
+  if (!fsState.selected) return target;
+  return fsJoin(fsParent(fsState.selected.path), target);
+}
+
+async function fsOperation(op, extra, needsConfirm) {
+  if (!fsState.selected) { toast('请先选择一个文件或文件夹', 'err'); return; }
+  if (needsConfirm && !window.confirm('确认执行 ' + op + ' ？\n' + fsState.selected.path)) return;
+  const body = Object.assign({ op, path: fsState.selected.path }, extra || {});
+  try {
+    const data = await api('/api/fs/op', { method: 'POST', body, timeout: 300000 });
+    if (!data.ok) throw new Error(data.error || '操作失败');
+    toast(data.message || '操作完成');
+    if (data.path && (op === 'rename' || op === 'move' || op === 'copy')) {
+      fsOpen(fsParent(data.path));
+    } else {
+      fsOpen(fsState.cwd);
+    }
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+async function fsSearch() {
+  const query = $('#fs-search-q').value.trim();
+  const name = $('#fs-search-name').value.trim();
+  const content = $('#fs-search-content').value.trim();
+  if (!query && !name && !content) { toast('请输入路径/文件名或内容关键词', 'err'); return; }
+  const roots = $('#fs-search-roots').value.split(';').map(v => v.trim()).filter(Boolean);
+  const box = $('#fs-hits');
+  box.innerHTML = '<div class="dim">搜索中…</div>';
+  try {
+    const body = {
+      query, name, content,
+      roots,
+      depth: Number($('#fs-search-depth').value) || 6,
+      include_dirs: $('#fs-search-dirs').checked,
+      limit: 200,
+      timeout_sec: 45,
+    };
+    const data = await api('/api/fs/search', { method: 'POST', body, timeout: 120000 });
+    if (!data.ok) throw new Error(data.error || '搜索失败');
+    fsState.hits = data.matches || [];
+    box.innerHTML = '';
+    if (!fsState.hits.length) {
+      box.innerHTML = '<div class="dim">没有匹配项（已访问 ' + data.visited + ' 个条目）。</div>';
+      return;
+    }
+    fsState.hits.slice(0, 200).forEach((hit, index) => {
+      const node = document.createElement('div');
+      node.className = 'fs-hit';
+      node.innerHTML = '<div class="p">' + escapeHtml(hit.path) + '</div>' +
+        '<div class="x">' + (hit.type === 'dir' ? '文件夹' : fmtBytes(hit.bytes)) +
+        (hit.excerpt ? ' · ' + escapeHtml(hit.excerpt) : '') + '</div>';
+      node.addEventListener('click', () => {
+        fsSelect(hit);
+        if (hit.type === 'dir') fsOpen(hit.path);
+      });
+      box.appendChild(node);
+    });
+    toast('找到 ' + data.count + ' 项');
+  } catch (err) {
+    box.innerHTML = '<div class="dim">搜索失败：' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+function initFilesView() {
+  if (fsState.booted) return;
+  fsState.booted = true;
+  fsLoadPermission();
+}
+
+/* ================= mail ================= */
+const mailState = { booted: false, config: null };
+
+function mailOutput(text) {
+  $('#mail-out').textContent = text;
+}
+
+async function loadMailConfig() {
+  try {
+    const data = await api('/api/mail/config', { timeout: 30000 });
+    mailState.config = data;
+    $('#mail-host').value = data.host || '';
+    $('#mail-port').value = data.port || '';
+    $('#mail-security').value = data.security || 'ssl';
+    $('#mail-username').value = data.username || '';
+    $('#mail-from').value = data.from || '';
+    $('#mail-name').value = data.name || '';
+    $('#mail-default-to').value = data.default_to || '';
+    $('#mail-to').value = data.default_to || '';
+    $('#mail-ready').textContent = data.has_password ? '密码已保存' : '缺少密码';
+    $('#mail-ready').className = 'badge ' + (data.has_password ? 'ok' : 'fail');
+    $('#mail-badge').textContent = (data.host || 'SMTP') + (data.has_password ? ' · READY' : ' · 待配置');
+    $('#mail-config-note').textContent = '配置文件：' + data.config + ' · 密码仅保存在本地密钥库，不会回传。';
+  } catch (err) {
+    mailOutput('读取邮件设置失败：' + err.message);
+  }
+}
+
+async function saveMailConfig(silent) {
+  const body = {
+    host: $('#mail-host').value.trim(),
+    port: Number($('#mail-port').value) || 465,
+    security: $('#mail-security').value,
+    username: $('#mail-username').value.trim(),
+    from: $('#mail-from').value.trim(),
+    name: $('#mail-name').value.trim(),
+    default_to: $('#mail-default-to').value.trim(),
+  };
+  const password = $('#mail-password').value;
+  if (password) body.password = password;
+  try {
+    const data = await api('/api/mail/config', { method: 'POST', body, timeout: 60000 });
+    if (!data.ok) throw new Error(data.error || '保存失败');
+    $('#mail-password').value = '';
+    mailState.config = data;
+    $('#mail-ready').textContent = data.has_password ? '密码已保存' : '缺少密码';
+    $('#mail-ready').className = 'badge ' + (data.has_password ? 'ok' : 'fail');
+    $('#mail-badge').textContent = (data.host || 'SMTP') + (data.has_password ? ' · READY' : ' · 待配置');
+    mailOutput('SMTP 设置已保存。密码状态：' + (data.has_password ? '已保存' : '未设置'));
+    if (!silent) toast('邮件设置已保存');
+    return true;
+  } catch (err) {
+    mailOutput('保存失败：' + err.message);
+    toast(err.message, 'err');
+    return false;
+  }
+}
+
+async function sendMail() {
+  const to = $('#mail-to').value.trim();
+  if (!to) { toast('请输入收件人', 'err'); $('#mail-to').focus(); return; }
+  const body = {
+    to,
+    cc: $('#mail-cc').value.trim(),
+    bcc: $('#mail-bcc').value.trim(),
+    subject: $('#mail-subject').value.trim(),
+    text: $('#mail-body').value,
+    attachments: $('#mail-attachments').value.split(/\r?\n/).map(v => v.trim()).filter(Boolean),
+  };
+  $('#mail-send').disabled = true;
+  mailOutput('正在发送…');
+  try {
+    const data = await api('/api/mail/send', { method: 'POST', body, timeout: 120000 });
+    if (!data.ok) throw new Error(data.error || '发送失败');
+    mailOutput('已发送 ✓\n收件人：' + (data.to || to) + '\n主题：' + (data.subject || body.subject) +
+      '\nMessage-ID：' + (data.message_id || '—') + '\n耗时：' + (data.duration_ms || 0) + ' ms');
+    toast('邮件已发送');
+  } catch (err) {
+    mailOutput('发送失败：' + err.message);
+    toast(err.message, 'err');
+  } finally {
+    $('#mail-send').disabled = false;
+  }
+}
+
+async function testMail() {
+  const to = $('#mail-to').value.trim() || $('#mail-from').value.trim();
+  mailOutput('正在测试 SMTP 连接…');
+  try {
+    const data = await api('/api/mail/test', { method: 'POST', body: { to }, timeout: 120000 });
+    if (!data.ok) throw new Error(data.error || '测试失败');
+    mailOutput('SMTP 测试邮件已发送 ✓\n收件人：' + (data.to || to) +
+      '\nMessage-ID：' + (data.message_id || '—'));
+    toast('SMTP 连接正常');
+  } catch (err) {
+    mailOutput('SMTP 测试失败：' + err.message);
+    toast(err.message, 'err');
+  }
+}
+
+function initMailView() {
+  if (mailState.booted) return;
+  mailState.booted = true;
+  loadMailConfig();
+}
+
+/* ================= download center ================= */
+const dlState = { booted: false, timer: null, candidates: [], chosen: null };
+
+function dlRenderCandidates(items) {
+  dlState.candidates = items || [];
+  dlState.chosen = null;
+  const box = $('#dl-candidates');
+  box.innerHTML = '';
+  if (!dlState.candidates.length) {
+    box.innerHTML = '<div class="dim">没有候选文件。可以填写直接下载网址，或换更精确的关键词。</div>';
+    return;
+  }
+  dlState.candidates.forEach((item, index) => {
+    const node = document.createElement('div');
+    node.className = 'dl-cand';
+    const reasons = (item.reasons || []).slice(0, 6).join(' · ');
+    node.innerHTML = '<div class="u">' + escapeHtml(item.url || '') + '</div>' +
+      '<div class="m">' + escapeHtml(item.source_host || '') +
+      (item.bytes ? ' · ' + fmtBytes(item.bytes) : '') +
+      (item.score !== undefined ? ' · score ' + item.score : '') +
+      (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
+    node.addEventListener('click', () => {
+      $$('.dl-cand').forEach(c => c.classList.remove('chosen'));
+      node.classList.add('chosen');
+      dlState.chosen = item;
+      $('#dl-url').value = item.url || '';
+      if (item.filename) $('#dl-filename').value = item.filename;
+    });
+    box.appendChild(node);
+  });
+}
+
+async function dlResolve() {
+  const url = $('#dl-url').value.trim();
+  const query = $('#dl-query').value.trim();
+  if (!url && !query) { toast('请输入网址或搜索关键词', 'err'); return; }
+  const box = $('#dl-candidates');
+  box.innerHTML = '<div class="dim">正在搜索并评估候选文件，可能需要十几秒…</div>';
+  try {
+    const body = { url, query, kind: $('#dl-kind').value, expected_size_mb: Number($('#dl-size').value) || 0 };
+    const data = await api('/api/downloader/resolve', { method: 'POST', body, timeout: 180000 });
+    if (!data.ok) throw new Error(data.error || '解析失败');
+    dlRenderCandidates(data.candidates || []);
+    if (data.candidates && data.candidates[0]) {
+      dlState.chosen = data.candidates[0];
+      $('#dl-url').value = data.candidates[0].url || url;
+      if (data.candidates[0].filename) $('#dl-filename').value = data.candidates[0].filename;
+      const first = $('.dl-cand');
+      if (first) first.classList.add('chosen');
+    }
+    toast('解析到 ' + (data.candidates || []).length + ' 个候选');
+  } catch (err) {
+    box.innerHTML = '<div class="dim">解析失败：' + escapeHtml(err.message) + '</div>';
+    toast(err.message, 'err');
+  }
+}
+
+async function dlStart() {
+  const url = $('#dl-url').value.trim();
+  const query = $('#dl-query').value.trim();
+  if (!url && !query) { toast('请输入网址或搜索关键词', 'err'); return; }
+  const body = {
+    url, query,
+    kind: $('#dl-kind').value,
+    target_dir: $('#dl-target').value.trim(),
+    filename: $('#dl-filename').value.trim(),
+    expected_sha256: $('#dl-sha').value.trim(),
+    save_page: $('#dl-save-page').checked,
+    overwrite: $('#dl-overwrite').checked,
+  };
+  const size = Number($('#dl-size').value);
+  if (size > 0) body.expected_size_mb = size;
+  $('#dl-start').disabled = true;
+  try {
+    const data = await api('/api/downloader/start', { method: 'POST', body, timeout: 60000 });
+    if (!data.ok) throw new Error(data.error || '启动失败');
+    toast('下载已开始：' + (data.job.filename || data.job.query || url));
+    dlEnsurePolling();
+    loadDlJobs();
+  } catch (err) {
+    toast(err.message, 'err');
+  } finally {
+    $('#dl-start').disabled = false;
+  }
+}
+
+function dlJobRow(job) {
+  const node = document.createElement('div');
+  node.className = 'dl-job';
+  const state = job.state || '';
+  const progress = Math.max(0, Math.min(100, Number(job.progress) || 0));
+  const actions = [];
+  if (!['done', 'failed', 'cancelled', 'needs_choice'].includes(state)) {
+    actions.push('<button class="btn ghost sm" data-dl-cancel="' + escapeHtml(job.id) + '">取消</button>');
+  }
+  if (job.saved_path) {
+    actions.push('<button class="btn ghost sm" data-dl-open="' + escapeHtml(job.id) + '">打开文件夹</button>');
+  }
+  const detail = [];
+  if (job.bytes_human) detail.push(job.bytes_human + ' / ' + (job.total_human || 'unknown'));
+  if (job.speed_human) detail.push(job.speed_human);
+  if (job.eta_sec > 0) detail.push('剩余 ' + job.eta_sec + 's');
+  if (job.target_dir) detail.push(job.target_dir);
+  node.innerHTML =
+    '<div class="dl-job-head"><span class="dl-job-name">' + escapeHtml(job.filename || job.query || job.url || job.id) + '</span>' +
+    '<span class="badge ' + (state === 'done' ? 'ok' : state === 'failed' ? 'fail' : 'run') + '">' + escapeHtml(state) + '</span></div>' +
+    '<div class="dl-bar"><span style="width:' + progress + '%"></span></div>' +
+    '<div class="meta">' + detail.map(escapeHtml).join(' · ') + '</div>' +
+    (job.error ? '<div class="err">' + escapeHtml(job.error) + '</div>' : '') +
+    (job.saved_path ? '<div class="ok">已保存：' + escapeHtml(job.saved_path) + (job.sha256 ? ' · SHA-256 ' + escapeHtml(job.sha256) : '') + '</div>' : '') +
+    (job.verify_note ? '<div class="meta">' + escapeHtml(job.verify_note) + '</div>' : '') +
+    (actions.length ? '<div class="actions">' + actions.join('') + '</div>' : '');
+  node.querySelectorAll('[data-dl-cancel]').forEach(button => {
+    button.addEventListener('click', () => dlCancel(button.dataset.dlCancel));
+  });
+  node.querySelectorAll('[data-dl-open]').forEach(button => {
+    button.addEventListener('click', () => dlOpenFolder(button.dataset.dlOpen));
+  });
+  return node;
+}
+
+function dlRenderJobs(jobs) {
+  const box = $('#dl-jobs');
+  box.innerHTML = '';
+  if (!jobs || !jobs.length) {
+    box.innerHTML = '<div class="dl-empty">暂无下载任务。</div>';
+    return;
+  }
+  jobs.forEach(job => box.appendChild(dlJobRow(job)));
+}
+
+async function loadDlJobs() {
+  try {
+    const data = await api('/api/downloader/list', { timeout: 30000 });
+    dlRenderJobs(data.jobs || []);
+    $('#dl-badge').textContent = (data.count || 0) + ' JOBS';
+  } catch (err) {
+    /* keep previous list */
+  }
+}
+
+async function dlCancel(id) {
+  try {
+    const data = await api('/api/downloader/cancel', { method: 'POST', body: { id }, timeout: 30000 });
+    if (!data.ok) throw new Error(data.error || '取消失败');
+    toast('已请求取消');
+    loadDlJobs();
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+async function dlOpenFolder(id) {
+  try {
+    await api('/api/downloader/open', { method: 'POST', body: id ? { id } : { path: $('#dl-target').value.trim() }, timeout: 30000 });
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+function dlEnsurePolling() {
+  if (dlState.timer) return;
+  dlState.timer = setInterval(() => {
+    if (state.view === 'downloads') loadDlJobs();
+  }, 1800);
+}
+
+function initDownloadsView() {
+  if (!dlState.booted) {
+    dlState.booted = true;
+    loadDlJobs();
+  }
+  dlEnsurePolling();
+}
+
+/* ================= new-view events ================= */
+$('#office-open').addEventListener('click', () => officeOpen($('#office-path').value));
+$('#office-path').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); officeOpen(event.target.value); }
+});
+$('#office-refresh').addEventListener('click', () => {
+  if (officeState.path) officeOpen(officeState.path);
+});
+$('#office-search-go').addEventListener('click', officeSearch);
+$('#office-search-q').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); officeSearch(); }
+});
+$('#office-new-toggle').addEventListener('click', () => {
+  $('#office-new-box').hidden = !$('#office-new-box').hidden;
+});
+$('#office-new-cancel').addEventListener('click', () => { $('#office-new-box').hidden = true; });
+$('#office-new-create').addEventListener('click', async () => {
+  const type = $('#office-new-type').value;
+  const rawPath = $('#office-new-path').value.trim();
+  if (!rawPath) { toast('请输入保存路径', 'err'); return; }
+  const body = {
+    path: rawPath,
+    type,
+    title: $('#office-new-title').value.trim(),
+    content: $('#office-new-content').value,
+  };
+  try {
+    const data = await api('/api/office/create', { method: 'POST', body, timeout: 120000 });
+    if (!data.ok) throw new Error(data.error || '创建失败');
+    $('#office-new-box').hidden = true;
+    officeRender(data);
+    toast('已创建 ' + data.path);
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+});
+$('#office-pdf-prev').addEventListener('click', () => officeShowPdfPage(officeState.pdfPage - 1));
+$('#office-pdf-next').addEventListener('click', () => officeShowPdfPage(officeState.pdfPage + 1));
+
+$('#fs-perm-toggle').addEventListener('change', async event => {
+  const enabled = event.target.checked;
+  if (enabled && !window.confirm('允许 CodeForge 读取、搜索和修改本机任意文件？\n\n所有写操作都会记录到审计日志；删除默认移入回收站。')) {
+    event.target.checked = false;
+    return;
+  }
+  try {
+    const data = await api('/api/permissions', {
+      method: 'POST',
+      body: { full_filesystem: enabled },
+      timeout: 30000,
+    });
+    if (!data.ok) throw new Error(data.error || '保存权限失败');
+    toast(data.message || (enabled ? '已开启全盘访问' : '已关闭全盘访问'));
+    fsLoadPermission();
+  } catch (err) {
+    event.target.checked = !enabled;
+    toast(err.message, 'err');
+  }
+});
+$('#fs-open').addEventListener('click', () => fsOpen($('#fs-path').value));
+$('#fs-path').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); fsOpen(event.target.value); }
+});
+$('#fs-up').addEventListener('click', () => { if (fsState.cwd) fsOpen(fsParent(fsState.cwd)); });
+$('#fs-refresh').addEventListener('click', () => { if (fsState.cwd) fsOpen(fsState.cwd); });
+$('#fs-mkdir').addEventListener('click', async () => {
+  if (!fsState.cwd) { toast('请先打开一个文件夹', 'err'); return; }
+  const name = window.prompt('新文件夹名称：');
+  if (!name) return;
+  try {
+    const data = await api('/api/fs/op', {
+      method: 'POST',
+      body: { op: 'mkdir', path: fsJoin(fsState.cwd, name) },
+      timeout: 30000,
+    });
+    if (!data.ok) throw new Error(data.error || '创建失败');
+    toast('已创建文件夹');
+    fsOpen(fsState.cwd);
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+});
+$('#fs-rename').addEventListener('click', () => {
+  const target = fsTargetPath();
+  if (!target) { toast('请输入新名称或目标路径', 'err'); return; }
+  fsOperation('rename', { to: target }, true);
+});
+$('#fs-copy').addEventListener('click', () => {
+  const target = fsTargetPath();
+  if (!target) { toast('请输入目标路径', 'err'); return; }
+  fsOperation('copy', { to: target, overwrite: false });
+});
+$('#fs-move').addEventListener('click', () => {
+  const target = fsTargetPath();
+  if (!target) { toast('请输入目标路径', 'err'); return; }
+  fsOperation('move', { to: target, confirm: true }, true);
+});
+$('#fs-trash').addEventListener('click', () => fsOperation('trash', { confirm: true }, true));
+$('#fs-open-office').addEventListener('click', () => {
+  if (!fsState.selected || fsState.selected.type === 'dir') { toast('请选择一个文件', 'err'); return; }
+  switchView('office');
+  officeOpen(fsState.selected.path);
+});
+$('#fs-search-go').addEventListener('click', fsSearch);
+$('#fs-search-q').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); fsSearch(); }
+});
+$('#fs-search-content').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); fsSearch(); }
+});
+
+$('#mail-save').addEventListener('click', () => saveMailConfig(false));
+$('#mail-test').addEventListener('click', testMail);
+$('#mail-send').addEventListener('click', sendMail);
+
+$('#dl-resolve').addEventListener('click', dlResolve);
+$('#dl-start').addEventListener('click', dlStart);
+$('#dl-refresh').addEventListener('click', loadDlJobs);
+$('#dl-open-folder').addEventListener('click', () => dlOpenFolder(''));
+$('#dl-query').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); dlResolve(); }
+});
+$('#dl-url').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); dlStart(); }
+});
+
+const initialView = location.hash.replace('#', '');
+if (ALL_VIEWS.includes(initialView)) switchView(initialView, true);

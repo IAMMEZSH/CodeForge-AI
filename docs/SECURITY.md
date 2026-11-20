@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.0.9 · Last reviewed 2026-11-20
+Version 1.1.0 · Last reviewed 2026-11-20
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:
@@ -14,7 +14,7 @@ what is not, and how to deploy the tool without creating a hole.
 
 | Version | Security fixes |
 | --- | --- |
-| 1.0.x | Current line — fixes land here |
+| 1.1.x | Current line — fixes land here |
 
 Only the latest release receives fixes. There is no LTS branch.
 
@@ -45,6 +45,9 @@ Only the latest release receives fixes. There is no LTS branch.
 | Model files | Medium (large, re-downloadable) | `models/downloads/` |
 | Download and run logs | Medium | `logs/`, `workspace/*/report.json` |
 | Local ports 8765 and 8080 | High (code execution, inference) | loopback |
+| Files outside the project (whole-disk access) | Critical (read/write/delete when enabled) | whichever paths you permit; gated by `permissions.full_filesystem` |
+| SMTP password and mail content | High | KeyStore secret + outbound SMTP |
+| Downloaded software, games and documents | High (may be executable or malicious) | `downloads/` and chosen target folders |
 | Host integrity | Critical | the whole process tree |
 
 ### 3.2 Adversaries considered
@@ -162,8 +165,9 @@ file. Keep llama.cpp current and prefer well-known repositories.
   can be disabled with `"updates": {"enabled": false}` in `config.json`.
 - No other outbound request except: model downloads (domestic mirror with
   Hugging Face fallback), runtime downloads (GitHub), the configured LLM
-  backend (loopback by default), the optional online LLM you configure, and
-  opt-in web research.
+  backend (loopback by default), the optional online LLM you configure,
+  opt-in web research, download-center URL/search requests, configured SMTP,
+  and the release-index update check.
 - Chat history and code are not uploaded by CodeForge itself. They are written
   to `workspace/` and — by design, so the offline brain remembers — to
   `memory/memories.jsonl`.
@@ -278,6 +282,59 @@ Detection only reads executables, paths and version strings; it never runs a
 project merely to inspect it. A missing engine returns an install hint and does
 not attempt a silent install.
 
+### 4.12 Whole-disk file access
+
+- `permissions.full_filesystem` defaults to `false`. Every list, search and
+  file operation returns `ok:false` with `permission_required:true` until the
+  user enables it in Settings or through `POST /api/permissions`.
+- With the permission enabled, operations run with the user's own OS rights.
+  The service does not elevate, impersonate or bypass ACLs. Files the OS
+  refuses are reported as errors.
+- Deletes require `confirm:true` and move the entry to `workspace/.trash/fs`
+  unless `permanent:true` is explicitly set. Rename/copy/move refuse an
+  existing destination unless `overwrite:true`.
+- A guarded-directory list blocks destructive operations against Windows
+  system folders, program directories and the installation itself.
+- Every operation, including permission toggles and denied attempts, is
+  appended to `logs/file-access.jsonl` with time, action, target and result.
+- The Office service can open and search documents by path without this
+  permission, because opening a document is the core feature; the same OS ACLs
+  still apply. Enable whole-disk access only when you actually need file
+  management beyond opening documents.
+
+### 4.13 Mail and SMTP credentials
+
+- The SMTP password is stored in the local encrypted KeyStore under
+  `config.json.mail.secret_name` (default `codeforge-smtp`). It is never
+  written to `config.json` in clear, never returned by `GET /api/mail/config`
+  and never logged.
+- `POST /api/mail/test` sends a real short test message (to the default
+  recipient, or the sender when no default is set). It is not a header-only
+  probe.
+- Sending happens only when a person or the agent explicitly calls the send
+  endpoint. Attachments are read from paths the caller supplies, up to 25 MB
+  total, and leave the machine through the configured SMTP server.
+- SMTP traffic is only as private as the configured server and its TLS mode.
+  `security:"none"` transmits credentials and content in clear; use SSL or
+  STARTTLS unless the server is local.
+
+### 4.14 Download center
+
+- Direct URLs are fetched over HTTP/HTTPS as supplied. The service does not
+  silently upgrade an HTTP URL to HTTPS, so verify the source before running an
+  installer.
+- Search mode queries external engines, probes candidate links and ranks them;
+  ranking is a heuristic, not a malware verdict. An `expected_sha256` turns the
+  download into a verified transfer; without it, the reported SHA-256 is only
+  informative.
+- Completed files are written to the chosen folder with the chosen or derived
+  name. They are not executed, opened or registered by the download service.
+- A stalled body is aborted after 25 seconds and retried on the same URL; a
+  failure leaves the `.part` file for inspection or resume.
+- Whole-disk access is not required to write into the project `downloads/`
+  folder; writing to arbitrary target folders uses the normal OS permissions
+  and should be treated with the same care as any other file write.
+
 ---
 
 ## 5. What is NOT defended
@@ -297,6 +354,10 @@ not attempt a silent install.
 | Memory poisoning | A wrong or malicious lesson is recalled later with high weight | Review `memory/memories.jsonl`, delete bad lines, or set `memory.enabled` to false |
 | Prompt injection via research | Untrusted snippets enter the prompt | Results are filtered and labelled as evidence; keep `online.research` off for sensitive work |
 | Untrusted game project | Engine build/export executes project scripts and plugins as you | Build unknown projects in a VM or sandbox; review project files first |
+| Whole-disk operations | With the permission on, the API can read, move or delete any file your account can reach | Keep the permission off when not needed; review `logs/file-access.jsonl`; keep backups |
+| Malicious Office/PDF document | Parsing libraries handle untrusted files inside the JVM; a crafted document can exhaust CPU/memory or exploit a parser bug | Open documents you trust; keep the JAR/upstream libraries current; avoid untrusted files on a production machine |
+| Malicious download | The download center transfers files but does not scan them; a wrong candidate can be malware | Prefer official sources, set `expected_sha256`, scan installers before running them |
+| Mail misdelivery | Sending uses whatever recipients and attachments the caller supplies | Review the compose form or agent tool call; keep the SMTP account scoped and monitored |
 | Online provider logging | Prompts, memory hits and snippets reach a third party | Leave `llm.online.api_key` empty for fully local operation |
 
 ---
@@ -316,6 +377,13 @@ not attempt a silent install.
 - [ ] Store API keys in environment variables, not `config.json`.
 - [ ] Leave `llm.online.api_key` empty unless you accept that prompts, memory
       hits and workspace snippets go to that provider.
+- [ ] Leave **Full filesystem access** off unless you actively need it, and
+      review `logs/file-access.jsonl` after enabling it.
+- [ ] Use a dedicated SMTP app password (never your main account password) and
+      prefer SSL or STARTTLS; clear the stored secret in the Mail view when you
+      stop using it.
+- [ ] Verify downloads by source and, where possible, by SHA-256 before running
+      an installer.
 
 ### Running untrusted code
 
@@ -360,6 +428,7 @@ equivalent to giving them a shell.
 | `config.json → secrets` | plain text vault | Named tokens for `codeforge_api` and publishing; the API returns masked hints only. Protect the file and blank the vault before sharing a copy |
 | `GITHUB_TOKEN`, `GH_TOKEN` | environment / vault / GitHub CLI keyring | Used only by the publisher; never returned by `/api/publish/status` |
 | `GITCODE_TOKEN`, `GITCODE_ACCESS_TOKEN` | environment / vault | Used only by the publisher; create a scoped personal access token |
+| SMTP password / authorization code | local KeyStore (`config.json.mail.secret_name`) | Use an app password, prefer SSL/STARTTLS, clear it when unused; never returned by the API |
 | Hugging Face token | not used | Do not add one to the repo |
 | TLS keys | not applicable | Add at your proxy, never in this repo |
 
@@ -399,6 +468,9 @@ icacls workspace /inheritance:r /grant:r "<user>:(OI)(CI)(F)"
 | Any host passed to `/api/api-call` or `codeforge_api` | explicit API call | method, URL, headers, query and body supplied by the caller; the injected secret stays in the request only |
 | `api.github.com`, `uploads.github.com`, `api.gitcode.com` | Publish tab or approved publish action | repository, release metadata and uploaded asset bytes |
 | Any host the agent is explicitly asked to fetch or publish to | agent web tools or an approved publish action | the command or content the task requires |
+| Download-center URL or its search engines/results hosts | explicit download or resolve | the URL or search query, then file bytes |
+| Configured SMTP server | explicit mail send/test | message, recipients, attachments and SMTP login |
+| `api.gitcode.com`, `api.github.com` (update check) | server start and every 6 hours when enabled | release metadata request only; no prompt, file or key |
 | Game engine vendors | never by CodeForge | no traffic: engines are user-installed and never downloaded or bundled |
 
 If you point `openai_url` or `llm.online.base_url` at a cloud provider, **your
@@ -418,7 +490,10 @@ local model working.
 | What does the offline brain remember? | `memory/memories.jsonl` |
 | Which files are indexed? | `memory/project-index.jsonl`, `GET /api/workspace?stats=1` |
 | Who called the API? | Server does not log clients by default; enable OS-level connection auditing if needed |
-| Was a download verified? | `models/models.json` `sha256`, `runtime/runtime.json` `sha256` |
+| Was a download verified? | `models/models.json` `sha256`, `runtime/runtime.json` `sha256`, download job `sha256`/`verify_note` |
+| Who touched files outside the project? | `logs/file-access.jsonl` |
+| What was deleted? | `workspace/.trash/office/`, `workspace/.trash/fs/` |
+| Was mail sent? | the Mail view result, server log line and the SMTP provider's sent folder |
 | Is something listening? | `netstat -ano` / `ss -ltnp` |
 
 The server keeps a small in-memory job list; no persistent event trail is kept
@@ -436,11 +511,14 @@ beyond workspaces, logs and memory. For real auditing, ship `workspace/`,
 4. Rotate any API key you put in `config.json` (`llm.api_key`,
    `llm.online.api_key`) or in the environment.
 5. Review `workspace/`, `logs/` and `memory/` for unexpected commands, files,
-   remembered lessons or audit lines.
+   remembered lessons or audit lines. Check `logs/file-access.jsonl` for
+   whole-disk activity.
 6. Re-verify model and runtime hashes; delete and re-download anything modified.
 7. If a malicious page is suspected, review browser downloads and recent
    console sessions, then check for new files in the project root.
 8. If the port was exposed, review firewall and proxy logs, then close it.
+9. Turn off **Full filesystem access**, cancel active downloads and clear the
+   stored SMTP password; rotate the SMTP app password at the provider.
 
 ---
 

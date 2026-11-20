@@ -6,7 +6,7 @@
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
-**Version 1.0.9 · 2026-11-20**
+**Version 1.1.0 · 2026-11-20**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
 [![Core](https://img.shields.io/badge/core-C%2B%2B17%20%2F%20C17-7c5cff.svg)](#architecture)
@@ -16,24 +16,24 @@ C/C++ core · Java server · Python automation · Windows · Linux · macOS · A
 
 </div>
 
-> **Upgrading from an earlier build?** v1.0.9 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.0.9 bundle on this page. Starting with 1.0.9 the console checks the public release index and shows an in-app banner when a newer build exists; earlier builds contain no checker, so this first update must be done manually.
+> **Upgrading from an earlier build?** v1.1.0 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.1.0 bundle on this page. The console checks the public release index and shows an in-app banner when a newer build exists; update notices apply from this release onward.
 >
-> **旧版用户请注意：** v1.0.9 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.0.9 安装包覆盖升级。从 1.0.9 起，控制台会在启动时检查公开发布页，有新版本时显示升级横幅；更早的版本没有这个检查器，所以这一次必须手动升级。
+> **旧版用户请注意：** v1.1.0 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.1.0 安装包覆盖升级。控制台会在启动时检查公开发布页，有新版本时显示升级横幅；升级提醒从本版本开始生效。
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.0.9-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.0.9-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip).
+**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.1.0-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.1.0-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-windows-x64.zip).
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.0.9-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-windows-x64.zip) |
-| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.0.9-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-linux-source.tar.gz) |
-| macOS Apple silicon / Intel, source | `CodeForge-AI-1.0.9-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-macos-source.tar.gz) |
-| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.0.9-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-mobile-source.zip) |
-| All platforms, source only | `CodeForge-AI-1.0.9-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-source.zip) |
-| Documentation set | `CodeForge-AI-1.0.9-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.0.9/CodeForge-AI-1.0.9-docs.zip) |
+| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.1.0-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-windows-x64.zip) |
+| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.1.0-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-linux-source.tar.gz) |
+| macOS Apple silicon / Intel, source | `CodeForge-AI-1.1.0-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-macos-source.tar.gz) |
+| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.1.0-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-mobile-source.zip) |
+| All platforms, source only | `CodeForge-AI-1.1.0-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-source.zip) |
+| Documentation set | `CodeForge-AI-1.1.0-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.1.0/CodeForge-AI-1.1.0-docs.zip) |
 
-Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.0.9.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.0.9) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.0.9). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
+Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.1.0.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.1.0) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.1.0). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
 
 <div align="center">
 
@@ -62,6 +62,10 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **Game engine adapters** — the **Engines** tab and `codeforge_engine` drive **Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE** using the engines you already installed. No engine is downloaded or bundled. CodeForge finds engines through environment variables, PATH, Unity Hub, Epic Games and the standard install folders, finds projects by their real markers (`project.godot`, `ProjectSettings/ProjectVersion.txt` + `Assets/`, `*.uproject`, Cocos `package.json` + `assets/`, `main.lua`), reads Godot export presets, then builds, exports and runs through each engine's own CLI. Every export is checked against the artifact on disk, and a missing engine returns the exact install hint instead of a false success. LÖVE `.love` packaging works with no engine installed, and a fused `.exe` is produced when `love.exe` is present.
 - **Universal HTTP and secret vault** — `codeforge_api` / `POST /api/api-call` can call any HTTP or HTTPS endpoint with any method, headers, query, body and timeout. Named secrets stored through `POST /api/secrets` are injected into the request in memory; values are never echoed in responses, logs or reports. This covers arbitrary REST, JSON, form and authenticated API work beyond the built-in web search tools.
 - **Agent file, test and research tools** — `codeforge_read`, `codeforge_list`, `codeforge_write`, `codeforge_edit`, `codeforge_test`, `codeforge_crawl`, `codeforge_deep_search` and `codeforge_corpus` let the model open real files, walk project trees, apply exact replacements, run the detected test command, crawl same-domain pages, run multi-query research over fetched pages and query the local research corpus. Tool results come back to the model before its next step.
+- **Office documents and PDF, directly** — the **Office** view and `codeforge_office` create, preview, edit, search and delete DOCX/DOC, XLSX/XLS/XLSM, PPTX/PPT, PDF, ODT/ODS/ODP, RTF, CSV/TSV and text files. Preview returns real document structure — paragraphs, sheet grids, slide shapes, PDF page counts — and PDF pages render page images in the console. Editing covers text, table cells, workbook cells/rows/sheets, slide text and lifecycle, PDF metadata and pages, and text files; deletions move to `workspace/.trash/office` unless permanent deletion is explicitly requested.
+- **Download center for software, games and web files** — the **Downloads** view and `codeforge_download` either fetch a URL you supply, or search for a named file and rank candidates by official domain, exact filename, platform and requested size. Transfers resume with `.part` files, a stalled-body watchdog, same-URL retries, live speed/ETA, SHA-256 reporting and optional hash verification; the agent sees the job state, saved path and hash.
+- **Whole-disk file access, gated by permission** — the **Files** view and `codeforge_fs` enumerate drives, browse folders, search by path/name/content across disks, and create, rename, copy, move, trash or delete files and folders. Nothing outside the workspace runs until **Settings → Full filesystem access** is enabled (`permissions.full_filesystem`); deletions require explicit confirmation, go to `workspace/.trash/fs`, sensitive system directories are guarded, and every operation is appended to `logs/file-access.jsonl`.
+- **Email sending** — the **Mail** view and `codeforge_mail` send plain-text or HTML mail through any SMTP account with To/Cc/Bcc, attachments up to 25 MB, SSL/STARTTLS/none and a connection test. The SMTP password lives in the local encrypted KeyStore, never in `config.json` or API responses.
 - **HTML/CSS live preview** — generated pages render in a sandboxed iframe served from a per-run session folder with a strict CSP.
 - **Model-independent workbench** — compile/run buttons, **AUTO COMPILE**, save-to-any-path, language downloads, project placement and launcher creation are executed by the local server and the local control plane. A 4B offline model, a 30B model or an online API all get the same execution and placement capabilities; only the prose differs.
 - **Any command, any installed application, any platform** — the Command Agent runs PowerShell, cmd, bash, sh or zsh commands on Windows, macOS and Linux, not only programming tasks. It discovers installed tools and desktop applications on this host, carries per-platform control references for Office/WPS/LibreOffice, browsers, media, archives, OCR, cloud CLIs and databases, and can download 70 missing tools automatically through portable toolchains, the native package manager, pip or npm. If it meets unfamiliar software it searches, reads official documentation and then uses it.
@@ -73,7 +77,7 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **CPU or CUDA llama.cpp runtime** — install the managed CPU build (Windows x64/ARM64, macOS arm64/x64, Linux x64/ARM64/s390x, Android ARM64), or add the official CUDA build and let CodeForge detect it. The runtime panel offers **Auto / CPU / CUDA**; Auto uses the GPU build when present, CUDA offloads all 99 layers, and CPU remains the fallback for machines without an NVIDIA GPU. The server verifies SHA-256, retries through GitHub mirror fallbacks when the asset host is blocked, and controls `llama-server` with a user-selectable 2K–512K context window (16K default).
 - **Faster answers on NVIDIA hardware** — the CUDA build measured ~83.6 tok/s on an RTX 4070 12 GB versus ~4.5 tok/s on CPU for the same Qwen3 4B model, while a direct `add(a,b)` completion returned code in 0.8 s. Short prompts and cap-limited reasoning reach code quickly instead of deliberating.
 - **Adjustable reply limit for online and offline replies** — a highest-to-lowest selector from 393,216 down to 64 tokens in the runtime panel, applied to the next reply without restarting inference. Offline models use the full selected value; online providers apply their own output cap (DeepSeek: 8,192). The model's context window minus the prompt remains the real cap on the actual reply.
-- **In-app update notices** — since 1.0.9 the console reads the public release index on load and every six hours. When a newer stable tag exists it shows a banner with the version and a direct download link, dismissible per version. The check fetches only release metadata from GitCode (GitHub fallback) and sends no prompt, file, key or usage data; set `"updates": {"enabled": false}` in `config.json` to turn it off.
+- **In-app update notices** — since 1.1.0 the console reads the public release index on load and every six hours. When a newer stable tag exists it shows a banner with the version and a direct download link, dismissible per version. The check fetches only release metadata from GitCode (GitHub fallback) and sends no prompt, file, key or usage data; set `"updates": {"enabled": false}` in `config.json` to turn it off.
 - **Native control center** — a Win32 C++ app that starts the server, shows live readiness, and opens the console in an Edge app window.
 - **One web console everywhere** — the same responsive futuristic UI works on desktop browsers, Android WebView, and iOS WKWebView.
 - **Interruptible chat with a live reasoning trace** — every turn shows stage-by-stage execution (memory recall, workspace scan, live research, context assembly, generation), a live token counter with the measured decoding rate on the local runtime, a remaining-time estimate, and a progress bar. The send key becomes **INTERJECT** while the model is working: press it to stop the answer and send your correction immediately, or **STOP** to cancel with an empty box. Cancellation kills the core process on the server, frees the model, and does not write the aborted turn to memory.
@@ -145,15 +149,49 @@ The chat agent is not limited to code. It can emit one tool block per step and r
 <codeforge_build>{"language":"python","source":"C:\\work\\snake.py","name":"Snake","gui":false}</codeforge_build>
 <codeforge_inspect>{"path":"C:\\samples\\suspect.exe","depth":0,"max_files":1,"quarantine":true,"shred_quarantine":false}</codeforge_inspect>
 <codeforge_engine>{"action":"export","path":"C:\\games\\star-runner","engine":"godot","target":"windows","preset":"Windows Desktop"}</codeforge_engine>
+<codeforge_office>{"action":"update","path":"C:\\docs\\report.docx","update_action":"set_paragraph","paragraph":3,"text":"Revised conclusion."}</codeforge_office>
+<codeforge_office>{"action":"open","path":"C:\\docs\\contract.pdf","page":1}</codeforge_office>
+<codeforge_download>{"query":"OBS Studio Windows installer","kind":"software","target_dir":"D:\\downloads","wait_sec":180}</codeforge_download>
+<codeforge_download>{"url":"https://example.com/tool.zip","filename":"tool.zip","sha256":"<64 hex chars>"}</codeforge_download>
+<codeforge_fs>{"op":"search","roots":["D:\\"],"name":"*.log","content":"timeout","limit":50}</codeforge_fs>
+<codeforge_fs>{"op":"move","path":"C:\\work\\a.txt","to":"D:\\archive\\a.txt","confirm":true}</codeforge_fs>
+<codeforge_mail>{"action":"send","to":"team@example.com","subject":"Nightly build","text":"All checks passed.","attachments":["C:\\builds\\report.pdf"]}</codeforge_mail>
 ```
 
 - **Commands** — PowerShell, cmd, bash, sh and zsh are supported. The host runs each command with a bounded timeout, streams stdout/stderr to logs, and applies the publish guard before execution.
+- **Office, mail, downloads and the disk** — `codeforge_office`, `codeforge_mail`, `codeforge_download` and `codeforge_fs` give the agent the same capabilities as the console tabs: document CRUD and PDF rendering, SMTP mail, URL/search downloads with hash verification, and whole-disk browse/search/edit behind the **Full filesystem access** switch. The agent must state what it will delete or send, and destructive or outbound actions still require the user's intent in the conversation plus the relevant permission.
 - **Build & deliver** — `codeforge_build` compiles or packages a source file for any supported language and places the runnable result plus a Desktop shortcut in one deterministic step; `gui:true` switches Python to `.pyw` and C# to `WinExe`. HTML/CSS accepts an `.html` file or a folder containing `index.html`. Errors from the compiler are returned to the model so it can fix and call the tool again.
 - **Software** — Windows uses `Get-StartApps`, WinGet and registry uninstall keys; macOS scans `.app` bundles; Linux reads `.desktop` entries. The prompt includes the discovered applications plus launch, Office/COM, browser headless, screen, media, archive, system-settings and cloud-CLI recipes for the current platform.
 - **Missing tools** — a missing command is resolved from a portable toolchain, the native package manager, pip or npm; PATH is refreshed, and the command is retried. The same mapping covers database clients (`psql`, `mysql`, `sqlite3`, `mongosh`, `redis-cli`, `clickhouse-client`, `sqlcmd`, `cypher-shell`, `duckdb`, `influx`) and cloud/developer tools (`gh`, `aws`, `az`, `gcloud`, `kubectl`, `helm`, `rclone`, `pandoc`, `tesseract`, `yt-dlp`, `qpdf`, `gs`, `exiftool`).
 - **Learning** — search, fetch and learn are first-class tools. When the agent meets an unknown command, version, API or error, it researches before guessing and treats page content as untrusted data.
 - **Publishing** — local builds, commits, packages and exports always work. Remote/public actions need the **Allow publishing** switch (with a confirmation dialog), or a direct API run with `allow_publish=true` for that one action; the agent must state what will be published, where, and under which account. The **Publish** tab can create or update a GitHub or GitCode release from `release/` through the REST APIs, optionally deleting older releases, and uses tokens from the local vault, environment or already-authenticated GitHub CLI without ever returning them.
 - **Long loops** — the step limit is adjustable from **1 to 512** (default 128) in the Command Agent panel. The agent compacts old tool output before each model call and keeps every executed call in the final `tool_calls` list even if the model fails.
+
+## Office documents, downloads, mail and the whole disk
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/console-office.png" alt="Office view: document list and rendered preview"></td>
+<td width="50%"><img src="docs/images/console-downloads.png" alt="Downloads view: job progress and ranked candidates"></td>
+</tr>
+<tr>
+<td align="center"><em>Office: real text/structure preview, PDF page rendering, structured editing</em></td>
+<td align="center"><em>Downloads: URL or search, candidate ranking, resume, SHA-256</em></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/console-files.png" alt="Files view: drive browser, search and file operations"></td>
+<td width="50%"><img src="docs/images/console-mail.png" alt="Mail view: SMTP configuration and compose panel"></td>
+</tr>
+<tr>
+<td align="center"><em>Files: drives and search, gated by Full filesystem access</em></td>
+<td align="center"><em>Mail: SMTP accounts with encrypted password and attachments</em></td>
+</tr>
+</table>
+
+- **Office** — open a document (or drag in a path), read the returned structure, edit paragraphs, cells, sheets, slides, PDF metadata/pages or text, then save through the same service. PDFs render page-by-page as images; spreadsheet previews show real cell grids; presentations show per-slide shapes. Creation covers DOCX, XLSX, PPTX, PDF, TXT, Markdown, CSV and TSV; ODT, ODS, ODP, RTF and legacy Office files open as read-only previews, and unsupported update actions are reported explicitly.
+- **Downloads** — provide a URL for a direct fetch, or a name for search-and-rank. Candidates show source, size, type and score; the job view shows state, speed, ETA, saved path and SHA-256, with cancel, candidate choice and open-folder controls. Cancelling keeps the `.part` file, and starting the same target again resumes from it. “Save page itself” keeps the HTML when the target is a page rather than a binary.
+- **Files** — start from drives, navigate folders, or search across selected roots by filename glob and content. The view and API refuse to leave the workspace until **Full filesystem access** is enabled; after that, operations run with an audit trail, a guarded system-directory list and a trash-first delete policy.
+- **Mail** — configure host, port, encryption, user and password (stored in the local KeyStore), send a test, then compose with Cc/Bcc and attachments. Missing configuration produces an explicit error instead of a false success.
 
 ## Static inspection, integrity and quarantine
 
@@ -217,11 +255,11 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 
 | Platform | Release artifact | Route | Build and launch |
 |---|---|---|---|
-| Windows 10/11 x64 | `CodeForge-AI-1.0.9-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
-| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.0.9-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.0.9-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.0.9-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
-| iOS / iPadOS 15+ | `CodeForge-AI-1.0.9-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
+| Windows 10/11 x64 | `CodeForge-AI-1.1.0-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
+| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.1.0-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.1.0-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.1.0-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
+| iOS / iPadOS 15+ | `CodeForge-AI-1.1.0-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
 
 **Same-platform device coverage**
 
@@ -231,7 +269,7 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 - **Android** — ARM64 phones and tablets run the full stack in Termux and install the official `android-arm64` runtime. Other ABIs build llama.cpp locally, and every Android 8+ device can use the Kotlin APK as a client.
 - **iOS / iPadOS** — the Swift app and iSH console are clients/control hosts; inference can stay on a PC, Mac or phone over the LAN via `llm.openai_url`.
 
-Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.0.9.json` sit beside the archives.
+Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.1.0.json` sit beside the archives.
 
 ## Quick start
 
@@ -296,6 +334,10 @@ Every command, package list, and limitation is documented in [Platform guide](do
 
 - **Chat** — ask about code, paste snippets, and get markdown answers with copyable code blocks, per-block RUN/PREVIEW/SAVE buttons, an **AUTO COMPILE** toggle, a provenance strip (brain route, memory/workspace hits, web sources) and clickable citations. Explicit `/run`, `/save`, `/copy`, `/move`, `/launcher`, `/install` and `/help` commands execute locally without a model; plain-language requests always go to the active model.
 - **Debug** — paste code, choose the language, and let the agent compile, run, diagnose, and repair it.
+- **Office** — open, preview, create, edit, search and delete Office/PDF/text documents; PDFs render as page images, spreadsheets as cell grids, slides as shape lists, and edits are saved through structured actions rather than free text.
+- **Files** — browse drives and folders, search by name or content, and create/rename/copy/move/trash/delete files or folders once **Full filesystem access** is enabled in Settings; all operations are audited and deletes go to trash by default.
+- **Downloads** — download by URL or let the server search and rank candidates, then follow live progress, cancel, pick a different candidate, copy the hash and open the destination folder. Starting the same target again resumes from its `.part` file.
+- **Mail** — store SMTP settings with an encrypted password, test the connection, and send plain-text or HTML mail with Cc/Bcc and attachments.
 - **Models** — filter by region or size, download with resume, install the llama.cpp runtime, start/stop inference, inspect logs.
 - **Keys** — add, test, switch and delete OpenAI-compatible provider keys; the online brain is switchable while every saved key stays local and masked.
 - **Inspect** — scan any file or project, review per-file reports and risk indicators, browse the quarantine vault, proof-check before/after hashes, and optionally shred quarantine copies after the report. JSON and Markdown reports are always written.
@@ -349,7 +391,7 @@ python aux-python\bootstrap.py --build
 python aux-python/bootstrap.py --build --run
 ```
 
-C/C++ compilation requires GCC/Clang/C++17 and libcurl on POSIX. The Java server requires JDK 17+ and uses only the JDK's built-in `com.sun.net.httpserver` — no external Java dependencies.
+C/C++ compilation requires GCC/Clang/C++17 and libcurl on POSIX. The Java server requires JDK 17+ and uses the JDK's built-in `com.sun.net.httpserver`; Apache POI, PDFBox and Jakarta Mail ship in `server-java/lib/` and are merged into the fat jar by `aux-python/build_jar.py`.
 
 ## Privacy and security
 

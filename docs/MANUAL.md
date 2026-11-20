@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.0.9 · 2026-11-20**
+**Version 1.1.0 · 2026-11-20**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -29,16 +29,17 @@ software can produce. It assumes no prior knowledge of the codebase.
 6. [The Debug tab](#6-the-debug-tab)
 7. [Models and the inference runtime](#7-models-and-the-inference-runtime)
 8. [The Environment tab](#8-the-environment-tab)
-9. [End-to-end workflows](#9-end-to-end-workflows)
-10. [Configuration reference](#10-configuration-reference)
-11. [Command-line reference](#11-command-line-reference)
-12. [Local API quick reference](#12-local-api-quick-reference)
-13. [Data layout and maintenance](#13-data-layout-and-maintenance)
-14. [Performance tuning](#14-performance-tuning)
-15. [Security operations](#15-security-operations)
-16. [Troubleshooting](#16-troubleshooting)
-17. [FAQ](#17-faq)
-18. [Appendices](#18-appendices)
+9. [Office, files, mail and downloads](#9-office-files-mail-and-downloads)
+10. [End-to-end workflows](#10-end-to-end-workflows)
+11. [Configuration reference](#11-configuration-reference)
+12. [Command-line reference](#12-command-line-reference)
+13. [Local API quick reference](#13-local-api-quick-reference)
+14. [Data layout and maintenance](#14-data-layout-and-maintenance)
+15. [Performance tuning](#15-performance-tuning)
+16. [Security operations](#16-security-operations)
+17. [Troubleshooting](#17-troubleshooting)
+18. [FAQ](#18-faq)
+19. [Appendices](#19-appendices)
 
 ---
 
@@ -50,7 +51,7 @@ Simple calculator, command and code requests return executable code first;
 deeper reasoning is reserved for tasks that need it. When an optional online
 brain and network access are available, the same request can be served by a
 DeepSeek-compatible API for maximum capability, and everything learned online
-is persisted locally for offline recall. It combines four abilities:
+is persisted locally for offline recall. It combines five abilities:
 
 1. **Conversation** — a chat interface backed by an offline large language
    model, with code-aware markdown rendering, workspace context, persistent
@@ -66,6 +67,9 @@ is persisted locally for offline recall. It combines four abilities:
 4. **Delivery** — a deterministic build tool compiles or packages the finished
    program for any supported language and places a double-clickable result,
    with a real Desktop shortcut, in one step.
+5. **Everyday work** — Office/PDF preview and structured editing, whole-disk
+   file operations behind an explicit permission, SMTP email with attachments,
+   and a download center that fetches a URL or searches for the right file.
 
 Models, prompts, source, diagnostics and local inference stay on the host.
 Outbound traffic happens only for actions you enable: model and runtime
@@ -88,7 +92,8 @@ online brain when a key is configured.
   interpreter in the execution path.
 - **Thin server.** Java 17 owns the REST surface and heavy I/O: model
   downloads, resume, archive extraction, runtime lifecycle. It uses only the
-  JDK's built-in HTTP server, with zero third-party Java dependencies.
+  JDK's built-in HTTP server; the Office, PDF and mail features bundle Apache
+  POI, PDFBox and Jakarta Mail inside `server-java/lib/` and the fat jar.
 - **Python is automation only.** Bootstrap, build, packaging, testing and a
   mock LLM live in `aux-python/`. Python never serves inference or executes
   user code.
@@ -121,7 +126,7 @@ C17 helper (SHA-256, sysinfo) and Python automation (build/test/package)
 Five bounded paths share one JSON contract: chat, debug, model download,
 runtime installation and the four-language self-test. The lower strip records
 the request timeouts and the on-disk state that survives restarts. Details for
-each path appear in Chapters 5–8 and Chapter 12.
+each path appear in Chapters 5–8 and Chapter 13.
 
 ### 1.4 What it is not
 
@@ -129,7 +134,7 @@ each path appear in Chapters 5–8 and Chapter 12.
 - It is **not** a cloud service. There is no remote sync, account or sharing.
 - It does **not** bundle model weights. You choose and download models.
 - It does **not** authenticate API callers. Loopback binding is the security
-  boundary; see [Security operations](#15-security-operations).
+  boundary; see [Security operations](#16-security-operations).
 
 ### 1.5 Dual brain, persistent memory and online research
 
@@ -599,19 +604,19 @@ chat/debug/run return a JSON error. Rebuild with `bootstrap.py --all`.
 
 ### 4.3 Console anatomy
 
-![Console with a live model reply](images/console-chat-live.png)
+![Console with a completed model reply](images/console-chat-live.png)
 
 | Area | Description |
 |---|---|
-| Left rail | Chat, Debug, Models, Keys, Publish, Inspect, Engines, Env. Click or press `Ctrl+1`…`Ctrl+8` |
+| Left rail | 对话、智能体、工作区、搜索、更多工具、设置. Click or press `Ctrl+1`…`Ctrl+6`; 办公文档、全盘文件、邮件发送、下载中心、调试、发布、检查、引擎 are in **更多工具**, and model/key/env panels are in **设置** |
 | Update banner | Appears below the top bar when the public release index reports a newer stable version. **Download** opens the release page; **×** dismisses that version |
 | Top chips | Core (C++ core reachable), LLM (inference backend usable), Runtime (llama.cpp state) |
 | Clock | Local time |
 | Info button | Version and stack summary toast |
 | Status bar | Connection state, endpoint, core version, active model, uptime clock |
 
-View routing uses the URL hash (`#chat`, `#debug`, `#models`, `#keys`,
-`#env`), so a mobile client can deep-link into a specific tab. The browser
+View routing uses the URL hash (`#chat`, `#agent`, `#workspace`, `#search`,
+`#tools`, `#settings`, plus `#office`, `#files`, `#mail`, `#downloads`), so a mobile client can deep-link into a specific tab. The browser
 polls `/api/status` every 20 seconds to refresh chips and telemetry.
 
 ### 4.4 Status semantics
@@ -691,7 +696,7 @@ off the host; see the security chapter.
 | New line | `Shift+Enter` |
 | Interrupt and send (while generating) | Type your correction, then `Enter` or click **INTERJECT** |
 | Stop without sending (while generating) | Click **STOP** with an empty box |
-| Switch views | `Ctrl+1` Chat, `Ctrl+2` Debug, `Ctrl+3` Models, `Ctrl+4` System |
+| Switch views | `Ctrl+1` 对话, `Ctrl+2` 智能体, `Ctrl+3` 工作区, `Ctrl+4` 搜索, `Ctrl+5` 更多工具, `Ctrl+6` 设置 |
 | Copy a code block | **COPY** in the block header |
 | Compile and run a block | **RUN** in the block header (Python, C, C++, Java, JavaScript, TypeScript, Go, Rust, PHP, C#) |
 | Render HTML/CSS | **PREVIEW** in the block header |
@@ -751,7 +756,7 @@ The trace explains **pipeline stages**, not hidden chain-of-thought: the model's
 internal token stream is never exposed, and the full reply is rendered only
 after generation completes.
 
-![Live trace, token counter and INTERJECT while a local model is generating](images/console-interject.png)
+![Live trace, token counter and INTERJECT while a model is generating](images/console-interject.png)
 
 ### 5.4 What is actually sent
 
@@ -999,7 +1004,7 @@ modified.
 The **Publish** rail item drives GitHub and GitCode releases through their REST
 APIs. It never prints or returns a token.
 
-![Publish view with GitHub and GitCode targets, tag v1.0.9 and the local asset folder](images/console-publish.png)
+![Publish view with GitHub and GitCode targets, tag v1.1.0 and the local asset folder](images/console-publish.png)
 
 | Field | Meaning |
 |---|---|
@@ -1525,9 +1530,192 @@ returned by the OS.
 
 ---
 
-## 9. End-to-end workflows
+## 9. Office, files, mail and downloads
 
-### 9.1 First successful chat
+The four Tools entries extend the workbench from source code to everyday
+documents, arbitrary files on the machine, outbound email and internet
+downloads. Each one is available in the console and through a matching agent
+tool, so the same capability can be used by a person or by the model. The
+server owns all file, network and mail access; the console and the agent share
+the same JSON API.
+
+| Console view | Agent tag | Server service | Default state |
+|---|---|---|---|
+| Office (办公文档) | `<codeforge_office>` | `OfficeService` | Available |
+| Files (全盘文件) | `<codeforge_fs>` | `FileAccessService` | Blocked until Full filesystem access is enabled |
+| Mail (邮件发送) | `<codeforge_mail>` | `MailService` | Available; sending needs SMTP settings |
+| Downloads (下载中心) | `<codeforge_download>` | `DownloadService` | Available |
+
+### 9.1 Office documents and PDF
+
+![Office view](images/console-office.png)
+
+Open the **Office** view and type an absolute path, then press **Open**. The
+server reads the file and returns a structured preview:
+
+- **Word (DOCX/DOC), ODT, RTF, text, Markdown, JSON, logs** — paragraph list
+  with styles, plus a plain-text rendering.
+- **Excel (XLSX/XLS/XLSM), ODS, CSV/TSV** — sheet names, used ranges and a
+  cell grid with typed values.
+- **PowerPoint (PPTX/PPT), ODP** — slides, titles, shapes and their text.
+- **PDF** — page count, metadata, per-page text, and page images rendered as
+  PNG. Use **Previous page / Next page** to move through the document; the
+  page counter shows the current page and total.
+
+**Create.** Press **新建文档** (New document), choose the type, save path,
+optional title and initial content, then **Create**. Creation supports DOCX,
+XLSX, PPTX, PDF, TXT, Markdown, CSV and TSV. CSV content uses one record per
+line; text-like documents use one paragraph per line.
+
+**Edit.** When a document is open and editable, the right-hand panel lists the
+actions that apply to that format. Common actions:
+
+| Format | Actions |
+|---|---|
+| Word | `set_paragraph`, `append_paragraph`, `delete_paragraph`, `replace_all`, `set_table_cell` (DOCX); DOC supports `replace_all` and `append_paragraph` |
+| Excel | `set_cell`, `add_row`, `delete_row`, `add_sheet`, `delete_sheet`, `rename_sheet` |
+| PowerPoint | `set_text`, `add_slide`, `delete_slide` (PPTX); PPT supports `set_text` and `delete_slide` |
+| PDF | `set_metadata`, `add_page`, `delete_page`, `rotate_page`, `merge` |
+| Plain text / CSV / TSV / Markdown / JSON / log | `set_text`, `append` |
+
+Every update is a discrete request (`POST /api/office/update`) with the file
+path and action-specific fields, so the console and the agent produce the same
+result. After an edit the preview refreshes and the response reports the
+document kind, paragraph/sheet/slide counts and whether the file is editable.
+ODT, ODS, ODP and RTF open with a rendered preview but are read-only. Unsupported
+actions return a clear error instead of a silent no-op.
+
+**Search.** The search box scans a folder tree for documents whose text
+contains the query and returns file name, kind and matching excerpts. Leave the
+root empty to search the workspace, or supply any folder you can read (the
+Files permission does not gate Office search; the operating-system permissions
+still apply).
+
+**Delete.** Deleting a document requires explicit confirmation and moves it to
+`workspace/.trash/office` with a timestamped name. Permanent deletion is only
+performed when the request explicitly asks for it.
+
+**Limits.** Office parsing is bounded by the server's 8 MB JSON request body
+and by available memory; very large spreadsheets are truncated to the used
+range. PDF page images are rendered one page at a time, so a 900-page manual
+does not load 900 images at once. If the file is open in Word or Excel and
+locked for writing, the save fails with the operating-system error; close the
+file and retry.
+
+### 9.2 Files and Full filesystem access
+
+![Files view](images/console-files.png)
+
+The **Files** view is the drive browser, search surface and file-operation
+panel. It is deliberately blocked until you enable the permission:
+
+1. Open the Files view or **Settings → Full filesystem access**.
+2. Turn on the switch and confirm. The server writes
+   `permissions.full_filesystem: true` to `config.json`.
+3. The badge changes from **未授权** (not authorized) to the enabled state and
+   the drive list appears.
+
+With the permission enabled you can:
+
+- **Browse** every drive and folder, go to the parent directory, refresh, and
+  create a folder.
+- **Select** a file or folder and rename, copy, move, trash or delete it.
+  Rename, copy and move need a target path; delete needs `confirm:true` and
+  moves the entry to `workspace/.trash/fs` unless permanent deletion is
+  requested.
+- **Search** across selected roots (semicolon-separated; empty means all
+  drives) by path keyword, filename glob (`*.docx`) and text content, with a
+  depth limit (1–12), optional folder inclusion and a result limit.
+- **Open in Office** — send the selected document straight to the Office view.
+- **Stat** any file to see size, timestamps and attributes.
+
+Every operation is appended to `logs/file-access.jsonl` with the operation,
+source, target, result and time. Sensitive directories (Windows system folders,
+program directories and the CodeForge installation itself) are guarded against
+accidental deletion. Disabling the permission immediately blocks all new
+operations; nothing is cached.
+
+The API mirrors the view: `GET /api/fs/drives`, `POST /api/fs/search`,
+`POST /api/fs/op` and `GET|POST /api/permissions`. The agent uses
+`<codeforge_fs>` with `op` set to `list`, `stat`, `mkdir`, `rename`, `copy`,
+`move`, `delete`, `search` or `permission`.
+
+### 9.3 Mail
+
+![Mail view](images/console-mail.png)
+
+The **Mail** view has two panels: SMTP settings and compose.
+
+1. Enter the SMTP host, port, encryption (SSL, STARTTLS or none), username,
+   password/authorization code, sender name and sender address.
+2. Optionally set a default recipient, then **Save settings**. The password is
+   written to the local encrypted KeyStore, not to `config.json`, and the API
+   never returns it.
+3. Press **Test connection** to send a short test message to the default
+   recipient (or the sender address when no default is set).
+4. Fill To/Cc/Bcc, subject, body and optional attachment paths (one per line,
+   maximum 25 MB total), then **Send**.
+
+The send result reports the SMTP response and message id. If SMTP is not
+configured, the server returns an explicit “SMTP host is not configured” error
+instead of pretending to send. Attachments must be readable regular files;
+missing files fail the request before the connection opens. HTML bodies are
+supported through the API (`"html"` field) and by the agent tag. The agent uses
+`<codeforge_mail>` with `action` set to `send` or `test`.
+
+### 9.4 Downloads
+
+![Downloads view](images/console-downloads.png)
+
+The **Downloads** view downloads software, games, documents and web files in
+two modes:
+
+- **Direct URL** — paste an HTTP/HTTPS URL. The server performs a GET with
+  resume support, follows redirects, rejects non-2xx responses and saves the
+  file under the chosen name. If the URL returns HTML and **Save page itself**
+  is enabled, the page is stored as `.html` instead of being treated as a
+  failed binary.
+- **Search** — provide keywords (for example “7-Zip Windows x64” or “VLC 官方下载”)
+  and a target directory. The server queries the configured search engines and
+  GitHub releases, extracts direct links, scores candidates by official domain,
+  exact filename, platform match and requested size, and either starts the best
+  candidate or pauses in **needs_choice** so you can pick another one.
+
+The job list shows state (queued, resolving, connecting, downloading,
+verifying, done, failed, cancelled, needs_choice), progress bar, transferred
+bytes, speed, ETA, saved path and SHA-256. Controls:
+
+- **Cancel** stops the transfer; the `.part` file is kept, and starting the
+  same target again resumes from it with a Range request.
+- **Open folder** reveals the saved file.
+
+Below the form, the candidate list from **智能解析** is ranked and clickable:
+clicking a candidate fills the URL and filename fields so you can start that
+exact file. A search job whose best score is below the reliability threshold
+stops in `needs_choice` and shows its candidates in the job details.
+
+Optional fields: exact filename, expected size in MB (used in ranking and
+checked after download), expected SHA-256 (mismatch fails the job and keeps the
+file for inspection), overwrite flag. A stalled body is stopped by a 25-second
+read watchdog and retried on the same URL before the job fails. The agent uses
+`<codeforge_download>` and receives the job id, state, saved path, byte count,
+candidate list and SHA-256 in the tool result; `wait_sec` controls how long it
+waits before returning an in-progress job.
+
+### 9.5 Operational notes
+
+- All four tools are local: the server does the work, and the console or agent
+  only sends requests. There is no separate daemon.
+- Office and Files share the same path rules as the rest of the server: paths
+  may be absolute or workspace-relative; `~` is not expanded.
+- Mail and Downloads produce outbound traffic. Configure them only on a machine
+  where that is acceptable, and review [Security operations](#16-security-operations).
+- To revoke everything quickly: turn off Full filesystem access, clear the SMTP
+  password in the Mail view, and cancel active downloads.
+
+## 10. End-to-end workflows
+
+### 10.1 First successful chat
 
 1. Launch the control center (or `bootstrap.py --run`).
 2. Open the Models tab.
@@ -1537,7 +1725,7 @@ returned by the OS.
 6. Switch to Chat, ask: `Write a C++17 thread-safe queue with condition variables.`
 7. Confirm the LLM chip is green and the side card shows a latency.
 
-### 9.2 Repair a crash
+### 10.2 Repair a crash
 
 1. Open Debug.
 2. Paste a failing program; set the file to `main.cpp`.
@@ -1547,14 +1735,14 @@ returned by the OS.
 6. Watch iteration cards; the editor is replaced by the repaired source.
 7. Use **Save** to keep the result; sessions remain under `workspace/`.
 
-### 9.3 Run Python without AI
+### 10.3 Run Python without AI
 
 1. Debug → Language `Python`, filename `script.py`.
 2. Paste code, click **Run**.
 3. The telemetry pane shows `stdout`, `stderr`, exit code and duration.
 4. No model or runtime is required for this path.
 
-### 9.4 Use the phone client
+### 10.4 Use the phone client
 
 1. Run the server on the desktop host.
 2. Expose it safely on the LAN through a TLS reverse proxy or tunnel
@@ -1565,7 +1753,7 @@ returned by the OS.
 > Do not expose port 8765 directly to an untrusted network. The API can
 > execute code and has no authentication token.
 
-### 9.5 Switch models through the API
+### 10.5 Switch models through the API
 
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/runtime/stop \
@@ -1580,13 +1768,13 @@ The response includes the managed status, PID, model path and readiness.
 
 ---
 
-## 10. Configuration reference
+## 11. Configuration reference
 
 Configuration lives in `config.json` at the project root. Missing keys fall
 back to defaults. Environment variables override the file. Malformed JSON
 produces a `config_warning` in `status`, but startup continues with defaults.
 
-### 10.1 `llm` section
+### 11.1 `llm` section
 
 | Key | Default | Clamp | Meaning |
 |---|---|---|---|
@@ -1603,7 +1791,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `model_mirror` | `https://hf-mirror.com` | — | Hugging Face-compatible metadata/file mirror for every offline model; comma-separated sources are tried in order and `https://huggingface.co` is appended as fallback |
 | `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core; local chat requests are extended automatically to 120 s + 0.5 s per token so large reply limits are not cut off |
 
-### 10.2 `debug` section
+### 11.2 `debug` section
 
 | Key | Default | Clamp | Meaning |
 |---|---|---|---|
@@ -1611,13 +1799,13 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `run_timeout_ms` | `20000` | 1000–600000 | Program execution limit |
 | `compile_timeout_ms` | `60000` | 5000–600000 | Compiler limit |
 
-### 10.3 `server` section
+### 11.3 `server` section
 
 | Key | Default | Meaning |
 |---|---|---|
 | `port` | `8765` | Parsed into the core status, **but the Java server port comes from its `--port` argument**. Use `bootstrap.py --run --port` or pass `--port` to the jar. |
 
-### 10.4 `memory` section
+### 11.4 `memory` section
 
 | Key | Default | Clamp | Meaning |
 |---|---|---|---|
@@ -1626,7 +1814,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `max_entries` | `4000` | 100–100000 | Prune the oldest entries beyond this count |
 | `retrieval_limit` | `5` | 0–20 | Memory hits injected into a chat prompt |
 
-### 10.5 `online` section
+### 11.5 `online` section
 
 | Key | Default | Clamp | Meaning |
 |---|---|---|---|
@@ -1636,7 +1824,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `timeout_ms` | `12000` | 3000–60000 | Per-request network timeout |
 | `max_results` | `3` | 1–8 | Result cap including the relevance filter |
 
-### 10.6 `llm.online` section
+### 11.6 `llm.online` section
 
 | Key | Default | Clamp | Meaning |
 |---|---|---|---|
@@ -1646,7 +1834,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `model` | `deepseek-chat` | — | Online model name |
 | `timeout_ms` | `120000` | 5000–600000 | Online completion timeout inside the core |
 
-### 10.7 Environment variables
+### 11.7 Environment variables
 
 | Variable | Overrides |
 |---|---|
@@ -1680,7 +1868,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 Precedence: environment > `config.json` > built-in defaults. Values are
 clamped after both layers are applied.
 
-### 10.8 `agent` section
+### 11.8 `agent` section
 
 The Command Agent reads and writes these keys through `GET/POST /api/agent`
 and the Environment → Command Agent panel.
@@ -1702,9 +1890,9 @@ console asks for confirmation before enabling it. The setting is stored in
 
 ---
 
-## 11. Command-line reference
+## 12. Command-line reference
 
-### 11.1 `CodeForgeCore` (C++ main core)
+### 12.1 `CodeForgeCore` (C++ main core)
 
 ```text
 CodeForgeCore <status|chat|debug|run|selftest|version> [--root <project_root>]
@@ -1741,7 +1929,7 @@ Debug request fields: `code` (required, ≤200 KB), `filename` (default `main`),
 `language` (default `auto`), `iterations` (default from config), `model`.
 Run request fields: `code`, `filename`, `language`.
 
-### 11.2 `cforge_native` (C17 helper)
+### 12.2 `cforge_native` (C17 helper)
 
 ```text
 cforge_native hash <file>
@@ -1754,7 +1942,7 @@ All output is JSON. `verify` returns `{"ok":true,"match":true|false,"sha256":"�
 Unicode paths work on Windows through the wide-character API. The same SHA-256
 implementation is used by the Java download manager.
 
-### 11.3 `bootstrap.py` (Python automation)
+### 12.3 `bootstrap.py` (Python automation)
 
 ```text
 python aux-python/bootstrap.py [--jdk] [--build] [--all] [--run] [--selftest] [--port N]
@@ -1781,7 +1969,7 @@ server-java/build/CodeForgeServer.jar
 `--build` and `--all` require `gcc`/`clang` and `g++`/`clang++` on `PATH`; on
 POSIX the core also requires libcurl development headers and pthreads.
 
-### 11.4 `mock_llm.py` (test backend)
+### 12.4 `mock_llm.py` (test backend)
 
 An OpenAI-compatible mock for testing without a model:
 
@@ -1792,7 +1980,7 @@ python aux-python/mock_llm.py --host 127.0.0.1 --port 8080
 It implements `/v1/models` and `/v1/chat/completions` with deterministic
 answers, which is useful for CI and UI tests. Do not use it for real work.
 
-### 11.5 `package_release.py` (release builder)
+### 12.5 `package_release.py` (release builder)
 
 ```bash
 python aux-python/package_release.py
@@ -1801,18 +1989,18 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.0.9-source.zip`
-- `CodeForge-AI-1.0.9-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.0.9-docs.zip`
+- `CodeForge-AI-1.1.0-source.zip`
+- `CodeForge-AI-1.1.0-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.1.0-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.0.9.json`
+- `manifest-1.1.0.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
 
 ---
 
-## 12. Local API quick reference
+## 13. Local API quick reference
 
 Full request/response schemas, status codes and examples are in
 [API.md](API.md). Key facts:
@@ -1889,7 +2077,7 @@ console works without extra headers.
 
 ---
 
-## 13. Data layout and maintenance
+## 14. Data layout and maintenance
 
 ```text
 CodeForge-AI/
@@ -1907,7 +2095,7 @@ CodeForge-AI/
   release/                     generated release artifacts
 ```
 
-### 13.1 Logs
+### 14.1 Logs
 
 | File | Producer |
 |---|---|
@@ -1919,7 +2107,7 @@ The server does not rotate logs. Truncate `logs/llama-server.log` between
 sessions if it grows large, and remove stale `logs/core-*` files periodically.
 No log contains prompts unless a backend error includes a response snippet.
 
-### 13.2 Backups and migration
+### 14.2 Backups and migration
 
 Back up:
 
@@ -1933,7 +2121,7 @@ Model files are portable between machines of the same architecture, but
 re-verify SHA-256 with `cforge_native verify` after copying. The portable JDK
 is architecture-specific; do not copy `native/jdk` across platforms.
 
-### 13.3 Cleaning
+### 14.3 Cleaning
 
 Stop the Java server and inference first, then:
 
@@ -1947,7 +2135,7 @@ Never delete `models/installed.json` while a download is running.
 
 ---
 
-## 14. Performance tuning
+## 15. Performance tuning
 
 - **Threads.** llama-server uses `max(2, logical_cores / 2)`. On hybrid CPUs,
   fewer threads than logical cores often improves throughput; this requires
@@ -1972,11 +2160,11 @@ Never delete `models/installed.json` while a download is running.
 
 ---
 
-## 15. Security operations
+## 16. Security operations
 
 ![Trust boundaries](images/diagram-security.png)
 
-### 15.1 Guarantees
+### 16.1 Guarantees
 
 - The Java server binds **only** to `127.0.0.1`.
 - llama-server binds to `127.0.0.1:8080`.
@@ -1991,7 +2179,7 @@ Never delete `models/installed.json` while a download is running.
 - Shredding applies only to quarantine copies created by the same scan; original
   files are never modified or deleted, and the sidecar records that fact.
 
-### 15.2 Non-guarantees
+### 16.2 Non-guarantees
 
 - **No execution sandbox.** Generated programs run with your user privileges and
   can read/write your files, spawn processes and use the network. This does not
@@ -2011,7 +2199,7 @@ Never delete `models/installed.json` while a download is running.
   SHA-256; the C17 helper verifies the hash before registration. Provenance
   beyond that is your responsibility.
 
-### 15.3 Hardening checklist
+### 16.3 Hardening checklist
 
 1. Keep the server on loopback; use an authenticated TLS proxy for remote use.
 2. Run untrusted code in a VM or separate OS account.
@@ -2022,7 +2210,7 @@ Never delete `models/installed.json` while a download is running.
 7. Verify release artifacts with `SHA256SUMS.txt`.
 8. Use a firewall that blocks inbound 8765 and 8080 from other hosts.
 
-### 15.4 Incident response
+### 16.4 Incident response
 
 If you suspect the API was exposed:
 
@@ -2036,9 +2224,9 @@ If you suspect the API was exposed:
 
 ---
 
-## 16. Troubleshooting
+## 17. Troubleshooting
 
-### 16.1 Startup and build
+### 17.1 Startup and build
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -2051,7 +2239,7 @@ If you suspect the API was exposed:
 | Console shows `SERVER UNREACHABLE` | Server down/wrong port | Start the server, check the URL |
 | Windows Firewall prompt | Server is loopback-only | Allow private networks only; inbound is not needed |
 
-### 16.2 Models and downloads
+### 17.2 Models and downloads
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -2064,7 +2252,7 @@ If you suspect the API was exposed:
 | Download stuck at 0% | Mirror unreachable | Test `curl -I https://hf-mirror.com`; set `llm.model_mirror` if needed |
 | `Unknown model: <id>` | Typo or old registry | Use an id from `GET /api/models` |
 
-### 16.3 Runtime and inference
+### 17.3 Runtime and inference
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -2080,7 +2268,7 @@ If you suspect the API was exposed:
 | `… receive response failed (WinHTTP 12030)` | The model service was stopped or restarted while it was replying, or the process ran out of memory | Send the request again; if it repeats, lower the context and restart inference |
 | `… WinHTTP 12002` | The model did not finish before the request timeout | Wait until the model finishes loading, lower the context, then retry |
 
-### 16.4 Debug and execution
+### 17.4 Debug and execution
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -2096,7 +2284,7 @@ If you suspect the API was exposed:
 | `Iteration limit reached without a successful run` | Still failing | Increase iterations or fix manually |
 | `Code exceeds the 200 KB limit` | Source too large | Split the file |
 
-### 16.5 Mobile
+### 17.5 Mobile
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -2109,7 +2297,7 @@ If you suspect the API was exposed:
 
 ---
 
-## 17. FAQ
+## 18. FAQ
 
 **Does CodeForge need internet?** Only to download the JDK, the runtime and
 models. After that it is fully offline.
@@ -2150,7 +2338,7 @@ alive; on POSIX the server runs until you stop the process.
 
 ---
 
-## 18. Appendices
+## 19. Appendices
 
 ### Appendix A — file map
 
@@ -2179,10 +2367,12 @@ alive; on POSIX the server runs until you stop the process.
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl+1` | Chat |
-| `Ctrl+2` | Debug |
-| `Ctrl+3` | Models |
-| `Ctrl+4` | System |
+| `Ctrl+1` | 对话 |
+| `Ctrl+2` | 智能体 |
+| `Ctrl+3` | 工作区 |
+| `Ctrl+4` | 搜索 |
+| `Ctrl+5` | 更多工具 |
+| `Ctrl+6` | 设置 |
 | `Enter` (chat) | Send |
 | `Shift+Enter` (chat) | New line |
 | `Tab` (editor) | Insert four spaces |

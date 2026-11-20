@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.0.9 · Java 17 HTTP server · C++ core bridge
+Version 1.1.0 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -98,6 +98,27 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | POST | `/api/runtime/select` | Choose the runtime backend: `auto`, `cpu` or `cuda` |
 | GET | `/api/runtime/logs` | Tail the inference server log |
 | GET | `/api/downloads` | Download job list |
+| POST | `/api/office/open` | Open a document and return structured preview/text/PDF page info |
+| POST | `/api/office/create` | Create a new document of a supported kind |
+| POST | `/api/office/update` | Apply a structured edit to an open document |
+| POST | `/api/office/delete` | Move a document to the office trash or delete it permanently |
+| POST | `/api/office/search` | Search document text under a folder |
+| GET | `/api/office/version?path=` | File facts and document metadata |
+| GET | `/api/office/pdf-page?path=&page=&scale=` | Render one PDF page as PNG |
+| GET | `/api/office/raw?path=` | Serve the raw document bytes |
+| GET/POST | `/api/permissions` | Read or change the Full filesystem access permission |
+| GET | `/api/fs/drives` | Enumerate drives/roots |
+| POST | `/api/fs/search` | Search paths, filenames and text content across roots |
+| POST | `/api/fs/op` | list, stat, mkdir, rename, copy, move, delete and trash operations |
+| GET/POST | `/api/mail/config` | Read SMTP settings or save them (password never returned) |
+| POST | `/api/mail/test` | Verify SMTP login without sending a message |
+| POST | `/api/mail/send` | Send a plain-text/HTML message with attachments |
+| GET | `/api/downloader/list` | Download-center jobs and candidates |
+| GET | `/api/downloader/job?id=` | One job snapshot |
+| POST | `/api/downloader/resolve` | Search and rank candidates without starting |
+| POST | `/api/downloader/start` | Start a direct-URL or search-based download |
+| POST | `/api/downloader/cancel` | Cancel a running job |
+| POST | `/api/downloader/open` | Open the download folder in the OS file manager |
 | GET/POST | `/api/memory` | Memory stats/search or add an entry |
 | POST | `/api/memory/delete`, `/api/memory/clear` | Delete one entry or clear the store |
 | GET/POST | `/api/workspace` | Workspace index stats/search or reindex |
@@ -144,7 +165,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -193,7 +214,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -313,19 +334,19 @@ check. Only release metadata is fetched — no prompt, file, key or usage data.
 {
   "ok": true,
   "enabled": true,
-  "current": "1.0.9",
-  "latest": "1.0.9",
+  "current": "1.1.0",
+  "latest": "1.1.0",
   "update_available": true,
   "source": "gitcode",
-  "name": "CodeForge AI v1.0.9",
+  "name": "CodeForge AI v1.1.0",
   "published_at": "2026-12-01T10:00:00+08:00",
-  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.0.9",
+  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.1.0",
   "checked_at": "2026-12-01T02:10:00Z"
 }
 ```
 
 With `"updates": {"enabled": false}` in `config.json` the response is
-`{"ok": true, "enabled": false, "current": "1.0.9", "update_available": false}`.
+`{"ok": true, "enabled": false, "current": "1.1.0", "update_available": false}`.
 If both release indexes are unreachable, `ok` is `false` with an `error`
 string; the console shows no banner.
 
@@ -713,7 +734,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -1407,7 +1428,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.0.9", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.1.0", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1990,7 +2011,7 @@ from the release folder:
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/publish \
   -H "Content-Type: application/json" \
-  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.0.9","name":"CodeForge AI v1.0.9","body":"…","folder":"release","overwrite":true,"delete_older":true}'
+  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.1.0","name":"CodeForge AI v1.1.0","body":"…","folder":"release","overwrite":true,"delete_older":true}'
 ```
 
 | Field | Type | Default | Notes |
@@ -2122,3 +2143,345 @@ In chat the same endpoint is exposed as the `codeforge_engine` tool:
 ```text
 <codeforge_engine>{"action":"build","path":"C:\\games\\moon-maze","engine":"love"}</codeforge_engine>
 ```
+
+---
+
+## 23. Office documents and PDF
+
+All office calls are served by `OfficeService`. Paths may be absolute or
+relative to the project root. Writes use the same `Content-Type` and origin
+checks as every other API call. Supported kinds: `docx`, `doc`, `xlsx`, `xls`,
+`xlsm`, `pptx`, `ppt`, `pdf`, `odt`, `ods`, `odp`, `rtf`, `csv`, `tsv`, `txt`,
+`md`, `markdown`, `json`, `log`.
+
+### POST `/api/office/open`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/office/open \
+  -H "Content-Type: application/json" \
+  -d '{"path":"C:/docs/report.docx","include_grid":true}'
+```
+
+```json
+{
+  "ok": true,
+  "path": "C:\\docs\\report.docx",
+  "name": "report.docx",
+  "kind": "docx",
+  "bytes": 48213,
+  "modified_ms": 1763625600000,
+  "editable": true,
+  "text": "Quarterly report\n...",
+  "paragraphs": [
+    {"index": 0, "style": "Heading 1", "text": "Quarterly report"}
+  ],
+  "paragraph_count": 18,
+  "duration_ms": 41
+}
+```
+
+Kind-specific preview fields:
+
+| Kind | Additional fields |
+| --- | --- |
+| DOCX | `paragraphs`, `paragraph_count`, `tables`, `text`, `html`, `editable` |
+| DOC, ODT, ODS, ODP, RTF | `text`, `html`, `note`; ODT/ODS/ODP/RTF report `editable:false` |
+| XLSX/XLS/XLSM | `sheets` (`name`, `rows`, `cols`, `grid` when `include_grid` is true), `sheet_count`, `text` |
+| CSV/TSV | `rows`, `text`, `html` |
+| PPTX/PPT | `slides` (`index`, `title`, `shapes`), `slide_count`, `html` |
+| PDF | `page_count`, `pdf_title`, `pdf_author`, `pdf_subject`, `pdf_keywords`, `pdf_creator`, `pdf_producer`, `render_url`, `text` |
+
+`include_grid:false` skips spreadsheet cell grids to keep large workbooks
+small. An unsupported extension returns `ok:false` with the `supported` list.
+A lock held by Word or Excel surfaces as an explicit save/open error.
+
+### POST `/api/office/create`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/office/create \
+  -H "Content-Type: application/json" \
+  -d '{"path":"C:/docs/new.xlsx","type":"xlsx","title":"Budget","content":"Item,Cost\\nRent,1000","overwrite":false}'
+```
+
+`type` is optional when the path has a known extension. Creation supports
+`docx`, `xlsx`, `pptx`, `pdf`, `txt`, `md`, `csv` and `tsv`. `content` is
+line-oriented: paragraphs for Word/text, CSV records for Excel/CSV, and page
+text for PDF. Existing files require `overwrite:true`. The response is the
+same structure as `open` plus `created:true` and `message`.
+
+### POST `/api/office/update`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/office/update \
+  -H "Content-Type: application/json" \
+  -d '{"path":"C:/docs/report.docx","action":"set_paragraph","index":2,"text":"Revised conclusion."}'
+```
+
+Actions by kind:
+
+| Kind | `action` values and fields |
+| --- | --- |
+| DOCX | `set_paragraph` (`index`, `text`), `append_paragraph` (`text`, optional `style`), `delete_paragraph` (`index`), `replace_all` (`find`, `replace`), `set_table_cell` (`table`, `row`, `col`, `text`) |
+| DOC | `replace_all` (`find`, `replace`), `append_paragraph` (`text`) |
+| XLSX/XLSM/XLS | `set_cell` (`sheet`, `cell`, `value` or `text`, `value_type` = auto/text/number/boolean/formula/blank), `add_row` (`sheet`, `row`, `values` array), `delete_row` (`sheet`, `row`), `add_sheet` (`name`), `delete_sheet` (`sheet` or `name`), `rename_sheet` (`sheet`, `name`) |
+| PPTX | `set_text` (`slide`, `shape`, `text`), `add_slide` (`title`, `text`), `delete_slide` (`slide`) |
+| PPT | `set_text` (`slide`, `shape`, `text`), `delete_slide` (`slide`) |
+| PDF | `set_metadata` (`title`, `author`, `subject`, `keywords`), `add_page` (`text`), `delete_page` (`page`), `rotate_page` (`page`, `degrees`), `merge` (`paths` array of source PDFs, appended in order) |
+| CSV/TSV/TXT/MD/JSON/log | `set_text` (`text`), `append` (`text`) |
+| ODT/ODS/ODP/RTF | Read-only; update returns an explicit unsupported-edit error |
+
+Success returns the refreshed `open` structure plus `updated:true`,
+`action` and `message`. Failures keep the previous file intact.
+
+### POST `/api/office/delete`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/office/delete \
+  -H "Content-Type: application/json" \
+  -d '{"path":"C:/docs/old.docx","confirm":true}'
+```
+
+Without `confirm:true` the response is `ok:false` with
+`confirmation_required:true`. The default moves the file to
+`workspace/.trash/office/<timestamp>-<name>` and returns `trash` and
+`original`. `permanent:true` deletes it instead.
+
+### POST `/api/office/search`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/office/search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"invoice","path":"C:/docs","limit":30,"max_files":300}'
+```
+
+Returns `count` and `matches` (`path`, `name`, `kind`, `score`, `snippets`).
+The scan is bounded by `max_files` (1–2000), `limit` (1–200) and a 60-second
+deadline. An empty `path` searches the workspace.
+
+### GET `/api/office/version?path=<path>`
+
+Returns `bytes`, `modified_ms` and a change token (`version`) for one document.
+
+### GET `/api/office/pdf-page?path=<path>&page=<n>&scale=<float>`
+
+Renders one zero-based PDF page as `image/png`. `scale` defaults to 1.4.
+`page` outside the document returns a logical error.
+
+### GET `/api/office/raw?path=<path>`
+
+Serves the raw document bytes with a sandbox CSP, for preview/download links.
+
+---
+
+## 24. Whole-disk file access
+
+`FileAccessService` refuses every list/search/operation until
+`permissions.full_filesystem` is true. Reads of the permission and drives are
+allowed so the UI can explain the state.
+
+### GET/POST `/api/permissions`
+
+```bash
+curl -s http://127.0.0.1:8765/api/permissions
+curl -s -X POST http://127.0.0.1:8765/api/permissions \
+  -H "Content-Type: application/json" \
+  -d '{"full_filesystem":true}'
+```
+
+GET returns `full_filesystem`, `config` (path to `config.json`), `trash`
+(`workspace/.trash/fs`) and a `note`. POST requires a boolean
+`full_filesystem` and writes the setting immediately; toggling it is audited.
+
+### GET `/api/fs/drives`
+
+```json
+{
+  "ok": true,
+  "count": 2,
+  "drives": [
+    {"path": "C:\\", "name": "C:\\", "total_bytes": 1024000000000, "free_bytes": 420000000000}
+  ],
+  "full_filesystem": true,
+  "home": "C:\\Users\\you",
+  "desktop": "C:\\Users\\you\\Desktop"
+}
+```
+
+### POST `/api/fs/search`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/fs/search \
+  -H "Content-Type: application/json" \
+  -d '{"roots":["D:/"],"name":"*.log","content":"timeout","include_dirs":true,"depth":6,"limit":50,"timeout_sec":45}'
+```
+
+Fields: `query` (path/name substring), `name` (glob), `content` (text files
+only), `roots` (array or semicolon-separated string; empty = all drives),
+`include_dirs`, `deep` (read content in addition to names), `depth`, `limit`
+(1–1000) and `timeout_sec`. At least one of `query`, `name` or `content` is
+required. The response contains `visited`, `count`, `truncated` and `matches`
+(`path`, `name`, `type`, `size`, `modified_ms`, `how`, and `snippet` for
+content hits). A denied call returns `ok:false`, `permission_required:true`.
+
+### POST `/api/fs/op`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/fs/op \
+  -H "Content-Type: application/json" \
+  -d '{"op":"copy","path":"C:/work/a.txt","to":"D:/archive/a.txt","overwrite":false}'
+```
+
+| `op` | Fields | Result |
+| --- | --- | --- |
+| `list` | `path`, `depth` | `entries` with name, type, size, modified time |
+| `stat` | `path` | `path`, `type`, `size`, `modified_ms`, attributes |
+| `mkdir` | `path` | Creates the folder and parents |
+| `rename` | `path`, `to`, optional `overwrite` | Renames/moves one entry |
+| `copy` | `path`, `to`, optional `overwrite` | Recursive copy |
+| `move` | `path`, `to`, optional `overwrite` | Recursive move |
+| `delete` | `path`, `confirm`, optional `permanent` | Trash by default, permanent when requested |
+| `trash` | `path` | Moves to `workspace/.trash/fs` |
+
+Deletes require `confirm:true`; moving to trash returns both the original and
+trash paths. Guards cover sensitive system directories, and every operation is
+appended to `logs/file-access.jsonl`.
+
+---
+
+## 25. Mail
+
+`MailService` reads and writes `config.json.mail`; the SMTP password is kept
+in the local KeyStore under `secret_name` (default `codeforge-smtp`) and is
+never returned.
+
+### GET/POST `/api/mail/config`
+
+```bash
+curl -s http://127.0.0.1:8765/api/mail/config
+curl -s -X POST http://127.0.0.1:8765/api/mail/config \
+  -H "Content-Type: application/json" \
+  -d '{"host":"smtp.example.com","port":465,"security":"ssl","username":"you@example.com","password":"<app-password>","from":"you@example.com","name":"CodeForge AI","default_to":""}'
+```
+
+Fields on save: `host`, `port`, `security` (`ssl`, `starttls` or `none`),
+`username`, `password`, `clear_password`, `name`, `from`, `default_to`,
+`secret_name`. A blank `password` leaves the stored secret unchanged;
+`clear_password:true` deletes it. GET returns the same settings plus
+`configured` and `password_set` flags — never the password.
+
+### POST `/api/mail/test`
+
+Sends a short test message to `to`, or the configured `default_to`, or the
+`from` address. Requires a fully configured SMTP account; the result is the
+same shape as a normal send.
+
+### POST `/api/mail/send`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/mail/send \
+  -H "Content-Type: application/json" \
+  -d '{"to":"team@example.com","cc":"lead@example.com","subject":"Nightly build","text":"All checks passed.","attachments":["C:/builds/report.pdf"]}'
+```
+
+Fields: `to`, `cc`, `bcc` (comma/semicolon/space separated), `subject`,
+`text`, `html`, `attachments` (array of absolute paths; 25 MB total). `html`
+takes precedence over `text` for the body. Success returns `to`, `cc`,
+`bcc_count`, `attachments`, `message_id`, `host`, `port`, `security` and
+`duration_ms`. Missing SMTP configuration returns an explicit error; it never
+reports a false send.
+
+---
+
+## 26. Download center
+
+`DownloadService` runs jobs on a background executor. Jobs survive page
+reloads in the process; the `.part` file survives a server restart.
+
+### POST `/api/downloader/resolve`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/downloader/resolve \
+  -H "Content-Type: application/json" \
+  -d '{"query":"OBS Studio Windows installer","kind":"software","platform":"windows"}'
+```
+
+Returns `count`, `candidates` (`url`, `filename`, `source_host`, `bytes`,
+`kind`, `score`, `reasons`) and a note. Nothing is downloaded. With a direct
+`url` the candidate is probed (HEAD/GET metadata) and included too.
+
+### POST `/api/downloader/start`
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/downloader/start \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/tool.zip","target_dir":"D:/downloads","filename":"tool.zip","kind":"software","expected_sha256":"<64 hex>","overwrite":false,"save_page":false}'
+```
+
+`url` or `query` is required. Fields:
+
+| Field | Meaning |
+| --- | --- |
+| `target_dir` | Absolute or workspace-relative folder; defaults to the project `downloads/` folder |
+| `filename` | Optional exact output name |
+| `kind` | `software`, `game`, `file`, `page`, `document` (used in ranking) |
+| `platform` | `windows`, `linux`, `macos`, `android`, `ios`; defaults to the host |
+| `expected_size_mb` | Preferred size for ranking and a post-download check |
+| `expected_sha256` | Verified after download; mismatch fails the job |
+| `max_mb` | Size ceiling (1–204800, default 8192) |
+| `auto` | Default true; false stops at `needs_choice` instead of using the top candidate |
+| `save_page` | Save HTML when the URL returns a page |
+| `overwrite` | Replace an existing file instead of choosing a unique name |
+
+The response is `ok:true`, `job` and `message`. Job fields include `id`,
+`state`, `url`, `query`, `target_dir`, `filename`, `kind`, `platform`,
+`bytes`, `total_bytes`, `speed_bps`, `expected_bytes`, `sha256`,
+`content_type`, `error`, `message`, `verify_note`, `saved_path`, `chosen`,
+`candidates`, `created_at`, `created_ms`, `updated_ms`, `duration_ms`, plus
+derived `progress`, `bytes_human`, `total_human`, `speed_human` and `eta_sec`.
+
+States: `queued`, `resolving`, `needs_choice`, `connecting`, `downloading`,
+`verifying`, `done`, `failed`, `cancelled`, `cancelling`. A stalled body is
+stopped by a 25-second read watchdog and retried on the same URL; Range
+requests resume from `.part`.
+
+### GET `/api/downloader/list`, GET `/api/downloader/job?id=<id>`
+
+Return all jobs or one job. `list` includes `count` and `jobs`.
+
+### POST `/api/downloader/cancel`, POST `/api/downloader/open`
+
+`cancel` takes `id` and leaves the `.part` file. `open` takes `id` or `path`
+and reveals the folder in Explorer/Finder/`xdg-open`.
+
+---
+
+## 27. Agent tags for the new tools
+
+The chat agent emits one tag per step; results return before the next step.
+Fenced aliases (`office-json`, `mail-json`, `download-json`, `fs-json`) are
+also accepted.
+
+```text
+<codeforge_office>{"action":"open","path":"C:\\docs\\report.docx"}</codeforge_office>
+<codeforge_office>{"action":"update","path":"C:\\docs\\report.docx","update_action":"set_paragraph","index":2,"text":"..."}</codeforge_office>
+<codeforge_mail>{"action":"send","to":"a@example.com","subject":"Hi","text":"...","attachments":[]}</codeforge_mail>
+<codeforge_download>{"url":"https://example.com/a.zip","filename":"a.zip","wait_sec":120}</codeforge_download>
+<codeforge_download>{"query":"VLC Windows x64","kind":"software","wait_sec":180}</codeforge_download>
+<codeforge_fs>{"op":"search","roots":["D:\\"],"name":"*.log","content":"timeout"}</codeforge_fs>
+<codeforge_fs>{"op":"permission","enabled":true}</codeforge_fs>
+```
+
+- Office `action`: `open`, `create`, `update`, `delete`, `search`, `version`.
+  When `action` is a specific edit (for example `set_cell`), the dispatcher
+  treats it as `update` with that `update_action`.
+- Mail `action`: `send` or `test`.
+- Download `action`: `start` (default), `resolve`, `list`, `status`, `cancel`
+  or `open`; `wait_sec` (0–600) controls how long the agent waits for
+  completion.
+- FS `op`: `list`, `stat`, `mkdir`, `rename`, `copy`, `move`, `delete`,
+  `trash`, `search`, `permission`. Aliases such as `ls`, `find`, `grep`,
+  `del`, `mv` and `cp` are normalized.
+
+Every tool result includes `kind`, so the chat loop can label the step, and
+errors propagate as `ok:false` with the service message.
+

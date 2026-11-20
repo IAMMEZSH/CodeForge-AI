@@ -206,6 +206,10 @@ public final class AgentShell {
     public AgentShell(Path root, ToolchainManager toolchains) {
         this.root = root;
         this.workspace = root.resolve("workspace");
+        try {
+            Files.createDirectories(this.workspace);
+        } catch (Exception ignored) {
+        }
         this.toolchains = toolchains;
         this.provisioner = new ToolProvisioner(root, toolchains);
         this.engines = new EngineSupport(root);
@@ -815,6 +819,16 @@ GAME ENGINES — Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE:
 <codeforge_engine>{"action":"detect|build|export|run|status","path":"C:\\games\\MyGame","engine":"godot|unity|unreal|cocos|love","target":"windows|linux|macos|web","preset":"Godot export preset name","output":"optional exact folder","debug":false,"headless":false,"timeout":1800}</codeforge_engine>
 detect finds projects by their real markers (project.godot, ProjectSettings/ProjectVersion.txt plus Assets/, *.uproject, Cocos package.json plus assets/, main.lua). build imports/compiles, export produces a player or package, run launches the project or built artifact. The host detects engines from environment variables, PATH, Unity Hub, Epic Games and the usual install folders; status lists what is installed. Never invent a successful export: an engine that is not installed fails with an install_hint, and export success is verified against the real artifact on disk. Godot exports require a preset in export_presets.cfg. Unity builds need scenes added to Build Settings in the editor. Unreal packaging uses RunUAT BuildCookRun. Cocos builds are verified by their generated index.html. LÖVE .love packages need no engine; a fused .exe is produced when love.exe is installed.
 
+OFFICE DOCUMENTS, PDF, EMAIL, DOWNLOADS AND THE WHOLE DISK — use these native tools first; do not install third-party scripts for them:
+<codeforge_office>{"action":"open|create|update|delete|search|version","path":"C:\\docs\\report.docx","text":"...","update_action":"specific edit action","confirm":true}</codeforge_office>
+<codeforge_mail>{"action":"send|test","to":"user@example.com","cc":"","subject":"...","text":"...","html":"","attachments":["C:\\path\\file.pdf"]}</codeforge_mail>
+<codeforge_download>{"url":"https://...","query":"exact product name","kind":"software|game|file|page|document","target_dir":"C:\\Downloads","filename":"setup.exe","expected_size_mb":0,"wait_sec":120}</codeforge_download>
+<codeforge_fs>{"op":"list|stat|mkdir|rename|copy|move|delete|search|permission","path":"D:\\folder","to":"D:\\new","query":"name fragment","name":"*.log","content":"text inside files","confirm":true}</codeforge_fs>
+office opens and edits DOCX/DOC, XLSX/XLS/XLSM, PPTX/PPT, PDF, ODT/ODS/ODP, RTF, CSV/TSV/TXT/MD/JSON; open returns the real text and structure (paragraphs, sheets and cells, slides, PDF page count), create makes docx/xlsx/pptx/pdf/txt/md/csv/tsv, and update applies the specific update_action (docx: set_paragraph, append_paragraph, delete_paragraph, replace_all, set_table_cell; xlsx: set_cell, add_row, delete_row, add_sheet, delete_sheet, rename_sheet; pptx: set_text, add_slide, delete_slide; pdf: set_metadata, add_page, delete_page, rotate_page, merge with "paths"; text: set_text, append). Deleting a document needs confirm:true and moves it to the office trash unless permanent:true.
+mail sends real email through the SMTP account saved in the Mail view, with attachments up to 25 MB; if SMTP is not configured or the password is missing, say exactly that and do not pretend the mail was sent. Never print the SMTP password.
+download with a URL downloads it directly; with only a query it searches for the most likely official file, ranks candidates by official source, filename, platform and expected size, then verifies SHA-256. Prefer a direct URL when the user gave one. wait_sec waits for completion (default 120, max 600); if it is still running, report the job id and current state instead of claiming success.
+fs is the whole-disk tool. Reading and searching work on any path, but all operations require the user's Full filesystem access permission in Settings → Full filesystem access (or permission with enabled:true after the user explicitly allows it). delete requires confirm:true and moves items to the workspace trash unless permanent:true. Search supports path/name/content matching across drives; keep depth and limit modest on huge trees and report if truncated. Never delete, move or overwrite user files unless the user explicitly asked for that exact action.
+
 RUN A COMMAND — output exactly one block and nothing else:
 <codeforge_shell>
 {"command":"the command","cwd":"optional path","shell":"powershell|cmd|bash|sh|zsh","timeout":600}
@@ -841,7 +855,13 @@ CALL ANY API — for real data, SaaS services, cloud platforms or anything with 
 <codeforge_api>
 {"method":"GET","url":"https://api.example.com/v1/items","headers":{"Accept":"application/json"},"query":{"q":"value"},"body":{},"secret_name":"MY_API_KEY","auth":"bearer","timeout":30}
 </codeforge_api>
-Any HTTP method (GET/POST/PUT/PATCH/DELETE), arbitrary headers/query/JSON body, and credentials by name from the local vault. The response body is returned to you; use it. Never fabricate live data or leave placeholder keys such as YOUR_API_KEY. If a needed secret is missing, store it via the Keys/API panel only when the user provides it; otherwise say exactly which secret is needed and stop. Prefer keyless public APIs when they exist (for example https://wttr.in/Beijing?format=j1 returns real weather). For big multi-file projects, scaffold with shell, write every file, build and test in steps, fix errors from real output, and only finish when it runs.
+Any HTTP method (GET/POST/PUT/PATCH/DELETE), arbitrary headers/query/JSON body, and credentials by name from the local vault. The response body is returned to you; use it. Never fabricate live data or leave placeholder keys such as YOUR_API_KEY. Public keyless sources need no credential at all: use codeforge_keyless/codeforge_weather first, then call any other keyless public API directly. Only when a source truly requires a private or paid credential, and no keyless alternative exists, state exactly which credential is needed and wait; never demand registration for weather or ordinary public data. For big multi-file projects, scaffold with shell, write every file, build and test in steps, fix errors from real output, and only finish when it runs.
+
+KEYLESS PUBLIC DATA — built in; never ask the user to register or get an API key:
+<codeforge_weather>{"location":"北京","days":3}</codeforge_weather>
+<codeforge_keyless>{"service":"fx","params":{"base":"USD","symbols":"CNY,EUR"}}</codeforge_keyless>
+Services: weather, geocode, ip, fx, crypto, wiki, country, earthquake, holidays, dictionary, translate, hot, news, time, air, books, papers, hn, npm, pypi, github, lyrics, route, qr, image — 25 built-in keyless services. The live catalog is GET http://127.0.0.1:8765/api/keyless?list=1. Weather also has GET /api/weather?location=北京&days=3.
+Rules: for any weather, rate, price, encyclopedia, IP, country, quake, holiday, dictionary, translation, trend, air-quality, book, paper, package, repo, lyrics, route, QR or image request, call codeforge_weather or codeforge_keyless first — these are real live keyless sources with automatic fallbacks. Never output YOUR_API_KEY placeholders and never tell the user to sign up for a weather or public-data API. For a public API that is not in the catalog, call it directly with codeforge_api GET; only ask for a secret when a source truly requires a paid/private credential. Programs you generate may call http://127.0.0.1:8765/api/keyless or /api/weather with no key, or call the public keyless sources directly (wttr.in, open-meteo, frankfurter, ipwho.is, gate.io, USGS, Nager.Date, dictionaryapi.dev, MyMemory, restcountries, Baidu, arXiv, HN Algolia, npm, PyPI, GitHub, lyrics.ovh, OSRM, qrserver, picsum). If a source is blocked on this network, try the next fallback and report the real error instead of asking the user to register.
 
 PUBLISHING
 Local commits, builds, packages and exports are allowed. git push, releases/PR/issues, registry/container uploads, remote copies, cloud deploys and outbound write HTTP are blocked until the user enables Allow publishing. If blocked, state exactly what would be published and wait.

@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.0.9";
+    public static final String VERSION = "1.1.0";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private static final class BadRequest extends IOException {
@@ -57,6 +57,8 @@ public final class ApiHandler implements HttpHandler {
     private final ConversationStore transcripts;
     private final ProjectIndex projectIndex;
     private final OnlineService online;
+    private final WeatherService weather;
+    private final KeylessService keyless;
     private final ToolchainManager toolchains;
     private final ExtendedRunner extendedRunner;
     private final BuildDelivery buildDelivery;
@@ -68,6 +70,10 @@ public final class ApiHandler implements HttpHandler {
     private final Publisher publisher;
     private final UpdateChecker updateChecker;
     private final FileService files;
+    private final FileAccessService fileAccess;
+    private final OfficeService office;
+    private final MailService mail;
+    private final DownloadService downloader;
     private final DesktopIntegration desktop;
     private final ProjectExporter projectExporter;
     private final Runnable shutdownAction;
@@ -121,6 +127,14 @@ public final class ApiHandler implements HttpHandler {
             "(?is)```(?:codeforge_engine|engine-json)\\s*\\n?(.*?)```");
     private static final Pattern AGENT_API = Pattern.compile(
             "(?is)<codeforge_api>\\s*(.*?)\\s*</codeforge_api>");
+    private static final Pattern AGENT_WEATHER = Pattern.compile(
+            "(?is)<codeforge_weather>\\s*(.*?)\\s*</codeforge_weather>");
+    private static final Pattern AGENT_WEATHER_FENCE = Pattern.compile(
+            "(?is)```(?:codeforge_weather|weather-json)\\s*\\n?(.*?)```");
+    private static final Pattern AGENT_KEYLESS = Pattern.compile(
+            "(?is)<codeforge_keyless>\\s*(.*?)\\s*</codeforge_keyless>");
+    private static final Pattern AGENT_KEYLESS_FENCE = Pattern.compile(
+            "(?is)```(?:codeforge_keyless|keyless-json)\\s*\\n?(.*?)```");
     private static final Pattern AGENT_BUILD = Pattern.compile(
             "(?is)<codeforge_build>\\s*(.*?)\\s*</codeforge_build>");
     private static final Pattern AGENT_WRITE = Pattern.compile(
@@ -133,6 +147,22 @@ public final class ApiHandler implements HttpHandler {
             "(?is)<codeforge_edit>\\s*(.*?)\\s*</codeforge_edit>");
     private static final Pattern AGENT_TEST = Pattern.compile(
             "(?is)<codeforge_test>\\s*(.*?)\\s*</codeforge_test>");
+    private static final Pattern AGENT_OFFICE = Pattern.compile(
+            "(?is)<codeforge_office>\\s*(.*?)\\s*</codeforge_office>");
+    private static final Pattern AGENT_MAIL = Pattern.compile(
+            "(?is)<codeforge_mail>\\s*(.*?)\\s*</codeforge_mail>");
+    private static final Pattern AGENT_DOWNLOAD = Pattern.compile(
+            "(?is)<codeforge_download>\\s*(.*?)\\s*</codeforge_download>");
+    private static final Pattern AGENT_FS = Pattern.compile(
+            "(?is)<codeforge_fs>\\s*(.*?)\\s*</codeforge_fs>");
+    private static final Pattern AGENT_OFFICE_FENCE = Pattern.compile(
+            "(?is)```(?:codeforge_office|office-json)\\s*\\n?(.*?)```");
+    private static final Pattern AGENT_MAIL_FENCE = Pattern.compile(
+            "(?is)```(?:codeforge_mail|mail-json)\\s*\\n?(.*?)```");
+    private static final Pattern AGENT_DOWNLOAD_FENCE = Pattern.compile(
+            "(?is)```(?:codeforge_download|download-json)\\s*\\n?(.*?)```");
+    private static final Pattern AGENT_FS_FENCE = Pattern.compile(
+            "(?is)```(?:codeforge_fs|fs-json)\\s*\\n?(.*?)```");
     private static final Pattern AGENT_WRITE_FENCE = Pattern.compile(
             "(?is)```(?:codeforge_write|write-json)\\s*\\n?(.*?)```");
     private static final Pattern AGENT_READ_FENCE = Pattern.compile(
@@ -218,7 +248,8 @@ public final class ApiHandler implements HttpHandler {
                     + "save\\s+to|output\\s+to|deliver\\s+to|put\\s+(?:it\\s+)?in|copy\\s+to|into");
     private static final Pattern TOOL_OPEN = Pattern.compile(
             "(?is)<codeforge_(shell|build|search|fetch|learn|api|write|read|list|edit|test|"
-                    + "crawl|deep_search|deep_research|research|corpus|inspect|engine)\\b[^>]*>");
+                    + "crawl|deep_search|deep_research|research|corpus|inspect|engine|"
+                    + "weather|keyless|office|mail|download|fs)\\b[^>]*>");
     private static final Pattern NATIVE_INVOKE = Pattern.compile(
             "(?is)<([^>]{0,40}?)invoke\\s+name\\s*=\\s*[\"']?"
                     + "([A-Za-z0-9_.:-]+)[\"']?[^>]*>(.*?)"
@@ -320,6 +351,8 @@ public final class ApiHandler implements HttpHandler {
         this.transcripts = new ConversationStore(root);
         this.projectIndex = projectIndex;
         this.online = online;
+        this.weather = new WeatherService(settings);
+        this.keyless = new KeylessService(settings, online);
         this.toolchains = new ToolchainManager(root);
         this.extendedRunner = new ExtendedRunner(root, toolchains);
         this.buildDelivery = new BuildDelivery(root, toolchains);
@@ -331,6 +364,10 @@ public final class ApiHandler implements HttpHandler {
         this.publisher = new Publisher(root, keyStore);
         this.updateChecker = new UpdateChecker(root);
         this.files = new FileService(root);
+        this.fileAccess = new FileAccessService(root, settings);
+        this.office = new OfficeService(root);
+        this.mail = new MailService(root, keyStore);
+        this.downloader = new DownloadService(root, online, keyStore);
         this.desktop = new DesktopIntegration(root, files);
         this.projectExporter = new ProjectExporter(root, files, desktop);
         this.shutdownAction = shutdownAction;
@@ -585,6 +622,33 @@ public final class ApiHandler implements HttpHandler {
                 sendJson(exchange, 200, online.fetchPage(url, max));
                 return;
             }
+            case "/api/weather": {
+                String location = query.getOrDefault("location",
+                        query.getOrDefault("city", query.getOrDefault("q", "")));
+                int days = parseInt(query.getOrDefault("days", "3"), 3);
+                exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                sendJson(exchange, 200, weather.forecast(location, days));
+                return;
+            }
+            case "/api/keyless": {
+                exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                String service = query.getOrDefault("service", "").trim();
+                boolean list = query.containsKey("list")
+                        || service.isBlank() && query.size() <= 1;
+                if (list) {
+                    sendJson(exchange, 200, keyless.catalog());
+                    return;
+                }
+                Map<String, Object> params = new LinkedHashMap<>();
+                for (Map.Entry<String, String> item : query.entrySet()) {
+                    if (!"service".equals(item.getKey()) && !"list".equals(item.getKey())) {
+                        params.put(item.getKey(), item.getValue());
+                    }
+                }
+                sendJson(exchange, 200, keyless.call(Json.map(
+                        "service", service, "params", params)));
+                return;
+            }
             case "/api/inspect": {
                 requirePost(method);
                 sendJson(exchange, 200, codeInspector.inspect(readJsonObject(exchange)));
@@ -781,6 +845,145 @@ public final class ApiHandler implements HttpHandler {
                 sendJson(exchange, 200, toolchains.install(language));
                 return;
             }
+            case "/api/permissions": {
+                if ("GET".equals(method)) {
+                    sendJson(exchange, 200, fileAccess.permissionView());
+                } else {
+                    requirePost(method);
+                    sendJson(exchange, 200, fileAccess.setPermission(readJsonObject(exchange)));
+                }
+                return;
+            }
+            case "/api/fs/drives":
+                sendJson(exchange, 200, fileAccess.drives());
+                return;
+            case "/api/fs/search": {
+                requirePost(method);
+                sendJson(exchange, 200, fileAccess.search(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/fs/op": {
+                requirePost(method);
+                sendJson(exchange, 200, fileAccess.operation(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/office/open": {
+                requirePost(method);
+                sendJson(exchange, 200, office.open(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/office/version": {
+                Map<String, Object> versionRequest = new LinkedHashMap<>();
+                versionRequest.put("path", query.getOrDefault("path", ""));
+                sendJson(exchange, 200, office.version(versionRequest));
+                return;
+            }
+            case "/api/office/create": {
+                requirePost(method);
+                sendJson(exchange, 200, office.create(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/office/update": {
+                requirePost(method);
+                sendJson(exchange, 200, office.update(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/office/delete": {
+                requirePost(method);
+                sendJson(exchange, 200, office.delete(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/office/search": {
+                requirePost(method);
+                sendJson(exchange, 200, office.search(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/office/pdf-page": {
+                String rawPath = query.getOrDefault("path", "");
+                int page = parseInt(query.getOrDefault("page", "0"), 0);
+                float scale = 1.4f;
+                try {
+                    scale = Float.parseFloat(query.getOrDefault("scale", "1.4"));
+                } catch (NumberFormatException ignored) {
+                }
+                byte[] png = office.renderPdfPage(rawPath, page, scale);
+                exchange.getResponseHeaders().set("Content-Type", "image/png");
+                exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+                exchange.sendResponseHeaders(200, png.length);
+                try (OutputStream output = exchange.getResponseBody()) {
+                    output.write(png);
+                }
+                return;
+            }
+            case "/api/office/raw": {
+                Path file = office.pathFor(query.getOrDefault("path", ""));
+                if (!Files.isRegularFile(file)) {
+                    sendJson(exchange, 404, Json.map("ok", false,
+                            "error", "File not found: " + file));
+                    return;
+                }
+                byte[] data = Files.readAllBytes(file);
+                String type = Files.probeContentType(file);
+                if (type == null || type.isBlank()) {
+                    type = contentType(file.getFileName().toString());
+                }
+                exchange.getResponseHeaders().set("Content-Type", type);
+                exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+                exchange.getResponseHeaders().set("Content-Security-Policy",
+                        "sandbox allow-scripts allow-forms allow-modals allow-popups");
+                exchange.sendResponseHeaders(200, data.length);
+                try (OutputStream output = exchange.getResponseBody()) {
+                    output.write(data);
+                }
+                return;
+            }
+            case "/api/mail/config": {
+                if ("GET".equals(method)) {
+                    sendJson(exchange, 200, mail.configView());
+                } else {
+                    requirePost(method);
+                    sendJson(exchange, 200, mail.saveConfig(readJsonObject(exchange)));
+                }
+                return;
+            }
+            case "/api/mail/send": {
+                requirePost(method);
+                sendJson(exchange, 200, mail.send(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/mail/test": {
+                requirePost(method);
+                sendJson(exchange, 200, mail.test(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/downloader/list":
+                sendJson(exchange, 200, downloader.list());
+                return;
+            case "/api/downloader/job":
+                sendJson(exchange, 200, downloader.get(query.getOrDefault("id", "")));
+                return;
+            case "/api/downloader/resolve": {
+                requirePost(method);
+                sendJson(exchange, 200, downloader.resolve(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/downloader/start": {
+                requirePost(method);
+                sendJson(exchange, 200, downloader.start(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/downloader/cancel": {
+                requirePost(method);
+                sendJson(exchange, 200, downloader.cancel(readJsonObject(exchange)));
+                return;
+            }
+            case "/api/downloader/open": {
+                requirePost(method);
+                sendJson(exchange, 200, downloader.openFolder(readJsonObject(exchange)));
+                return;
+            }
             case "/api/files/write": {
                 requirePost(method);
                 Map<String, Object> request = readJsonObject(exchange);
@@ -803,6 +1006,44 @@ public final class ApiHandler implements HttpHandler {
                 requirePost(method);
                 Map<String, Object> request = readJsonObject(exchange);
                 sendJson(exchange, 200, files.reveal(request));
+                return;
+            }
+            case "/api/files/list": {
+                Map<String, Object> request = new LinkedHashMap<>();
+                request.put("path", query.getOrDefault("path", ""));
+                request.put("depth", parseInt(query.getOrDefault("depth", "1"), 1));
+                sendJson(exchange, 200, fileTools.run("list", request));
+                return;
+            }
+            case "/api/files/read": {
+                Map<String, Object> request = new LinkedHashMap<>();
+                request.put("path", query.getOrDefault("path", ""));
+                request.put("start", parseInt(query.getOrDefault("start", "1"), 1));
+                request.put("lines", parseInt(query.getOrDefault("lines", "500"), 500));
+                sendJson(exchange, 200, fileTools.run("read", request));
+                return;
+            }
+            case "/api/files/raw": {
+                sendJson(exchange, 200, fileTools.raw(
+                        Json.map("path", query.getOrDefault("path", ""))));
+                return;
+            }
+            case "/api/terminal": {
+                requirePost(method);
+                Map<String, Object> request = readJsonObject(exchange);
+                int timeout = Math.max(1, Math.min(300,
+                        Json.integer(request, "timeout", 120)));
+                String cwd = Json.str(request, "cwd", "").trim();
+                if (cwd.isEmpty()) {
+                    cwd = root.toString();
+                }
+                Map<String, Object> result = agentShell.run(
+                        Json.str(request, "command", ""),
+                        cwd,
+                        Json.str(request, "shell", ""),
+                        timeout, null,
+                        Json.bool(request, "auto_install", false), 300, null, false);
+                sendJson(exchange, 200, result);
                 return;
             }
             case "/api/desktop/install": {
@@ -1572,6 +1813,10 @@ public final class ApiHandler implements HttpHandler {
                             ? "" : " · " + Json.str(tool, "goal", ""));
                     case "api" -> Json.str(tool, "method", "GET") + " "
                             + Json.str(tool, "url", "");
+                    case "weather" -> "weather "
+                            + (Json.str(tool, "location", "").isBlank() ? "current location"
+                            : Json.str(tool, "location", ""));
+                    case "keyless" -> "keyless " + Json.str(tool, "service", "");
                     case "write", "read", "list", "edit" ->
                             kind + " " + Json.str(tool, "path", "");
                     case "test" -> "tests " + Json.str(tool, "path", ".");
@@ -1581,6 +1826,17 @@ public final class ApiHandler implements HttpHandler {
                             + Json.str(tool, "path", "")).trim();
                     case "build" -> (Json.str(tool, "language", "")
                             + " " + Json.str(tool, "name", "")).trim();
+                    case "office" -> (Json.str(tool, "action", "open")
+                            + " " + Json.str(tool, "path", "")).trim();
+                    case "mail" -> ("mail " + Json.str(tool, "to", "")).trim();
+                    case "download" -> (Json.str(tool, "url", "").isBlank()
+                            ? Json.str(tool, "query", "")
+                            : Json.str(tool, "url", "")
+                            + (Json.str(tool, "filename", "").isBlank()
+                            ? "" : " · " + Json.str(tool, "filename", ""))).trim();
+                    case "fs" -> (Json.str(tool, "op", "list")
+                            + " " + firstNonBlank(Json.str(tool, "path", ""),
+                            Json.str(tool, "query", ""))).trim();
                     default -> "";
                 };
                 boolean buildStep = "build".equals(kind);
@@ -1588,12 +1844,19 @@ public final class ApiHandler implements HttpHandler {
                 boolean engineStep = "engine".equals(kind);
                 boolean fileStep = "write".equals(kind) || "read".equals(kind)
                         || "list".equals(kind) || "edit".equals(kind)
-                        || "inspect".equals(kind);
+                        || "inspect".equals(kind) || "office".equals(kind)
+                        || "fs".equals(kind);
                 ChatStep webStep = new ChatStep((buildStep ? "build-"
                         : testStep ? "test-" : engineStep ? "engine-"
+                        : "mail".equals(kind) ? "mail-"
+                        : "download".equals(kind) ? "download-"
                         : fileStep ? "file-" : "web-") + number,
                         (buildStep ? "Build" : testStep ? "Tests"
                                 : engineStep ? "Engine"
+                                : "office".equals(kind) ? "Office"
+                                : "mail".equals(kind) ? "Mail"
+                                : "download".equals(kind) ? "Download"
+                                : "fs".equals(kind) ? "Files"
                                 : "inspect".equals(kind) ? "Inspect"
                                 : fileStep ? "Files" : "Web " + kind) + " #" + number,
                         cap(target, 200), "active", started - progress.startedMs);
@@ -1682,7 +1945,7 @@ public final class ApiHandler implements HttpHandler {
                                     + "consent in Command Agent settings, or the user can make "
                                     + "the call directly from the Publish/API console.");
                 } else {
-                    result = runWebTool(kind, tool);
+                    result = runWebTool(kind, tool, cancelFlag);
                 }
                 boolean ok = Json.bool(result, "ok", false);
                 String webError = Json.str(result, "error", "");
@@ -1793,6 +2056,33 @@ public final class ApiHandler implements HttpHandler {
                     webCall.put("integrity", result.get("integrity"));
                     webCall.put("shred", result.get("shred"));
                     webCall.put("execution", result.get("execution"));
+                } else if ("office".equals(kind)) {
+                    webCall.put("action", Json.str(result, "action", ""));
+                    webCall.put("document_kind", Json.str(result, "document_kind", ""));
+                    webCall.put("editable", Json.bool(result, "editable", false));
+                    webCall.put("page_count", Json.integer(result, "page_count", 0));
+                    webCall.put("paragraph_count", Json.integer(result, "paragraph_count", 0));
+                    webCall.put("sheet_count", Json.integer(result, "sheet_count", 0));
+                    webCall.put("slide_count", Json.integer(result, "slide_count", 0));
+                } else if ("mail".equals(kind)) {
+                    webCall.put("recipients", result.get("to"));
+                    webCall.put("message_id", Json.str(result, "message_id", ""));
+                    webCall.put("attachments", result.get("attachments"));
+                } else if ("download".equals(kind)) {
+                    Map<String, Object> jobView = Json.asObject(result.get("job"));
+                    webCall.put("job_id", Json.str(jobView, "id", ""));
+                    webCall.put("state", Json.str(jobView, "state", ""));
+                    webCall.put("saved_path", Json.str(jobView, "saved_path", ""));
+                    webCall.put("sha256", Json.str(jobView, "sha256", ""));
+                    webCall.put("bytes", Json.lon(jobView, "bytes", 0));
+                    webCall.put("candidate_count", Json.integer(result, "count", 0));
+                    webCall.put("candidates", result.get("count"));
+                } else if ("fs".equals(kind)) {
+                    webCall.put("op", Json.str(result, "op", ""));
+                    webCall.put("count", Json.integer(result, "count",
+                            Json.asList(result.get("entries")).size()
+                                    + Json.asList(result.get("matches")).size()));
+                    webCall.put("full_filesystem", Json.bool(result, "full_filesystem", false));
                 }
                 Map<String, Object> autoTestView = Json.asObject(result.get("auto_test"));
                 if (!autoTestView.isEmpty()) {
@@ -2225,13 +2515,14 @@ public final class ApiHandler implements HttpHandler {
         if (chinese) {
             return "没有交付：这份代码没有接入任何在线数据源"
                     + (placeholder ? "，并且包含占位 API Key" : "")
-                    + "，用它只能得到假数据。\n请把真实 API Key 存到 Keys 面板，"
-                    + "或让我改用免密钥数据源（例如 wttr.in 天气接口）重新生成。";
+                    + "，用它只能得到假数据。\n我会改用内置免密钥数据网关"
+                    + "（天气、汇率、热搜、翻译、百科等）重新生成，不需要你注册任何 API。";
         }
         return "Nothing was delivered: the code calls no online data source"
                 + (placeholder ? " and still contains a placeholder API key" : "")
-                + ", so it would only show fake data.\nSave a real API key in the Keys panel, "
-                + "or let me regenerate it with a keyless source (for example wttr.in).";
+                + ", so it would only show fake data.\nI will regenerate it with the "
+                + "built-in keyless data gateway (weather, rates, trends, translation, "
+                + "encyclopedia and more); no signup is needed.";
     }
 
     private static String deliverableName(String userText, String reply, String code,
@@ -2876,6 +3167,30 @@ public final class ApiHandler implements HttpHandler {
         if (api != null) {
             return api;
         }
+        Map<String, Object> keyless = keylessRequest(reply);
+        if (keyless != null) {
+            return keyless;
+        }
+        Map<String, Object> weather = weatherRequest(reply);
+        if (weather != null) {
+            return weather;
+        }
+        Map<String, Object> mail = mailRequest(reply);
+        if (mail != null) {
+            return mail;
+        }
+        Map<String, Object> office = officeRequest(reply);
+        if (office != null) {
+            return office;
+        }
+        Map<String, Object> download = downloadRequest(reply);
+        if (download != null) {
+            return download;
+        }
+        Map<String, Object> fs = fsRequest(reply);
+        if (fs != null) {
+            return fs;
+        }
         Map<String, Object> file = fileRequest(reply);
         if (file != null) {
             return file;
@@ -2948,12 +3263,19 @@ public final class ApiHandler implements HttpHandler {
             case "codeforge_inspect", "inspect", "code_inspect",
                  "inspect_code" -> kind = "inspect";
             case "codeforge_api", "api", "http_request", "call_api" -> kind = "api";
+            case "codeforge_weather", "weather", "get_weather" -> kind = "weather";
+            case "codeforge_keyless", "keyless", "public_data" -> kind = "keyless";
             case "codeforge_write", "write_file", "save_file" -> kind = "write";
             case "codeforge_read", "read_file" -> kind = "read";
             case "codeforge_list", "list_files", "list_dir" -> kind = "list";
             case "codeforge_edit", "edit_file", "replace_in_file" -> kind = "edit";
             case "codeforge_test", "test", "run_tests", "test_project" -> kind = "test";
             case "codeforge_engine", "engine", "game_engine" -> kind = "engine";
+            case "codeforge_office", "office", "office_doc", "document" -> kind = "office";
+            case "codeforge_mail", "mail", "send_email", "email" -> kind = "mail";
+            case "codeforge_download", "download", "download_file", "fetch_file" ->
+                    kind = "download";
+            case "codeforge_fs", "fs", "file_system", "disk" -> kind = "fs";
             case "codeforge_build", "build", "compile", "deliver" -> kind = "build";
             default -> {
                 return null;
@@ -3022,6 +3344,43 @@ public final class ApiHandler implements HttpHandler {
                     "max_chars", "timeout"}) {
                 if (params.containsKey(key)) {
                     out.put(key, params.get(key));
+                }
+            }
+            return out;
+        }
+        if ("weather".equals(kind)) {
+            out.put("location", params.getOrDefault("location",
+                    params.getOrDefault("city", params.getOrDefault("q", ""))));
+            for (String key : new String[]{"days"}) {
+                if (params.containsKey(key)) {
+                    Matcher digits = Pattern.compile("\\d+").matcher(params.get(key));
+                    if (digits.find()) {
+                        out.put(key, Integer.parseInt(digits.group()));
+                    }
+                }
+            }
+            return out;
+        }
+        if ("keyless".equals(kind)) {
+            String service = params.getOrDefault("service",
+                    params.getOrDefault("name", ""));
+            if (service.isBlank()) {
+                return null;
+            }
+            out.put("service", service);
+            String nested = params.get("params");
+            Map<String, Object> nestedParams = parseToolJson(nested);
+            if (nestedParams != null && !nestedParams.isEmpty()) {
+                out.put("params", nestedParams);
+            } else {
+                Map<String, Object> extra = new LinkedHashMap<>();
+                for (Map.Entry<String, String> item : params.entrySet()) {
+                    if (!"service".equals(item.getKey()) && !"name".equals(item.getKey())) {
+                        extra.put(item.getKey(), item.getValue());
+                    }
+                }
+                if (!extra.isEmpty()) {
+                    out.put("params", extra);
                 }
             }
             return out;
@@ -3221,6 +3580,136 @@ public final class ApiHandler implements HttpHandler {
             }
             return out;
         }
+        if ("office".equals(kind)) {
+            String rawAction = params.getOrDefault("action", "");
+            String rawOp = params.getOrDefault("op", "");
+            String dispatch = params.getOrDefault("do", "");
+            List<String> dispatches = List.of("open", "view", "preview", "read", "show",
+                    "create", "new", "make", "update", "edit", "set", "modify", "delete",
+                    "remove", "trash", "search", "find", "grep", "version", "info", "stat");
+            if (dispatch.isBlank()) {
+                if (!rawAction.isBlank() && dispatches.contains(rawAction.toLowerCase(Locale.ROOT))) {
+                    dispatch = rawAction;
+                    rawAction = "";
+                } else if (!rawAction.isBlank()) {
+                    dispatch = "update";
+                } else {
+                    dispatch = "open";
+                }
+            }
+            out.put("action", dispatch);
+            String specific = firstNonBlank(rawAction, params.getOrDefault("update_action", ""),
+                    params.getOrDefault("change", ""));
+            if (specific.isBlank() && !rawOp.isBlank()
+                    && !dispatches.contains(rawOp.toLowerCase(Locale.ROOT))) {
+                specific = rawOp;
+            }
+            if (!specific.isBlank()) {
+                out.put("update_action", specific);
+            }
+            for (String key : new String[]{"path", "file", "type", "title", "content",
+                    "text", "find", "replace", "cell", "sheet", "row", "col", "table",
+                    "index", "style", "name", "slide", "shape", "page", "degrees",
+                    "paths", "query", "author", "subject", "keywords", "value",
+                    "value_type", "limit", "max_files"}) {
+                if (params.containsKey(key) && !params.get(key).isBlank()) {
+                    out.put(key, params.get(key));
+                }
+            }
+            for (String key : new String[]{"include_grid", "overwrite", "confirm",
+                    "permanent"}) {
+                if (params.containsKey(key)) {
+                    out.put(key, truthy(params.get(key)));
+                }
+            }
+            if (!out.containsKey("path") && params.containsKey("file")) {
+                out.put("path", params.get("file"));
+            }
+            return out;
+        }
+        if ("mail".equals(kind)) {
+            for (String key : new String[]{"action", "to", "cc", "bcc", "subject",
+                    "text", "html", "attachments", "body", "recipient"}) {
+                if (params.containsKey(key) && !params.get(key).isBlank()) {
+                    out.put(key, params.get(key));
+                }
+            }
+            if (!out.containsKey("to") && params.containsKey("recipient")) {
+                out.put("to", params.get("recipient"));
+            }
+            if (!out.containsKey("text") && params.containsKey("body")) {
+                out.put("text", params.get("body"));
+            }
+            if (out.get("attachments") instanceof String raw && raw.contains(";")) {
+                out.put("attachments", java.util.Arrays.stream(raw.split(";"))
+                        .map(String::trim).filter(item -> !item.isEmpty()).toList());
+            }
+            return out;
+        }
+        if ("download".equals(kind)) {
+            for (String key : new String[]{"action", "url", "query", "target_dir",
+                    "filename", "expected_size_mb", "max_mb", "platform",
+                    "expected_sha256"}) {
+                if (params.containsKey(key) && !params.get(key).isBlank()) {
+                    out.put(key, params.get(key));
+                }
+            }
+            String assetKind = params.getOrDefault("kind", "");
+            if (!assetKind.isBlank() && !"download".equalsIgnoreCase(assetKind)) {
+                out.put("asset_kind", assetKind);
+            }
+            for (String key : new String[]{"save_page", "overwrite", "auto"}) {
+                if (params.containsKey(key)) {
+                    out.put(key, truthy(params.get(key)));
+                }
+            }
+            String wait = params.get("wait_sec");
+            if (wait != null) {
+                Matcher digits = Pattern.compile("\\d+").matcher(wait);
+                if (digits.find()) {
+                    out.put("wait_sec", Integer.parseInt(digits.group()));
+                }
+            }
+            String id = params.getOrDefault("id", params.getOrDefault("job_id", ""));
+            if (!id.isBlank()) {
+                out.put("id", id);
+            }
+            return out;
+        }
+        if ("fs".equals(kind)) {
+            String op = params.getOrDefault("op", params.getOrDefault("action", "list"));
+            out.put("op", op.isBlank() ? "list" : op);
+            for (String key : new String[]{"path", "to", "query", "name", "content",
+                    "depth", "timeout_sec"}) {
+                if (params.containsKey(key) && !params.get(key).isBlank()) {
+                    out.put(key, params.get(key));
+                }
+            }
+            for (String key : new String[]{"confirm", "permanent", "overwrite",
+                    "include_dirs", "deep", "full_filesystem", "enabled"}) {
+                if (params.containsKey(key)) {
+                    out.put(key, truthy(params.get(key)));
+                }
+            }
+            for (String key : new String[]{"limit"}) {
+                if (params.containsKey(key)) {
+                    Matcher digits = Pattern.compile("\\d+").matcher(params.get(key));
+                    if (digits.find()) {
+                        out.put(key, Integer.parseInt(digits.group()));
+                    }
+                }
+            }
+            if (params.containsKey("roots")) {
+                String raw = params.get("roots");
+                if (raw.contains(";")) {
+                    out.put("roots", java.util.Arrays.stream(raw.split(";"))
+                            .map(String::trim).filter(item -> !item.isEmpty()).toList());
+                } else if (!raw.isBlank()) {
+                    out.put("roots", List.of(raw.trim()));
+                }
+            }
+            return out;
+        }
         String software = params.getOrDefault("software", "");
         if (software.isBlank()) {
             return null;
@@ -3409,6 +3898,234 @@ public final class ApiHandler implements HttpHandler {
         return null;
     }
 
+    private static Map<String, Object> weatherRequest(String reply) {
+        Matcher tag = AGENT_WEATHER.matcher(reply);
+        String body = null;
+        if (tag.find()) {
+            body = tag.group(1).trim();
+        } else {
+            Matcher fence = AGENT_WEATHER_FENCE.matcher(reply);
+            if (fence.find()) {
+                body = fence.group(1).trim();
+            }
+        }
+        if (body == null) {
+            return null;
+        }
+        Map<String, Object> parsed = parseToolJson(body);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("kind", "weather");
+        if (parsed == null) {
+            String plain = body.replaceAll("[{}\"\\[\\]]", " ").trim();
+            if (plain.length() > 60) {
+                return null;
+            }
+            out.put("location", plain);
+            return out;
+        }
+        out.put("location", Json.str(parsed, "location",
+                Json.str(parsed, "city", Json.str(parsed, "q", ""))));
+        out.put("days", Json.integer(parsed, "days", 3));
+        return out;
+    }
+
+    private static Map<String, Object> keylessRequest(String reply) {
+        Matcher tag = AGENT_KEYLESS.matcher(reply);
+        String body = null;
+        if (tag.find()) {
+            body = tag.group(1).trim();
+        } else {
+            Matcher fence = AGENT_KEYLESS_FENCE.matcher(reply);
+            if (fence.find()) {
+                body = fence.group(1).trim();
+            }
+        }
+        if (body == null) {
+            return null;
+        }
+        Map<String, Object> parsed = parseToolJson(body);
+        if (parsed == null) {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("kind", "keyless");
+            out.put("service", body.replaceAll("[{}\"\\[\\]]", " ").trim());
+            return out;
+        }
+        parsed.put("kind", "keyless");
+        return parsed;
+    }
+
+    private static boolean truthy(String value) {
+        if (value == null) {
+            return false;
+        }
+        String v = value.trim().toLowerCase(Locale.ROOT);
+        return "true".equals(v) || "1".equals(v) || "yes".equals(v) || "on".equals(v);
+    }
+
+    private static String taggedBody(String reply, Pattern tag, Pattern fence) {
+        Matcher matcher = tag.matcher(reply);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+        Matcher fenced = fence.matcher(reply);
+        if (fenced.find()) {
+            return fenced.group(1).trim();
+        }
+        return null;
+    }
+
+    private static Map<String, Object> officeRequest(String reply) {
+        String body = taggedBody(reply, AGENT_OFFICE, AGENT_OFFICE_FENCE);
+        if (body == null) {
+            return null;
+        }
+        Map<String, Object> parsed = parseToolJson(body);
+        if (parsed == null) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("kind", "office");
+        String dispatch = Json.str(parsed, "do",
+                Json.str(parsed, "operation", "")).trim().toLowerCase(Locale.ROOT);
+        String actionValue = Json.str(parsed, "action", "").trim().toLowerCase(Locale.ROOT);
+        List<String> dispatches = List.of("open", "view", "preview", "read", "show",
+                "create", "new", "make", "update", "edit", "set", "modify", "delete",
+                "remove", "trash", "search", "find", "grep", "version", "info", "stat");
+        if (dispatch.isBlank()) {
+            if (!actionValue.isBlank() && dispatches.contains(actionValue)) {
+                dispatch = actionValue;
+                actionValue = "";
+            } else if (!actionValue.isBlank()) {
+                dispatch = "update";
+            } else {
+                dispatch = "open";
+            }
+        }
+        out.put("action", dispatch);
+        for (String key : new String[]{"update_action", "change", "edit_action"}) {
+            String specific = Json.str(parsed, key, "");
+            if (!specific.isBlank()) {
+                out.put("update_action", specific);
+                break;
+            }
+        }
+        if (!actionValue.isBlank() && !actionValue.equals(dispatch)) {
+            out.put("update_action", actionValue);
+        }
+        String explicitOp = Json.str(parsed, "op", "").trim().toLowerCase(Locale.ROOT);
+        if (!explicitOp.isBlank() && !explicitOp.equals(dispatch)
+                && !out.containsKey("update_action")) {
+            out.put("update_action", explicitOp);
+        }
+        for (String key : new String[]{"path", "file", "type", "title", "content", "text",
+                "find", "replace", "cell", "sheet", "row", "col", "table", "index",
+                "style", "name", "slide", "shape", "page", "degrees", "paths", "query",
+                "author", "subject", "keywords", "value", "value_type", "limit",
+                "max_files", "include_grid", "overwrite", "confirm", "permanent"}) {
+            if (parsed.containsKey(key) && parsed.get(key) != null) {
+                out.put(key, parsed.get(key));
+            }
+        }
+        if (!out.containsKey("path") && parsed.get("file") != null) {
+            out.put("path", String.valueOf(parsed.get("file")));
+        }
+        return out;
+    }
+
+    private static Map<String, Object> mailRequest(String reply) {
+        String body = taggedBody(reply, AGENT_MAIL, AGENT_MAIL_FENCE);
+        if (body == null) {
+            return null;
+        }
+        Map<String, Object> parsed = parseToolJson(body);
+        if (parsed == null) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("kind", "mail");
+        for (String key : new String[]{"action", "to", "cc", "bcc", "subject", "text",
+                "html", "attachments", "body", "message", "recipient"}) {
+            if (parsed.containsKey(key) && parsed.get(key) != null) {
+                out.put(key, parsed.get(key));
+            }
+        }
+        if (!out.containsKey("to") && parsed.get("recipient") != null) {
+            out.put("to", parsed.get("recipient"));
+        }
+        if (!out.containsKey("text") && parsed.get("body") != null) {
+            out.put("text", parsed.get("body"));
+        }
+        return out;
+    }
+
+    private static Map<String, Object> downloadRequest(String reply) {
+        String body = taggedBody(reply, AGENT_DOWNLOAD, AGENT_DOWNLOAD_FENCE);
+        if (body == null) {
+            return null;
+        }
+        Map<String, Object> parsed = parseToolJson(body);
+        if (parsed == null) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("kind", "download");
+        for (String key : new String[]{"action", "url", "query", "target_dir",
+                "filename", "expected_size_mb", "expected_sha256", "max_mb", "platform",
+                "save_page", "overwrite", "auto", "wait_sec"}) {
+            if (parsed.containsKey(key) && parsed.get(key) != null) {
+                out.put(key, parsed.get(key));
+            }
+        }
+        String assetKind = Json.str(parsed, "kind", "");
+        if (!assetKind.isBlank() && !"download".equalsIgnoreCase(assetKind)) {
+            out.put("asset_kind", assetKind);
+        }
+        Object id = parsed.get("id");
+        if (id == null) {
+            id = parsed.get("job_id");
+        }
+        if (id != null) {
+            out.put("id", String.valueOf(id));
+        }
+        return out;
+    }
+
+    private static Map<String, Object> fsRequest(String reply) {
+        String body = taggedBody(reply, AGENT_FS, AGENT_FS_FENCE);
+        if (body == null) {
+            return null;
+        }
+        Map<String, Object> parsed = parseToolJson(body);
+        if (parsed == null) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("kind", "fs");
+        String op = Json.str(parsed, "op",
+                Json.str(parsed, "action", Json.str(parsed, "operation", "list")))
+                .trim().toLowerCase(Locale.ROOT);
+        switch (op) {
+            case "ls", "dir" -> op = "list";
+            case "find", "grep", "glob" -> op = "search";
+            case "del", "remove", "rm" -> op = "delete";
+            case "mv" -> op = "move";
+            case "cp" -> op = "copy";
+            case "ren" -> op = "rename";
+            case "md", "new_folder" -> op = "mkdir";
+            default -> {
+            }
+        }
+        out.put("op", op);
+        for (String key : new String[]{"path", "to", "query", "name", "content", "roots",
+                "depth", "limit", "timeout_sec", "confirm", "permanent", "overwrite",
+                "include_dirs", "deep", "full_filesystem", "enabled"}) {
+            if (parsed.containsKey(key) && parsed.get(key) != null) {
+                out.put(key, parsed.get(key));
+            }
+        }
+        return out;
+    }
+
     private static Map<String, Object> apiRequest(String reply) {
         String body = null;
         Matcher tag = AGENT_API.matcher(reply);
@@ -3565,6 +4282,18 @@ public final class ApiHandler implements HttpHandler {
                 || lower.contains("```inspect-json")
                 || lower.contains("```codeforge_engine")
                 || lower.contains("```engine-json")
+                || lower.contains("```codeforge_weather")
+                || lower.contains("```weather-json")
+                || lower.contains("```codeforge_keyless")
+                || lower.contains("```keyless-json")
+                || lower.contains("```codeforge_office")
+                || lower.contains("```office-json")
+                || lower.contains("```codeforge_mail")
+                || lower.contains("```mail-json")
+                || lower.contains("```codeforge_download")
+                || lower.contains("```download-json")
+                || lower.contains("```codeforge_fs")
+                || lower.contains("```fs-json")
                 || lower.contains("<invoke name");
     }
 
@@ -3586,17 +4315,29 @@ public final class ApiHandler implements HttpHandler {
         cleaned = AGENT_ENGINE_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_API.matcher(cleaned).replaceAll("");
         cleaned = AGENT_API_FENCE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_WEATHER.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_WEATHER_FENCE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_KEYLESS.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_KEYLESS_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_BUILD.matcher(cleaned).replaceAll("");
         cleaned = AGENT_WRITE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_READ.matcher(cleaned).replaceAll("");
         cleaned = AGENT_LIST.matcher(cleaned).replaceAll("");
         cleaned = AGENT_EDIT.matcher(cleaned).replaceAll("");
         cleaned = AGENT_TEST.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_OFFICE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_MAIL.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_DOWNLOAD.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_FS.matcher(cleaned).replaceAll("");
         cleaned = AGENT_WRITE_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_READ_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_LIST_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_EDIT_FENCE.matcher(cleaned).replaceAll("");
         cleaned = AGENT_TEST_FENCE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_OFFICE_FENCE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_MAIL_FENCE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_DOWNLOAD_FENCE.matcher(cleaned).replaceAll("");
+        cleaned = AGENT_FS_FENCE.matcher(cleaned).replaceAll("");
         cleaned = NATIVE_INVOKE.matcher(cleaned).replaceAll("");
         cleaned = NATIVE_CALLS.matcher(cleaned).replaceAll("");
         return cleaned.trim();
@@ -3672,7 +4413,142 @@ public final class ApiHandler implements HttpHandler {
         return out.toString();
     }
 
-    private Map<String, Object> runWebTool(String kind, Map<String, Object> tool) {
+    private Map<String, Object> officeTool(Map<String, Object> tool) {
+        String action = Json.str(tool, "action", "open").trim().toLowerCase(Locale.ROOT);
+        Map<String, Object> request = new LinkedHashMap<>(tool);
+        String specific = Json.str(tool, "update_action", "").trim();
+        if (!specific.isBlank()) {
+            request.put("action", specific);
+        }
+        Map<String, Object> result;
+        switch (action) {
+            case "open", "view", "preview", "read", "show" ->
+                    result = new LinkedHashMap<>(office.open(request));
+            case "create", "new", "make" ->
+                    result = new LinkedHashMap<>(office.create(request));
+            case "update", "edit", "set", "modify" ->
+                    result = new LinkedHashMap<>(office.update(request));
+            case "delete", "remove", "trash" ->
+                    result = new LinkedHashMap<>(office.delete(request));
+            case "search", "find", "grep" ->
+                    result = new LinkedHashMap<>(office.search(request));
+            case "version", "info", "stat" ->
+                    result = new LinkedHashMap<>(office.version(request));
+            default -> {
+                return Json.map("ok", false, "error", "Unknown office action: " + action,
+                        "supported_actions", List.of("open", "create", "update",
+                                "delete", "search", "version"));
+            }
+        }
+        if (!result.containsKey("action")) {
+            result.put("action", action);
+        }
+        result.put("document_kind", Json.str(result, "kind", ""));
+        return result;
+    }
+
+    private Map<String, Object> mailTool(Map<String, Object> tool) {
+        String action = Json.str(tool, "action", "").trim().toLowerCase(Locale.ROOT);
+        if ("test".equals(action) || "verify".equals(action)) {
+            return new LinkedHashMap<>(mail.test(tool));
+        }
+        return new LinkedHashMap<>(mail.send(tool));
+    }
+
+    private Map<String, Object> downloadTool(Map<String, Object> tool,
+                                             AtomicBoolean cancelFlag) {
+        Map<String, Object> request = new LinkedHashMap<>(tool);
+        String assetKind = Json.str(tool, "asset_kind", "");
+        request.put("kind", assetKind.isBlank() ? "software" : assetKind);
+        String action = Json.str(tool, "action", "start").trim().toLowerCase(Locale.ROOT);
+        switch (action) {
+            case "list", "jobs" -> {
+                return downloader.list();
+            }
+            case "status", "job", "check" -> {
+                String id = Json.str(tool, "id", "").trim();
+                if (id.isBlank()) {
+                    return downloader.list();
+                }
+                return downloader.get(id);
+            }
+            case "cancel", "stop" -> {
+                return downloader.cancel(request);
+            }
+            case "open", "open_folder" -> {
+                return downloader.openFolder(request);
+            }
+            case "resolve", "search", "plan", "find" -> {
+                return downloader.resolve(request);
+            }
+            default -> {
+            }
+        }
+        Map<String, Object> started = new LinkedHashMap<>(downloader.start(request));
+        if (!Json.bool(started, "ok", false)) {
+            return started;
+        }
+        Map<String, Object> jobView = Json.asObject(started.get("job"));
+        String id = Json.str(jobView, "id", "");
+        int waitSec = Math.max(0, Math.min(600, Json.integer(tool, "wait_sec", 120)));
+        long deadline = System.currentTimeMillis() + waitSec * 1000L;
+        String state = Json.str(jobView, "state", "");
+        while (!id.isBlank() && waitSec > 0 && !cancelFlag.get()
+                && !state.startsWith("done") && !"failed".equals(state)
+                && !"cancelled".equals(state) && !"needs_choice".equals(state)
+                && System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            Map<String, Object> status = downloader.get(id);
+            Map<String, Object> latest = Json.asObject(status.get("job"));
+            if (!latest.isEmpty()) {
+                jobView = latest;
+                state = Json.str(jobView, "state", "");
+            }
+        }
+        started.put("job", jobView);
+        started.put("state", state);
+        started.put("waited_ms", waitSec == 0 ? 0 : Math.min(waitSec * 1000L,
+                System.currentTimeMillis() - (deadline - waitSec * 1000L)));
+        started.put("finished", state.startsWith("done"));
+        if (!state.startsWith("done")) {
+            started.put("message", started.get("message") + " · current state: " + state);
+        }
+        return started;
+    }
+
+    private Map<String, Object> fsTool(Map<String, Object> tool) {
+        String op = Json.str(tool, "op", "list").trim().toLowerCase(Locale.ROOT);
+        if ("permission".equals(op) || "access".equals(op) || "allow".equals(op)
+                || "enable".equals(op) || "disable".equals(op)) {
+            boolean write = tool.containsKey("full_filesystem")
+                    || tool.containsKey("enabled")
+                    || "enable".equals(op) || "disable".equals(op);
+            if (!write) {
+                return new LinkedHashMap<>(fileAccess.permissionView());
+            }
+            boolean enabled = tool.containsKey("full_filesystem")
+                    ? Json.bool(tool, "full_filesystem", false)
+                    : tool.containsKey("enabled")
+                    ? Json.bool(tool, "enabled", false)
+                    : "enable".equals(op);
+            return new LinkedHashMap<>(fileAccess.setPermission(
+                    Json.map("full_filesystem", enabled)));
+        }
+        if ("search".equals(op)) {
+            return new LinkedHashMap<>(fileAccess.search(tool));
+        }
+        Map<String, Object> request = new LinkedHashMap<>(tool);
+        request.put("op", op);
+        return new LinkedHashMap<>(fileAccess.operation(request));
+    }
+
+    private Map<String, Object> runWebTool(String kind, Map<String, Object> tool,
+                                           AtomicBoolean cancelFlag) {
         long started = System.currentTimeMillis();
         Map<String, Object> out;
         if ("search".equals(kind)) {
@@ -3708,9 +4584,29 @@ public final class ApiHandler implements HttpHandler {
         } else if ("api".equals(kind)) {
             out = new LinkedHashMap<>(apiClient.call(tool));
             out.put("kind", "api");
+        } else if ("weather".equals(kind)) {
+            String location = Json.str(tool, "location", "").trim();
+            int days = Math.max(1, Math.min(14, Json.integer(tool, "days", 3)));
+            out = new LinkedHashMap<>(weather.forecast(location, days));
+            out.put("kind", "weather");
+        } else if ("keyless".equals(kind)) {
+            out = new LinkedHashMap<>(keyless.call(tool));
+            out.put("kind", "keyless");
         } else if ("write".equals(kind) || "read".equals(kind)
                 || "list".equals(kind) || "edit".equals(kind)) {
             out = fileTools.run(kind, tool);
+        } else if ("office".equals(kind)) {
+            out = new LinkedHashMap<>(officeTool(tool));
+            out.put("kind", "office");
+        } else if ("mail".equals(kind)) {
+            out = new LinkedHashMap<>(mailTool(tool));
+            out.put("kind", "mail");
+        } else if ("download".equals(kind)) {
+            out = new LinkedHashMap<>(downloadTool(tool, cancelFlag));
+            out.put("kind", "download");
+        } else if ("fs".equals(kind)) {
+            out = new LinkedHashMap<>(fsTool(tool));
+            out.put("kind", "fs");
         } else {
             String software = Json.str(tool, "software", "").trim();
             String goal = Json.str(tool, "goal", "").trim();
@@ -3807,6 +4703,157 @@ public final class ApiHandler implements HttpHandler {
                     }
                 }
             }
+            case "office" -> {
+                out.append("action: ").append(Json.str(result, "action", ""))
+                        .append(" · document_kind: ")
+                        .append(Json.str(result, "document_kind", "")).append('\n');
+                out.append("editable: ").append(Json.bool(result, "editable", false))
+                        .append(" · bytes: ").append(Json.integer(result, "bytes", 0))
+                        .append('\n');
+                for (String key : new String[]{"page_count", "paragraph_count",
+                        "sheet_count", "slide_count"}) {
+                    if (result.containsKey(key)) {
+                        out.append(key).append(": ")
+                                .append(Json.integer(result, key, 0)).append('\n');
+                    }
+                }
+                String note = Json.str(result, "note", "");
+                if (!note.isBlank()) {
+                    out.append("note: ").append(cap(note, 800)).append('\n');
+                }
+                String docText = Json.str(result, "text", "");
+                if (!docText.isBlank()) {
+                    out.append("\nDOCUMENT TEXT:\n")
+                            .append(cap(docText, Math.min(14000, budget))).append('\n');
+                }
+                List<Object> sheets = Json.asList(result.get("sheets"));
+                if (!sheets.isEmpty()) {
+                    out.append("\nSHEETS:\n");
+                    int shown = 0;
+                    for (Object raw : sheets) {
+                        if (++shown > 20) {
+                            break;
+                        }
+                        Map<String, Object> sheet = Json.asObject(raw);
+                        out.append("- ").append(Json.str(sheet, "name", ""))
+                                .append(" · rows=").append(Json.integer(sheet, "rows", 0))
+                                .append(" cols=").append(Json.integer(sheet, "cols", 0))
+                                .append('\n');
+                    }
+                }
+                List<Object> slides = Json.asList(result.get("slides"));
+                if (!slides.isEmpty()) {
+                    out.append("\nSLIDES:\n");
+                    int shown = 0;
+                    for (Object raw : slides) {
+                        if (++shown > 20) {
+                            break;
+                        }
+                        Map<String, Object> slide = Json.asObject(raw);
+                        out.append("- #").append(Json.integer(slide, "index", shown))
+                                .append(" ").append(cap(
+                                        Json.str(slide, "title", ""), 100))
+                                .append(" · ").append(cap(
+                                        Json.str(slide, "text", ""), 200)).append('\n');
+                    }
+                }
+            }
+            case "mail" -> {
+                out.append("to: ").append(String.valueOf(result.get("to"))).append('\n');
+                out.append("message_id: ").append(Json.str(result, "message_id", ""))
+                        .append(" · attachments: ")
+                        .append(Json.asList(result.get("attachments")).size()).append('\n');
+            }
+            case "download" -> {
+                Map<String, Object> job = Json.asObject(result.get("job"));
+                out.append("job_id: ").append(Json.str(job, "id", ""))
+                        .append(" · state: ").append(Json.str(job, "state", ""))
+                        .append('\n');
+                out.append("file: ").append(Json.str(job, "saved_path", "")).append('\n');
+                out.append("bytes: ").append(Json.str(job, "bytes_human", ""))
+                        .append(" of ").append(Json.str(job, "total_human", "unknown"))
+                        .append('\n');
+                String sha = Json.str(job, "sha256", "");
+                if (!sha.isBlank()) {
+                    out.append("sha256: ").append(sha).append('\n');
+                }
+                String jobError = Json.str(job, "error", "");
+                if (!jobError.isBlank()) {
+                    out.append("job_error: ").append(cap(jobError, 600)).append('\n');
+                }
+                if (result.containsKey("count")) {
+                    out.append("candidates: ").append(Json.integer(result, "count", 0))
+                            .append('\n');
+                }
+                List<Object> cands = Json.asList(result.get("candidates"));
+                if (!cands.isEmpty()) {
+                    out.append("\nTOP CANDIDATES:\n");
+                    int shown = 0;
+                    for (Object raw : cands) {
+                        if (++shown > 12) {
+                            break;
+                        }
+                        Map<String, Object> item = Json.asObject(raw);
+                        out.append("- ").append(Json.str(item, "url", ""))
+                                .append(" · ").append(Json.str(item, "bytes_human", ""))
+                                .append(" · score ").append(Json.integer(item, "score", 0))
+                                .append('\n');
+                    }
+                }
+            }
+            case "fs" -> {
+                out.append("op: ").append(Json.str(result, "op", ""));
+                if (result.containsKey("path")) {
+                    out.append(" · path: ").append(Json.str(result, "path", ""));
+                }
+                if (result.containsKey("full_filesystem")) {
+                    out.append(" · full_filesystem: ")
+                            .append(Json.bool(result, "full_filesystem", false));
+                }
+                out.append('\n');
+                String fsError = Json.str(result, "error", "");
+                if (!fsError.isBlank()) {
+                    out.append("fs_error: ").append(cap(fsError, 600)).append('\n');
+                }
+                List<Object> entries = Json.asList(result.get("entries"));
+                if (!entries.isEmpty()) {
+                    out.append("\nENTRIES (").append(entries.size()).append("):\n");
+                    int shown = 0;
+                    for (Object raw : entries) {
+                        if (++shown > 300) {
+                            break;
+                        }
+                        Map<String, Object> item = Json.asObject(raw);
+                        out.append(Json.str(item, "type", "file").equals("dir")
+                                ? "DIR  " : "FILE ")
+                                .append(Json.str(item, "path", ""));
+                        if (item.containsKey("bytes")) {
+                            out.append(" · ").append(Json.integer(item, "bytes", 0))
+                                    .append(" B");
+                        }
+                        out.append('\n');
+                    }
+                }
+                List<Object> matches = Json.asList(result.get("matches"));
+                if (!matches.isEmpty()) {
+                    out.append("\nMATCHES (").append(matches.size()).append("):\n");
+                    int shown = 0;
+                    for (Object raw : matches) {
+                        if (++shown > 200) {
+                            break;
+                        }
+                        Map<String, Object> item = Json.asObject(raw);
+                        out.append(Json.str(item, "type", "file").equals("dir")
+                                ? "DIR  " : "FILE ")
+                                .append(Json.str(item, "path", ""));
+                        String excerpt = Json.str(item, "excerpt", "");
+                        if (!excerpt.isBlank()) {
+                            out.append(" · ").append(cap(excerpt, 160));
+                        }
+                        out.append('\n');
+                    }
+                }
+            }
             case "engine" -> {
                 out.append("action: ").append(Json.str(result, "action", "")).append('\n');
                 out.append("engine: ").append(Json.str(result, "engine", ""))
@@ -3860,6 +4907,41 @@ public final class ApiHandler implements HttpHandler {
                 if (!stderr.isBlank()) {
                     out.append("\nSTDERR (tail):\n").append(cap(stderr, 4000)).append('\n');
                 }
+            }
+            case "weather" -> {
+                out.append("keyless: ").append(Json.bool(result, "keyless", true))
+                        .append(" · registration_required: false\n");
+                Map<String, Object> place = Json.asObject(result.get("location"));
+                if (!place.isEmpty()) {
+                    out.append("resolved_location: ").append(Json.str(place, "name", ""))
+                            .append(" · ").append(Json.str(place, "region", ""))
+                            .append(" · ").append(Json.str(place, "country", ""))
+                            .append('\n');
+                }
+                String summary = Json.str(result, "summary", "");
+                if (!summary.isBlank()) {
+                    out.append("\nWEATHER (real live data, no API key):\n")
+                            .append(cap(summary, 6000)).append('\n');
+                }
+                out.append("\nUse these real values. Never ask the user for a weather API ")
+                        .append("key or registration.\n");
+            }
+            case "keyless" -> {
+                out.append("service: ").append(Json.str(result, "service", ""))
+                        .append(" · keyless: ").append(Json.bool(result, "keyless", true))
+                        .append(" · registration_required: false\n");
+                String summary = Json.str(result, "summary", "");
+                if (!summary.isBlank()) {
+                    out.append("\nKEYLESS DATA:\n").append(cap(summary, 8000)).append('\n');
+                }
+                Object data = result.get("data");
+                if (data != null) {
+                    String json = Json.writePretty(data);
+                    out.append("\nDATA (JSON):\n")
+                            .append(cap(json, Math.min(20000, budget))).append('\n');
+                }
+                out.append("\nThis came from a keyless public source; no API key or signup ")
+                        .append("is needed. Never ask the user to register for these services.\n");
             }
             case "inspect" -> {
                 out.append("files_scanned: ").append(Json.integer(result, "files_scanned", 0))

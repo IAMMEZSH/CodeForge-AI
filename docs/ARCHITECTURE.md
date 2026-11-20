@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.0.9 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.1.0 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -56,7 +56,7 @@ supervise and kill process trees.
                 │ spawns / HTTP
 ┌───────────────▼──────────────────────────────────────────────────────────┐
 │ Web console  server-java/web/console                                    │
-│  Chat · Debug · Models · Keys · Publish · Inspect · Engines · Env        │
+│  Chat · Debug · Models · Keys · Office · Files · Mail · Downloads · Env  │
 └───────────────┬──────────────────────────────────────────────────────────┘
                 │ REST /api/*
 ┌───────────────▼──────────────────────────────────────────────────────────┐
@@ -64,6 +64,7 @@ supervise and kill process trees.
 │  ApiHandler · ModelManager · RuntimeManager · MemoryStore · ProjectIndex │
 │  OnlineService · AgentShell · ToolProvisioner · TestRunner · KeyStore    │
 │  ApiClient · Publisher · CodeInspector · EngineSupport · CoreBridge      │
+│  OfficeService · FileAccessService · MailService · DownloadService       │
 │  AppSettings                                                             │
 └───┬──────────────┬──────────────┬──────────────┬────────────────────────┘
     │ JSON command │ HTTPS        │ HTTPS        │ local files
@@ -107,6 +108,12 @@ CodeForge-AI/
 ├── native-c/             C17 helper: sha256.c, native_tool.c
 ├── server-java/          Java 17 control server + web console
 │   ├── src/codeforge/server/
+│   │   ├── ApiHandler.java        REST routing, agent loop, tool dispatch
+│   │   ├── OfficeService.java     Office/PDF preview, create, edit, search
+│   │   ├── FileAccessService.java whole-disk permission, search, operations
+│   │   ├── MailService.java       SMTP settings, test and send
+│   │   └── DownloadService.java   URL/search downloads, ranking, resume
+│   ├── lib/              POI, PDFBox and Jakarta Mail jars (merged into the jar)
 │   └── web/console/
 ├── client/main.cpp       Win32 desktop shell
 ├── aux-python/           bootstrap.py, mock_llm.py
@@ -431,8 +438,8 @@ GET /api/update[?refresh=1]
 
 The console calls this endpoint on load and every six hours, then shows a
 dismissible banner when `update_available` is true. No prompt, file, key or
-usage data is sent. Builds older than 1.0.9 do not contain this checker, so
-their first move to 1.0.9 is a manual download; from 1.0.9 onward the banner
+usage data is sent. Builds older than 1.1.0 do not contain this checker, so
+their first move to 1.1.0 is a manual download; from 1.1.0 onward the banner
 reaches installed copies without a manual check.
 
 ### 5.10 Game engine adapters
@@ -466,6 +473,55 @@ the `.love` file is a plain ZIP written by Java; `export` fuses it with
 Detected engine status is also injected into the agent prompt, and the
 `codeforge_engine` tool maps one-to-one onto `POST /api/engines`, so an
 online or offline model drives the same adapters as the console.
+
+### 5.11 Office, whole-disk files, mail and downloads
+
+Four Java services extend the control plane beyond source code. Each is a
+plain object owned by `ApiHandler`; the console and the `codeforge_office`,
+`codeforge_fs`, `codeforge_mail` and `codeforge_download` tools call the same
+methods, so there is no second implementation behind the agent.
+
+```
+POST /api/office/*           OfficeService
+  open/create/update/delete/search/version
+    → resolve path → parse by extension (POI, PDFBox, ODF/RTF/text)
+    → structured preview: paragraphs · sheets/grid · slides · PDF pages
+    → updates write to a temp file and atomically replace the original
+    → delete moves to workspace/.trash/office
+  GET /api/office/pdf-page   → PDFBox render → PNG cache keyed by
+                               path|mtime|size|page|scale
+
+GET/POST /api/permissions   FileAccessService
+  → config.json permissions.full_filesystem
+  → gate: every list/search/operation is denied until enabled
+  → guarded system directories, trash-first delete, audit JSONL
+  → search: path/name/content walk with depth, limit and deadline
+
+POST /api/mail/*            MailService
+  → config.json.mail + KeyStore secret (password never serialized)
+  → Jakarta Mail SSL/STARTTLS/none, 25 MB attachments
+  → test sends a short message; missing config is an explicit error
+
+POST /api/downloader/*      DownloadService
+  → resolve: search engines + GitHub releases → probe → score → rank
+  → start: direct GET or top candidate; Range resume from .part
+  → body-read watchdog (25 s), same-URL retries, SHA-256
+  → job state machine polled by the console and the agent tool
+```
+
+**Why these belong in Java.** The server already owns resumable transfers,
+hash verification, configuration and the HTTP surface. Office parsing and
+mail are library work with no process isolation requirement, and whole-disk
+access is an OS-permission policy, not a compiler/runner concern, so none of
+it crosses into the C++ core. The core remains the only component that
+compiles and executes code.
+
+**Boundaries.** Office and mail libraries are merged into the fat jar at build
+time (`aux-python/build_jar.py`), so deployment is still one JAR. Whole-disk
+operations are gated by an explicit boolean and an audit trail; the office
+trash (`workspace/.trash/office`), filesystem trash (`workspace/.trash/fs`)
+and download folder (`downloads/`) are ordinary workspace data and
+are excluded from release packaging.
 
 ---
 
@@ -523,10 +579,16 @@ This is the part that keeps an AI that executes code from hanging the machine.
 | `logs/llama-server.log` | RuntimeManager | Inference server output | Yes |
 | `logs/server.log` | ServerMain | Java server log | Yes |
 | `logs/core-*.out/.err` | CoreBridge | Last core stdout/stderr | Yes |
+| `logs/file-access.jsonl` | FileAccessService | Every whole-disk operation and permission toggle | Yes, but the audit trail is lost |
+| `workspace/.trash/office/` | OfficeService | Deleted documents, timestamped | Yes |
+| `workspace/.trash/fs/` | FileAccessService | Trashed files and folders | Yes |
+| `downloads/` | DownloadService | Default download-center destination, `.part` files | Yes, but loses resume progress |
 
-The core never writes outside the project root. Paths in API responses are
-root-relative where possible; absolute paths are returned only for debugging
-convenience (`server_absolute`, `model_path`). `memory/` is treated as private
+The core never writes outside the project root. The Java server can read and
+write any path the user permits through Office and whole-disk access; those
+operations are explicit, audited and (by default) refused for whole-disk
+access. Paths in API responses are root-relative where possible; absolute
+paths are returned for files the user opened. `memory/` is treated as private
 user data by packaging: it is listed in `.gitignore` and excluded from every
 release artifact.
 
@@ -647,11 +709,22 @@ assumes a **local trust boundary** and does not pretend to be a sandbox.
 - Auto-learning treats web pages as untrusted text; the agent is instructed
   not to follow page instructions, but no content filter makes third-party text
   trustworthy.
-- No telemetry, no analytics, no auto-update pings. Outbound requests happen
-  only for: model downloads (domestic mirror with Hugging Face fallback),
-  runtime downloads (GitHub releases), the optional online LLM you configure,
-  opt-in web research when `online.enabled` is true, and explicit tool
-  provisioning or agent web tools.
+- Whole-disk access is off by default (`permissions.full_filesystem:false`).
+  When enabled, deletes require explicit confirmation and go to
+  `workspace/.trash/fs`, sensitive system directories are guarded, and every
+  operation is appended to `logs/file-access.jsonl`.
+- The SMTP password is stored in the local KeyStore, never in `config.json`
+  or API responses. Sending mail creates outbound SMTP traffic with the
+  attachments the user chooses.
+- Office and PDF parsing runs in the JVM on documents the user opens. A
+  malformed document can consume CPU or memory; parsing is not a sandbox.
+- No telemetry and no analytics. Outbound requests happen only for: model
+  downloads (domestic mirror with Hugging Face fallback), runtime downloads
+  (GitHub releases), the optional online LLM you configure, opt-in web
+  research when `online.enabled` is true, explicit tool provisioning or agent
+  web tools, download-center requests, configured SMTP, and the release-index
+  check that powers update notices (release metadata only; disable with
+  `"updates": {"enabled": false}`).
 - The online brain is opt-in: an empty `llm.online.api_key` keeps every prompt
   on the local model. When configured, chat text plus the injected memory and
   workspace context leave the machine for that provider — treat it exactly like
@@ -745,7 +818,11 @@ for the two reference implementations.
 | `core/json.hpp` | 443 | JSON parser/writer |
 | `native-c/native_tool.c` | 300 | Hash/verify/sysinfo CLI |
 | `native-c/sha256.c` | 241 | SHA-256 implementation |
-| `server-java/.../ApiHandler.java` | 5042 | Routes, chat/agent/debug orchestration, tool parsing, progress/cancel, static serving |
+| `server-java/.../ApiHandler.java` | 6124 | Routes, chat/agent/debug orchestration, tool parsing, progress/cancel, static serving |
+| `server-java/.../DownloadService.java` | 1641 | Download-center jobs, candidate search/ranking, resume, hash verification |
+| `server-java/.../OfficeService.java` | 1626 | Office/PDF preview, create, structured update, search, trash |
+| `server-java/.../FileAccessService.java` | 609 | Whole-disk permission, drives, search, file operations, audit |
+| `server-java/.../MailService.java` | 326 | SMTP settings, secret storage, test and send |
 | `server-java/.../EngineSupport.java` | 1984 | Engine detection, project discovery, build/export/run adapters |
 | `server-java/.../CodeInspector.java` | 2596 | Static scanner, reports, quarantine, integrity, shredding |
 | `server-java/.../OnlineService.java` | 1891 | Parallel search, page fetch, relevance filter, result persistence |
@@ -767,8 +844,8 @@ for the two reference implementations.
 | `server-java/.../ServerMain.java` | 183 | Server bootstrap, shutdown |
 | `server-java/.../Json.java` | 393 | Java JSON |
 | `client/main.cpp` | 918 | Win32 shell |
-| `server-java/web/console/app.js` | 3753 | UI logic, live trace, interjection, provenance chips, engine view |
-| `server-java/web/console/styles.css` | 1579 | UI styling |
+| `server-java/web/console/app.js` | 5302 | UI logic, live trace, interjection, provenance chips, office/files/mail/downloads |
+| `server-java/web/console/styles.css` | 1771 | UI styling |
 | `aux-python/bootstrap.py` | 429 | Build orchestration |
 | `aux-python/mock_llm.py` | 282 | Development backend |
 

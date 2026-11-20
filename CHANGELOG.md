@@ -3,82 +3,57 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
-## 1.0.9 — 2026-11-20
+## 1.1.0 — 2026-11-20
 
 ### Added
 
-- **Static code inspection, quarantine and integrity proof.** The new
-  **Inspect** tab scans any file or project without executing it. Each file
-  receives language, encoding, MIME, entropy, hashes, structure, imports,
-  network clues, masked secrets, concrete risk indicators and a 0–100 score.
-  JSON and Markdown reports are written under
-  `workspace/reports/code-inspection/`. Files scoring 70+ are copied into a
-  read-only quarantine vault with a sidecar audit record.
-- **Optional shredding of quarantine copies.** After the report is written,
-  the server can overwrite each copy created by that scan, truncate it and
-  delete it, while retaining the sidecar with `shredded`, `shredded_at`,
-  `shred_method` and `original_untouched`. Originals are never modified,
-  moved or deleted.
-- **Before/after SHA-256 integrity verification.** Every scanned file is
-  re-hashed after analysis (256 MB budget) and compared with the scan-time
-  hash. The response exposes `unchanged`, `content_verified`, checked,
-  skipped, changed and unreadable counts plus a sorted path+hash digest, so
-  “the scan did not modify the files” is a measured result.
-- **Universal API tool and named-secret vault.** `codeforge_api` /
-  `POST /api/api-call` call any HTTP or HTTPS endpoint with method, headers,
-  query, body and timeout. Named secrets stored through `/api/secrets` are
-  injected in memory and never returned. The agent can now use arbitrary
-  authenticated REST APIs instead of only built-in search/fetch tools.
-- **Publish tab.** The console can create or update GitHub and GitCode
-  releases from a local `release/` folder, upload every asset, replace assets
-  with the same name and optionally delete older GitHub releases. Tokens are
-  discovered from the vault, environment, GitHub CLI or Git credential helper
-  and are never displayed.
-- **Agent file, test and research tools.** `codeforge_read`, `codeforge_list`,
-  `codeforge_write`, `codeforge_edit`, `codeforge_test`, `codeforge_crawl`,
-  `codeforge_deep_search` and `codeforge_corpus` let the model read and edit
-  real files, run the project's test command, crawl pages, run multi-query
-  research and query the local research corpus.
-- **Adjustable agent step limit from 1 to 512.** The Command Agent panel and
-  `/api/agent` accept any value in the range; the default is 128.
-- **In-app update notices.** `GET /api/update` reads the public release index
-  (GitCode first, GitHub fallback; ten-minute cache) and compares the newest
-  stable tag with the running build. The console checks on load and every six
-  hours, then shows a dismissible banner linking to the release. Only release
-  metadata is fetched. `"updates": {"enabled": false}` in `config.json`
-  disables the check. A build that predates the checker must upgrade manually
-  once; the release banner and README say so explicitly.
-- **Game engine adapters.** A new **Engines** tab and `codeforge_engine` agent
-  tool drive Godot 4, Unity, Unreal Engine 5, Cocos Creator and LÖVE without
-  bundling any of them. The adapter detects user-installed engines from
-  environment variables, PATH, Unity Hub, Epic Games and the standard install
-  folders; finds projects by their real markers (`project.godot`,
-  `ProjectSettings/ProjectVersion.txt` plus `Assets/`, `*.uproject`, Cocos
-  `package.json` plus `assets/`, `main.lua`); parses Godot export presets and
-  per-engine targets; then builds, exports and runs with the engine's own CLI
-  (Godot headless import/export, Unity batchmode player builds, Unreal
-  BuildCookRun, Cocos Creator CLI, LÖVE runner). Every export is verified
-  against the artifact on disk, and a missing engine returns an exact install
-  hint instead of a false success. LÖVE `.love` packaging works with no engine
-  installed, and a fused `.exe` is produced when `love.exe` exists.
-  `GET /api/engines` reports detection; `POST /api/engines` runs
-  detect/build/export/run/status.
+- **Office document engine with PDF support.** The new **Office** tab and the
+  `codeforge_office` agent tool preview DOCX/DOC, XLSX/XLS/XLSM, PPTX/PPT, PDF,
+  ODT/ODS/ODP, RTF, CSV/TSV and plain text documents. Preview returns the real
+  document text and structure (paragraphs, sheets and cell grids, slide titles
+  and shapes, PDF page counts); PDF pages render as images in the console.
+  Editing covers paragraphs, table cells, workbook cells/rows/sheets, slide
+  text and lifecycle, PDF metadata and pages, and text files. Creation covers
+  DOCX, XLSX, PPTX, PDF, TXT, Markdown, CSV and TSV; ODT/ODS/ODP, RTF and
+  legacy Office files open read-only. Deleted documents move to
+  `workspace/.trash/office` unless permanent deletion is explicitly requested.
+- **Whole-disk file access with permission gate.** The new **Files** tab and
+  `codeforge_fs` agent tool list drives, browse folders, stat files, search
+  across drives by path, filename glob or file content, and create, rename,
+  copy, move, trash or delete files and folders. Everything except the
+  permission check is blocked until the user enables **Settings → Full
+  filesystem access** (stored as `permissions.full_filesystem` in
+  `config.json`). Deletions require `confirm:true` and go to
+  `workspace/.trash/fs`; every operation is written to
+  `logs/file-access.jsonl`. Sensitive system directories are guarded.
+- **Email sending with SMTP settings.** The new **Mail** tab and the
+  `codeforge_mail` agent tool send plain-text or HTML email through any SMTP
+  account, with To/Cc/Bcc, multiple attachments up to 25 MB total, SSL,
+  STARTTLS or no encryption, and a connection test. The SMTP password is
+  stored in the local encrypted KeyStore, never in `config.json` and never
+  returned by the API.
+- **Download center for software, games, documents and web files.** The new
+  **Downloads** tab and `codeforge_download` agent tool download directly from
+  a URL or, when only a name is given, search and rank likely official files.
+  Candidate scoring prefers official domains, exact filename matches, the
+  current platform and the requested size; downloads support resume,
+  `.part` files, a stalled-body watchdog, same-URL retries, SHA-256 reporting
+  and verification against an expected hash. Jobs expose live progress, speed,
+  ETA, saved path, cancel and open-folder actions. “Save page itself” stores
+  the HTML when the target is a web page.
+- **Four new console views and agent tools.** The six-slot rail now maps
+  Office, Files, Mail and Downloads under **Tools**, each with a full view:
+  document preview and edit controls, PDF canvas, drive browser and search,
+  SMTP settings and compose panel, and download jobs with candidate selection.
+  The chat agent receives the same capabilities through `codeforge_office`,
+  `codeforge_fs`, `codeforge_mail` and `codeforge_download`.
+- **Version 1.1.0 release content.** All package names, manifests, launchers,
+  mobile versions, binaries, documentation and screenshots now carry 1.1.0.
 
-### Changed
+### Notes
 
-- README, user manual, API reference, security notes, architecture notes,
-  quick starts, diagrams, banner and console screenshots were refreshed for
-  1.0.9 and now document the static inspector, the secret vault, the publish
-  workflow, the file/research tools and the engine adapters.
-- The server jar, native binaries, web console, mobile projects and release
-  manifest all report 1.0.9. The console rail now has eight views:
-  Chat, Debug, Models, Keys, Publish, Inspect, Engines and Env.
-
-### Security
-
-- Static inspection never executes a sample and reports a hash-based integrity
-  result for the inspected tree.
-- Secret values, publish tokens and `Authorization`/`Cookie` response headers
-  are never written to API responses or logs.
-- Shipped `config.json` files blank `llm.api_key`, `llm.online.api_key`,
-  `llm.keys` and the whole `secrets` object in every archive.
+- Local commits and builds remain unrestricted; remote publishing still needs
+  **Allow publishing**.
+- Whole-disk operations and mail sending are explicit capabilities: they stay
+  disabled or unconfigured until the user turns them on, and their audit and
+  trash behavior is visible in the UI.

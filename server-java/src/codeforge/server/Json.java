@@ -96,7 +96,17 @@ public final class Json {
 
     public static double decimal(Map<String, Object> map, String key, double fallback) {
         Object value = map == null ? null : map.get(key);
-        return value instanceof Number number ? number.doubleValue() : fallback;
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String string) {
+            try {
+                return Double.parseDouble(string.trim());
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     public static boolean bool(Map<String, Object> map, String key, boolean fallback) {

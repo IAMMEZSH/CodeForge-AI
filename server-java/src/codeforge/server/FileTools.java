@@ -53,6 +53,48 @@ public final class FileTools {
         return out;
     }
 
+    public Map<String, Object> raw(Map<String, Object> request) {
+        long started = System.currentTimeMillis();
+        Map<String, Object> out = new LinkedHashMap<>();
+        try {
+            Path path = resolve(Json.str(request, "path", ""));
+            if (!Files.exists(path)) {
+                out.put("ok", false);
+                out.put("error", "file not found: " + path);
+            } else if (Files.isDirectory(path)) {
+                out.put("ok", false);
+                out.put("error", "path is a directory: " + path);
+            } else if (Files.size(path) > 4L * 1024 * 1024) {
+                out.put("ok", false);
+                out.put("error", "file is larger than 4 MB for the editor");
+            } else {
+                byte[] bytes = Files.readAllBytes(path);
+                int probe = Math.min(bytes.length, 8192);
+                boolean binary = false;
+                for (int i = 0; i < probe; ++i) {
+                    if (bytes[i] == 0) {
+                        binary = true;
+                        break;
+                    }
+                }
+                if (binary) {
+                    out.put("ok", false);
+                    out.put("error", "binary file (" + bytes.length + " bytes)");
+                } else {
+                    out.put("ok", true);
+                    out.put("path", path.toString());
+                    out.put("bytes", bytes.length);
+                    out.put("content", new String(bytes, StandardCharsets.UTF_8));
+                }
+            }
+        } catch (Exception ex) {
+            out.put("ok", false);
+            out.put("error", ex.getMessage() == null ? ex.toString() : ex.getMessage());
+        }
+        out.put("duration_ms", System.currentTimeMillis() - started);
+        return out;
+    }
+
     private void write(Map<String, Object> tool, Map<String, Object> out) throws IOException {
         String raw = Json.str(tool, "path", "");
         if (raw.isBlank()) {
