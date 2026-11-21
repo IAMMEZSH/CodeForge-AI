@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.2.0 · Last reviewed 2026-11-20
+Version 1.2.1 · Last reviewed 2026-11-20
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:
@@ -141,12 +141,13 @@ network, and persist changes.
 
 - HTTPS only, certificate validation by the JVM/OS trust store.
 - Upstream file size and LFS SHA-256 are resolved from the configured mirror
-  metadata (`hf-mirror.com` by default, `huggingface.co` fallback) before
-  download. A response without both values is rejected.
+  metadata (ModelScope first, then `hf-mirror.com`, with `huggingface.co` as
+  the final fallback) before download. A response without both values is
+  rejected.
 - The `.part` file is hashed after the byte count matches; on mismatch the job
   fails and nothing is installed.
 - Only after verification is the file atomically moved to `.gguf` and recorded
-  in `models/models.json`.
+  in `models/installed.json`; capability verdicts live in `models/capability.json`.
 - Runtime binaries come from official llama.cpp GitHub releases and are hashed
   into `runtime/runtime.json`.
 - Downloads are anonymous; no Hugging Face token is requested or stored.
@@ -458,7 +459,7 @@ icacls workspace /inheritance:r /grant:r "<user>:(OI)(CI)(F)"
 
 | Destination | When | Data |
 | --- | --- | --- |
-| `hf-mirror.com` (default), `huggingface.co`, `cdn-lfs*.hf.co`, `cas-bridge.xethub.hf.co` | model download/resolve | anonymous HTTPS GET |
+| `modelscope.cn`, `hf-mirror.com` (fallback), `huggingface.co` (final fallback), `cdn-lfs*.hf.co`, `cas-bridge.xethub.hf.co` | model download/resolve | anonymous HTTPS GET |
 | `api.github.com`, `github.com`, `objects.githubusercontent.com` | runtime install | anonymous HTTPS GET |
 | Configured `openai_url` (default `127.0.0.1:8080`) | chat/debug | prompts and code |
 | Configured `ollama_url` (default `127.0.0.1:11434`) | chat/debug | prompts and code |
@@ -490,7 +491,7 @@ local model working.
 | What does the offline brain remember? | `memory/memories.jsonl` |
 | Which files are indexed? | `memory/project-index.jsonl`, `GET /api/workspace?stats=1` |
 | Who called the API? | Server does not log clients by default; enable OS-level connection auditing if needed |
-| Was a download verified? | `models/models.json` `sha256`, `runtime/runtime.json` `sha256`, download job `sha256`/`verify_note` |
+| Was a download verified? | `models/installed.json` `sha256`, `runtime/runtime.json` `sha256`, download job `sha256`/`verify_note` |
 | Who touched files outside the project? | `logs/file-access.jsonl` |
 | What was deleted? | `workspace/.trash/office/`, `workspace/.trash/fs/` |
 | Was mail sent? | the Mail view result, server log line and the SMTP provider's sent folder |

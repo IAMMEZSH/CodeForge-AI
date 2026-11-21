@@ -55,6 +55,8 @@ public final class ModelManager {
     private static final String RUNTIME_SELECTION = "selection.json";
     private static final String DEFAULT_MODEL_MIRROR = "https://hf-mirror.com";
     private static final String MODEL_SOURCE_FALLBACK = "https://huggingface.co";
+    private static final String MODELSCOPE_API = "https://modelscope.cn/api/v1/models/";
+    private static final String MODELSCOPE_WEB = "https://modelscope.cn/models/";
 
     private static List<String> buildRuntimeTags() {
         if (IS_WINDOWS) {
@@ -118,6 +120,36 @@ public final class ModelManager {
 
     private static final List<Map<String, Object>> REGISTRY = List.of(
             Json.map(
+                    "id", "qwen3.6-35b-a3b",
+                    "name", "Qwen3.6 35B A3B",
+                    "vendor", "Alibaba Qwen",
+                    "origin", "China",
+                    "category", "Agentic coding MoE",
+                    "params", "35B MoE · 3B active",
+                    "context", "262K",
+                    "license", "Apache-2.0",
+                    "repo", "unsloth/Qwen3.6-35B-A3B-GGUF",
+                    "file", "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+                    "size_display", "≈ 22.1 GB",
+                    "min_ram_gb", 28,
+                    "recommended", true,
+                    "description", "2026 agentic-coding MoE with native tool calling. SWE-bench Verified 73.4 and Terminal-Bench 2.0 51.5; only 3B parameters active per token keep CPU decoding practical at 262K context."),
+            Json.map(
+                    "id", "qwen3.8-27b",
+                    "name", "Qwen3.8 27B",
+                    "vendor", "Alibaba Qwen",
+                    "origin", "China",
+                    "category", "Dense coding flagship",
+                    "params", "27B",
+                    "context", "262K",
+                    "license", "Apache-2.0",
+                    "repo", "unsloth/Qwen3.8-27B-GGUF",
+                    "file", "Qwen3.8-27B-UD-Q4_K_M.gguf",
+                    "size_display", "≈ 16.6 GB",
+                    "min_ram_gb", 22,
+                    "recommended", false,
+                    "description", "2026 dense flagship for local coding, reported 61.7 SWE-bench Pro. Delivers the highest single-model quality when RAM allows, but decodes slower on CPU than a 3B-active MoE."),
+            Json.map(
                     "id", "qwen3-coder-30b-a3b",
                     "name", "Qwen3-Coder 30B-A3B",
                     "vendor", "Alibaba Qwen",
@@ -177,21 +209,6 @@ public final class ModelManager {
                     "min_ram_gb", 6,
                     "recommended", false,
                     "description", "Fast lightweight generalist with strong instruction following. Ideal for autocomplete, explanations and machines with 8 GB of RAM."),
-            Json.map(
-                    "id", "yi-coder-9b-chat",
-                    "name", "Yi-Coder 9B Chat",
-                    "vendor", "01.AI",
-                    "origin", "China",
-                    "category", "Code specialist",
-                    "params", "9B",
-                    "context", "128K",
-                    "license", "Apache-2.0",
-                    "repo", "bartowski/Yi-Coder-9B-Chat-GGUF",
-                    "file", "Yi-Coder-9B-Chat-Q4_K_M.gguf",
-                    "size_display", "≈ 5.3 GB",
-                    "min_ram_gb", 8,
-                    "recommended", false,
-                    "description", "Code-specialized 9B covering 52 languages with 128K context. A solid balance for daily edits and cross-file reasoning."),
             Json.map(
                     "id", "codegeex4-all-9b",
                     "name", "CodeGeeX4 ALL 9B",
@@ -302,10 +319,12 @@ public final class ModelManager {
     private final Path modelsDir;
     private final Path downloadsDir;
     private final Path installedFile;
+    private final Path capabilityFile;
     private final Path runtimeDir;
     private final NativeTools nativeTools;
     private final HttpClient http;
     private final Map<String, Map<String, Object>> installed = new LinkedHashMap<>();
+    private final Map<String, Map<String, Object>> capabilities = new LinkedHashMap<>();
     private final Map<String, Job> jobs = new ConcurrentHashMap<>();
 
     public ModelManager(Path root, NativeTools nativeTools) {
@@ -313,6 +332,7 @@ public final class ModelManager {
         this.modelsDir = root.resolve("models");
         this.downloadsDir = modelsDir.resolve("downloads");
         this.installedFile = modelsDir.resolve("installed.json");
+        this.capabilityFile = modelsDir.resolve("capability.json");
         this.runtimeDir = root.resolve("runtime");
         this.nativeTools = nativeTools;
         this.http = HttpClient.newBuilder()
@@ -326,6 +346,7 @@ public final class ModelManager {
             System.err.println("[models] cannot create directories: " + ex.getMessage());
         }
         loadInstalled();
+        loadCapabilities();
     }
 
     public static List<Map<String, Object>> registry() {
@@ -340,6 +361,7 @@ public final class ModelManager {
             Map<String, Object> installedInfo = installed.get(id);
             boolean isInstalled = installedInfo != null && Files.isRegularFile(installedPath(id));
             copy.put("installed", isInstalled);
+            copy.put("capability", capability(id));
             if (isInstalled) {
                 copy.put("installed_info", new LinkedHashMap<>(installedInfo));
             }
@@ -710,6 +732,70 @@ public final class ModelManager {
         }
     }
 
+    public synchronized Map<String, Object> capability(String id) {
+        Map<String, Object> stored = capabilities.get(id);
+        if (stored == null) {
+            return Json.map("status", "untested");
+        }
+        if ("running".equals(Json.str(stored, "status", ""))) {
+            String checked = Json.str(stored, "checked_at", "");
+            try {
+                if (Instant.parse(checked).isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
+                    return Json.map("status", "untested");
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return new LinkedHashMap<>(stored);
+    }
+
+    public synchronized void recordCapability(String id, Map<String, Object> result) {
+        if (id == null || id.isBlank() || result == null) {
+            return;
+        }
+        Map<String, Object> record = new LinkedHashMap<>(result);
+        record.put("id", id);
+        record.put("checked_at", Instant.now().toString());
+        capabilities.put(id, record);
+        saveCapabilities();
+    }
+
+    private void loadCapabilities() {
+        if (!Files.isRegularFile(capabilityFile)) {
+            return;
+        }
+        try {
+            String text = Files.readString(capabilityFile, StandardCharsets.UTF_8);
+            Map<String, Object> parsed = Json.asObject(Json.parse(text));
+            for (Map.Entry<String, Object> entry : parsed.entrySet()) {
+                Map<String, Object> info = Json.asObject(entry.getValue());
+                if (!info.isEmpty()) {
+                    capabilities.put(entry.getKey(), info);
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("[models] cannot load capability.json: " + ex.getMessage());
+        }
+    }
+
+    private synchronized void saveCapabilities() {
+        try {
+            Files.createDirectories(modelsDir);
+            Map<String, Object> payload = new LinkedHashMap<>(capabilities);
+            Path temp = capabilityFile.resolveSibling("capability.json.tmp");
+            Files.writeString(temp, Json.write(payload), StandardCharsets.UTF_8);
+            try {
+                Files.move(temp, capabilityFile,
+                           StandardCopyOption.REPLACE_EXISTING,
+                           StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException ignored) {
+                Files.move(temp, capabilityFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ex) {
+            System.err.println("[models] cannot save capability.json: " + ex.getMessage());
+        }
+    }
+
     private void runModelDownload(Map<String, Object> entry, Job job) {
         String id = Json.str(entry, "id", "");
         try {
@@ -867,6 +953,14 @@ public final class ModelManager {
 
     private Map<String, Object> resolveHuggingFace(Map<String, Object> entry) throws Exception {
         Exception last = null;
+        try {
+            Map<String, Object> meta = resolveModelScope(entry);
+            meta.put("source", "modelscope");
+            return meta;
+        } catch (Exception ex) {
+            last = ex;
+            System.err.println("[models] metadata from modelscope failed: " + ex.getMessage());
+        }
         for (String base : modelBaseCandidates()) {
             try {
                 Map<String, Object> meta = resolveHuggingFace(base, entry);
@@ -879,6 +973,39 @@ public final class ModelManager {
             }
         }
         throw last != null ? last : new IOException("No model metadata source is configured.");
+    }
+
+    private Map<String, Object> resolveModelScope(Map<String, Object> entry) throws Exception {
+        String repo = Json.str(entry, "repo", "");
+        String file = Json.str(entry, "file", "");
+        String api = MODELSCOPE_API + repo + "/repo/files?Revision=master&Root=";
+        Map<String, Object> doc = Json.asObject(Json.parse(httpGetText(api)));
+        Map<String, Object> data = Json.asObject(doc.get("Data"));
+        List<Object> files = Json.asList(data.get("Files"));
+        if (files.isEmpty()) {
+            throw new IOException("ModelScope returned no file list for " + repo);
+        }
+        long size = 0L;
+        String sha = "";
+        boolean found = false;
+        for (Object item : files) {
+            Map<String, Object> sibling = Json.asObject(item);
+            if (!file.equals(Json.str(sibling, "Name", ""))) {
+                continue;
+            }
+            found = true;
+            size = Json.lon(sibling, "Size", 0L);
+            sha = Json.str(sibling, "Sha256", "");
+            break;
+        }
+        if (!found) {
+            throw new IOException("File not found in the ModelScope repository: " + file);
+        }
+        if (size <= 0L || sha.isBlank()) {
+            throw new IOException("ModelScope metadata is missing size or SHA-256 for " + file);
+        }
+        String url = MODELSCOPE_WEB + repo + "/resolve/master/" + file;
+        return Json.map("size", size, "sha256", sha, "url", url);
     }
 
     private List<String> modelBaseCandidates() {

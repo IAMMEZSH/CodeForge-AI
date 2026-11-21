@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ApiHandler implements HttpHandler {
-    public static final String VERSION = "1.2.0";
+    public static final String VERSION = "1.2.1";
     private static final long MAX_BODY = 8L * 1024 * 1024;
 
     private static final class BadRequest extends IOException {
@@ -89,6 +89,7 @@ public final class ApiHandler implements HttpHandler {
     private long cachedStatusAt;
     private final Map<String, ChatProgress> activeChats = new ConcurrentHashMap<>();
     private final Map<String, AtomicBoolean> chatCancels = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> activeProbes = new ConcurrentHashMap<>();
     private volatile double localGenerationRate = 8.5;
     private static final int MAX_CORE_CHAT_SECONDS = 288 * 60 * 60; // 12 days
     private static final Pattern AGENT_TAG = Pattern.compile(
@@ -1091,6 +1092,12 @@ public final class ApiHandler implements HttpHandler {
                 sendJson(exchange, 200, models.resolveModel(id));
                 return;
             }
+            case "/api/models/probe": {
+                requirePost(method);
+                Map<String, Object> request = readJsonObject(exchange);
+                sendJson(exchange, 200, startModelProbe(Json.str(request, "id", "")));
+                return;
+            }
             case "/api/runtime/install": {
                 requirePost(method);
                 Map<String, Object> request = readJsonObject(exchange);
@@ -1113,6 +1120,16 @@ public final class ApiHandler implements HttpHandler {
                         Json.str(request, "model_id", ""),
                         Json.integer(request, "context_size", settings.contextSize()),
                         Json.integer(request, "parallel", settings.parallelSlots()));
+                if (Json.bool(response, "ok", false)) {
+                    String activeId = Json.str(runtime.status(), "model_id", "");
+                    if (!activeId.isBlank()) {
+                        String verdict = Json.str(models.capability(activeId), "status", "untested");
+                        if ("untested".equals(verdict) || "error".equals(verdict)
+                                || "running".equals(verdict)) {
+                            startModelProbe(activeId);
+                        }
+                    }
+                }
                 sendJson(exchange, 200, response);
                 return;
             }
@@ -1186,6 +1203,63 @@ public final class ApiHandler implements HttpHandler {
                 Json.str(request, "text", ""),
                 Json.str(request, "kind", "note"),
                 Json.str(request, "source", "manual")));
+    }
+
+    private void recordProtocolFailure(String reason) {
+        String id = Json.str(runtime.status(), "model_id", "");
+        if (id.isBlank()) {
+            return;
+        }
+        models.recordCapability(id, Json.map(
+                "status", "weak", "score", 0,
+                "reason", reason, "source", "chat"));
+    }
+
+    private Map<String, Object> startModelProbe(String requestedId) {
+        Map<String, Object> status = runtime.status();
+        if (!Json.bool(status, "running", false) || !Json.bool(status, "healthy", false)) {
+            return Json.map("ok", false,
+                    "error", "Start inference before running a capability probe.");
+        }
+        String activeId = Json.str(status, "model_id", "");
+        String id = requestedId == null ? "" : requestedId.trim();
+        if (id.isEmpty()) {
+            id = activeId;
+        }
+        if (activeId.isEmpty()) {
+            return Json.map("ok", false, "error", "No model is running.");
+        }
+        if (!id.equals(activeId)) {
+            return Json.map("ok", false, "error",
+                    "Capability probes only work on the running model (" + activeId + ").");
+        }
+        if (!models.isModelInstalled(id)) {
+            return Json.map("ok", false, "error", "Model is not installed: " + id);
+        }
+        if (activeProbes.putIfAbsent(id, Boolean.TRUE) != null) {
+            return Json.map("ok", true, "status", "running", "model_id", id,
+                    "message", "Capability probe is already running.");
+        }
+        String baseUrl = Json.str(status, "base_url", "http://127.0.0.1:8080");
+        String modelName = Json.str(status, "model_path", "");
+        models.recordCapability(id, Json.map(
+                "status", "running", "score", 0,
+                "reason", "Capability probe running...", "source", "probe"));
+        final String probeId = id;
+        Thread worker = new Thread(() -> {
+            try {
+                ModelProbe.run(baseUrl, modelName, probeId, models);
+            } catch (Throwable ex) {
+                models.recordCapability(probeId, Json.map(
+                        "status", "error", "score", 0,
+                        "reason", "Probe crashed: " + ex.getMessage(), "source", "probe"));
+            } finally {
+                activeProbes.remove(probeId);
+            }
+        }, "codeforge-model-probe");
+        worker.setDaemon(true);
+        worker.start();
+        return Json.map("ok", true, "status", "running", "model_id", id);
     }
 
     private Map<String, Object> chat(Map<String, Object> request) {
@@ -1662,6 +1736,10 @@ public final class ApiHandler implements HttpHandler {
                     progress.lastTokenMs = 0;
                     progress.remainTokens = 0;
                     continue;
+                }
+                if (hasToolMarkup(reply)) {
+                    recordProtocolFailure(
+                            "Malformed <codeforge_build> discarded after retries during a real request");
                 }
                 if (rebuildRequired && deliveredBuilds.isEmpty()
                         && !rebuildNudged && step <= maxSteps) {

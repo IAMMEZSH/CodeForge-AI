@@ -2,7 +2,7 @@
 
 Every command you need, for every supported platform.
 
-Version 1.2.0
+Version 1.2.1
 
 ---
 
@@ -306,7 +306,7 @@ curl.exe -s http://127.0.0.1:8765/api/status |
 
 A native ARM64 build of the C++ core requires an ARM64 C++17 toolchain and an
 ARM64 JDK 17; the runtime installer then prefers `win-cpu-arm64` and falls back
-to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.2.0;
+to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.2.1;
 the emulated x64 bundle is the supported route.
 
 Native build with MSYS2 CLANGARM64:
@@ -1217,7 +1217,7 @@ while ($true) { curl.exe -s http://127.0.0.1:8765/api/downloads; Start-Sleep 2 }
 | `Content-Type must be application/json` | POST without JSON header | Add `-H "Content-Type: application/json"` |
 | `Cross-origin request rejected` | Origin differs from Host | Use the served console or a same-origin client |
 | Port already in use | Another server | `netstat`/`ss`/`lsof`, stop the process, or pass `--port` |
-| Download stuck at 0% | Network/DNS | Check `curl -I https://hf-mirror.com`; set `llm.model_mirror` if needed |
+| Download stuck at 0% | Network/DNS | Check `curl -I https://modelscope.cn` and `https://hf-mirror.com`; set `llm.model_mirror` if needed |
 | Download fails at 45% | Connection drop | Automatic resume; check `/api/downloads` message |
 | `SHA-256 mismatch` | Corrupted `.part` | Delete the `.part` and retry |
 | Model loads forever | Too little RAM | Choose a smaller model |
@@ -1326,8 +1326,9 @@ kill -KILL -<process-group-id>   # only if you know the group
 | --- | ---: | ---: | --- |
 | Qwen3 4B Instruct 2507 Q4_K_M | 2.5 GB | 6 GB | 8 GB laptops, high-end phones |
 | DeepSeek R1 0528 Qwen3 8B Q4_K_M | 5.0 GB | 8 GB | 16 GB machines |
-| Yi-Coder 9B Chat Q4_K_M | 5.3 GB | 8 GB | 16 GB machines |
+| Qwen3.6 35B A3B UD-Q4_K_M | 22.1 GB | 28 GB | 32 GB+ workstations |
 | DeepSeek-Coder V2 Lite Q4_K_M | 10.4 GB | 14 GB | 24 GB machines |
+| Qwen3.8 27B UD-Q4_K_M | 16.6 GB | 22 GB | 24 GB+ workstations |
 | Qwen3-Coder 30B-A3B Q4_K_M | 18.6 GB | 24 GB | 32 GB+ workstations |
 
 Space needed = model size + `.part` during download + ~1 GB workspace/runtime.

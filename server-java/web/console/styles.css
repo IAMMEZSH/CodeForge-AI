@@ -898,10 +898,23 @@ label.small {
 .model-specs { display: flex; flex-wrap: wrap; gap: 10px 14px; padding: 10px 0 14px; border-top: 1px solid rgba(88, 166, 255, 0.08); }
 .model-specs span { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
 .model-specs b { color: var(--text); font-weight: 500; }
-.model-foot { margin-top: auto; padding: 12px 18px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+.model-foot { margin-top: auto; padding: 12px 18px; border-top: 1px solid var(--line); display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .model-foot .spacer { flex: 1; }
 .model-state { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; }
 .model-state.on { color: var(--green); }
+.model-cap {
+  font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 3px 6px; border-radius: 4px;
+  border: 1px solid var(--line); color: var(--dim); cursor: help;
+}
+.model-cap.pass { color: var(--green); border-color: rgba(63, 185, 80, 0.4); background: rgba(63, 185, 80, 0.08); }
+.model-cap.weak { color: var(--red); border-color: rgba(248, 81, 73, 0.4); background: rgba(248, 81, 73, 0.08); }
+.model-cap.error { color: var(--amber); border-color: rgba(255, 196, 87, 0.4); background: rgba(255, 196, 87, 0.08); }
+.model-cap.running { color: var(--cyan); border-color: rgba(88, 166, 255, 0.45); animation: cap-pulse 1.4s ease-in-out infinite; }
+.model-cap-note { padding: 0 18px 12px; font-family: var(--mono); font-size: 9px; line-height: 1.5; color: var(--dim); }
+.model-cap-note.weak { color: var(--red); }
+.model-cap-note.error { color: var(--amber); }
+@keyframes cap-pulse { 50% { opacity: 0.45; } }
 .progress-wrap { padding: 0 18px 14px; display: none; }
 .progress-wrap.show { display: block; }
 .progress-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; color: var(--dim); margin-bottom: 6px; }

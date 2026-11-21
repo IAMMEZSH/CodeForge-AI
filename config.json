@@ -19,18 +19,18 @@
       "model": "deepseek-chat",
       "timeout_ms": 120000
     },
-    "active_key": "default",
     "keys": [
       {
-        "id": "default",
+        "id": "deepseek-a287f0",
         "name": "DeepSeek",
         "base_url": "https://api.deepseek.com",
         "model": "deepseek-chat",
         "api_key": "",
-        "created_at": "2026-11-19T08:08:52.730951200Z",
-        "updated_at": "2026-11-19T08:08:52.730951200Z"
+        "created_at": "2026-11-20T23:08:07.059739600Z",
+        "updated_at": "2026-11-20T23:08:07.059739600Z"
       }
-    ]
+    ],
+    "active_key": "deepseek-a287f0"
   },
   "debug": {
     "max_iterations": 3,
@@ -57,11 +57,11 @@
     "auto_install": true
   },
   "agent": {
-    "max_steps": 64,
-    "auto_compile": true
+    "auto_compile": true,
+    "max_steps": 64
   },
   "permissions": {
-    "full_filesystem": false
+    "full_filesystem": true
   },
   "secrets": {}
 }

@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public final class WeatherService {
     private static final String USER_AGENT =
-            "CodeForge-AI/1.2.0 (keyless weather; no registration required)";
+            "CodeForge-AI/1.2.1 (keyless weather; no registration required)";
 
     private final AppSettings settings;
     private final HttpClient client;

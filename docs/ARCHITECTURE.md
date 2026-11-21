@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.2.0 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.2.1 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -289,25 +289,35 @@ POST /api/models/download {id}
   → ModelManager.startModelDownload
       create Job(status=queued), return immediately
       daemon thread:
-        resolving   → GET hf-mirror.com/api/models/<repo>?blobs=true
-                      (huggingface.co fallback) find exact file,
-                      read size + lfs.sha256
+        resolving   → GET modelscope.cn API for <repo>; find exact file,
+                      read size + SHA-256
+                      fallback: hf-mirror.com/api/models/<repo>?blobs=true
+                      (huggingface.co final) with lfs.sha256
         downloading → HTTPS GET with Range resume
                       write <id>/<file>.part
                       update Job bytes/percent/speed every chunk
                       on IOException: retry up to 12 times, resume at current size
         verifying   → SHA-256 compare against the upstream LFS hash
         installing  → atomic move .part → .gguf
-                      update models/models.json
+                      update models/installed.json
         complete
 ```
 
 Downloads are anonymous and follow redirects (the mirror may hand off to a
-CDN). The default source is selected by `llm.model_mirror` /
-`CODEFORGE_MODEL_MIRROR`; `https://huggingface.co` is always the final fallback.
-The hash comparison happens after the full byte count is confirmed, so a
-truncated transfer can never be installed. `models/models.json` is the source of
-truth for installed models; the registry itself is compiled into the server.
+CDN). ModelScope is always queried first; the Hugging Face-compatible fallback
+order is selected by `llm.model_mirror` / `CODEFORGE_MODEL_MIRROR`, and
+`https://huggingface.co` is always the final fallback. The hash comparison
+happens after the full byte count is confirmed, so a truncated transfer can
+never be installed. `models/installed.json` is the source of truth for
+installed models; the registry itself is compiled into the server.
+
+A second file, `models/capability.json`, records whether each model can follow
+the `<codeforge_build>` protocol. `POST /api/models/probe` asks the running
+model for one build call, validates the tag, JSON, language, source,
+placeholders, `print` and `PROBE_OK`, and stores `pass`, `weak` or `error`.
+The same file receives a `weak` verdict when a chat's malformed tool call
+cannot be repaired after the protocol retries. The Models panel polls the
+stored state while a probe runs and renders it as a badge.
 
 ### 5.5 Runtime install and start
 
@@ -438,8 +448,8 @@ GET /api/update[?refresh=1]
 
 The console calls this endpoint on load and every six hours, then shows a
 dismissible banner when `update_available` is true. No prompt, file, key or
-usage data is sent. Builds older than 1.2.0 do not contain this checker, so
-their first move to 1.2.0 is a manual download; from 1.2.0 onward the banner
+usage data is sent. Builds older than 1.2.1 do not contain this checker, so
+their first move to 1.2.1 is a manual download; from 1.2.1 onward the banner
 reaches installed copies without a manual check.
 
 ### 5.10 Game engine adapters
@@ -567,7 +577,8 @@ This is the part that keeps an AI that executes code from hanging the machine.
 | Path | Producer | Contents | Safe to delete? |
 | --- | --- | --- | --- |
 | `config.json` | user | Backend, timeouts (server port is a CLI flag) | No (regenerated with defaults) |
-| `models/models.json` | ModelManager | Installed model index with hashes | Rebuilt from disk scan on next start |
+| `models/installed.json` | ModelManager | Installed model index with hashes | Rebuilt from disk scan on next start |
+| `models/capability.json` | ModelManager | Per-model probe verdicts and reasons | Rebuilt on the next probe |
 | `models/downloads/<id>/*.gguf` | ModelManager | Model weights | Yes, re-downloadable |
 | `models/downloads/<id>/*.part` | ModelManager | In-progress transfer | Yes, but loses resume progress |
 | `runtime/runtime.json` | ModelManager | Runtime metadata | Reinstall runtime |
@@ -827,7 +838,8 @@ for the two reference implementations.
 | `server-java/.../CodeInspector.java` | 2596 | Static scanner, reports, quarantine, integrity, shredding |
 | `server-java/.../OnlineService.java` | 1891 | Parallel search, page fetch, relevance filter, result persistence |
 | `server-java/.../ToolchainManager.java` | 1576 | Language runtime downloads and provisioning |
-| `server-java/.../ModelManager.java` | 1442 | Registry, downloads, extraction, runtime files |
+| `server-java/.../ModelManager.java` | 1442 | Registry, downloads, extraction, runtime files, capability store |
+| `server-java/.../ModelProbe.java` | 225 | Real build-request protocol probe and verdict |
 | `server-java/.../ToolProvisioner.java` | 1457 | Portable toolchains, package-manager mappings, PATH refresh, tool discovery |
 | `server-java/.../AgentShell.java` | 1291 | Cross-platform command execution, app discovery, software reference, publish guard |
 | `server-java/.../BuildDelivery.java` | 1222 | Build-and-deliver packaging for every supported language |
@@ -894,7 +906,7 @@ for the two reference implementations.
 ## 16. Related documents
 
 - [API reference](API.md) — every endpoint and response shape
-- [Model library](MODELS.md) — the 12-model registry and selection guide
+- [Model library](MODELS.md) — the 13-model registry, capability checks and selection guide
 - [Platform guide](PLATFORMS.md) — every command for every OS
 - [Manual](MANUAL.md) — end-to-end operator handbook
 - [Security](SECURITY.md) — threat model and hardening checklist

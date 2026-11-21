@@ -6,34 +6,34 @@
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
-**Version 1.2.0 · 2026-11-21**
+**Version 1.2.1 · 2026-11-21**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
 [![Core](https://img.shields.io/badge/core-C%2B%2B17%20%2F%20C17-7c5cff.svg)](#architecture)
 [![Server](https://img.shields.io/badge/server-Java%2017-ff5c8a.svg)](#architecture)
-[![Models](https://img.shields.io/badge/offline%20models-12-38f9a5.svg)](docs/MODELS.md)
+[![Models](https://img.shields.io/badge/offline%20models-13-38f9a5.svg)](docs/MODELS.md)
 [![Local](https://img.shields.io/badge/telemetry-none-38f9a5.svg)](docs/SECURITY.md)
 
 </div>
 
-> **Upgrading from an earlier build?** v1.2.0 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.2.0 bundle on this page. The console checks the public release index and shows an in-app banner when a newer build exists; update notices apply from this release onward.
+> **Upgrading from an earlier build?** v1.2.1 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.2.1 bundle on this page. The console checks the public release index and shows an in-app banner when a newer build exists; update notices apply from this release onward.
 >
-> **旧版用户请注意：** v1.2.0 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.2.0 安装包覆盖升级。控制台会在启动时检查公开发布页，有新版本时显示升级横幅；升级提醒从本版本开始生效。
+> **旧版用户请注意：** v1.2.1 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.2.1 安装包覆盖升级。控制台会在启动时检查公开发布页，有新版本时显示升级横幅；升级提醒从本版本开始生效。
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.2.0-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.2.0-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-windows-x64.zip).
+**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.2.1-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.2.1-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip).
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.2.0-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-windows-x64.zip) |
-| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.2.0-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-linux-source.tar.gz) |
-| macOS Apple silicon / Intel, source | `CodeForge-AI-1.2.0-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-macos-source.tar.gz) |
-| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.2.0-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-mobile-source.zip) |
-| All platforms, source only | `CodeForge-AI-1.2.0-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-source.zip) |
-| Documentation set | `CodeForge-AI-1.2.0-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.0/CodeForge-AI-1.2.0-docs.zip) |
+| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.2.1-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip) |
+| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.2.1-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-linux-source.tar.gz) |
+| macOS Apple silicon / Intel, source | `CodeForge-AI-1.2.1-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-macos-source.tar.gz) |
+| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.2.1-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-mobile-source.zip) |
+| All platforms, source only | `CodeForge-AI-1.2.1-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-source.zip) |
+| Documentation set | `CodeForge-AI-1.2.1-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-docs.zip) |
 
-Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.2.0.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.2.0) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.2.0). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
+Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.2.1.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.2.1) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.2.1). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
 
 <div align="center">
 
@@ -74,12 +74,13 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **Publishing with a guard** — the agent can prepare commits, builds, packages, release assets and site deploys. Public actions (`git push`, release/PR/issue creation, registry/container pushes, remote copies, cloud deploys and write HTTP methods) stay blocked until **Allow publishing** is enabled in the Command Agent settings or the run is started through the API with `allow_publish=true`; blocked calls identify themselves instead of failing silently.
 - **Natural language is never intercepted** — every plain-language request goes straight to the active model, offline or online. Build, compile and deliver phrases such as “write a game and put it on the Desktop” reach the agent and produce a runnable artifact instead of being routed into a local file-copy shortcut. Only explicit `/` commands (`/run`, `/save`, `/copy`, `/move`, `/launcher`, `/install`) execute locally.
 - **Any file, any path** — code blocks can be saved to the exact path you type (one path per file), missing folders are confirmed before creation, and nothing is silently renamed. The whole project can be copied to any folder, any file or folder can be copied or moved to a chosen path, the Desktop, or a bare drive (`D`, `D盘`, `D盘根目录`), and a real launcher can be created anywhere (Windows `.lnk`, Linux `.desktop`, macOS `.command`).
-- **12 curated offline models** — a mix of Chinese and international models including Qwen3-Coder, DeepSeek, Seed-OSS, GPT-OSS, Devstral, Gemma, Phi and Codestral.
-- **Domestic model downloads** — every offline model resolves through `hf-mirror.com` by default, with automatic `huggingface.co` fallback, resumable transfers and mandatory upstream SHA-256 verification. Override the source with `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
+- **13 curated offline models** — a mix of Chinese and international models including Qwen3.6, Qwen3.8, Qwen3-Coder, DeepSeek, Seed-OSS, GPT-OSS, Devstral, Gemma, Phi and Codestral.
+- **Capability verification** — the **Test** button on every installed model sends a real build request and checks the reply for a valid `<codeforge_build>` call, runnable Python and the `PROBE_OK` marker. Results (`pass`, `weak`, `error`, `untested`) are stored in `models/capability.json` and shown as a badge, so a model that only chats is marked weak instead of silently failing later. The running model is probed automatically the first time inference starts.
+- **Domestic model downloads** — every offline model resolves through ModelScope first, then `hf-mirror.com`, then `huggingface.co`. Transfers are resumable and every file must match the upstream SHA-256 before installation. Override the Hugging Face-compatible fallback order with `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
 - **CPU or CUDA llama.cpp runtime** — install the managed CPU build (Windows x64/ARM64, macOS arm64/x64, Linux x64/ARM64/s390x, Android ARM64), or add the official CUDA build and let CodeForge detect it. The runtime panel offers **Auto / CPU / CUDA**; Auto uses the GPU build when present, CUDA offloads all 99 layers, and CPU remains the fallback for machines without an NVIDIA GPU. The server verifies SHA-256, retries through GitHub mirror fallbacks when the asset host is blocked, and controls `llama-server` with a user-selectable 2K–512K context window (16K default).
 - **Faster answers on NVIDIA hardware** — the CUDA build measured ~83.6 tok/s on an RTX 4070 12 GB versus ~4.5 tok/s on CPU for the same Qwen3 4B model, while a direct `add(a,b)` completion returned code in 0.8 s. Short prompts and cap-limited reasoning reach code quickly instead of deliberating.
 - **Adjustable reply limit for online and offline replies** — a highest-to-lowest selector from 393,216 down to 64 tokens in the runtime panel, applied to the next reply without restarting inference. Offline models use the full selected value; online providers apply their own output cap (DeepSeek: 8,192). The model's context window minus the prompt remains the real cap on the actual reply.
-- **In-app update notices** — since 1.2.0 the console reads the public release index on load and every six hours. When a newer stable tag exists it shows a banner with the version and a direct download link, dismissible per version. The check fetches only release metadata from GitCode (GitHub fallback) and sends no prompt, file, key or usage data; set `"updates": {"enabled": false}` in `config.json` to turn it off.
+- **In-app update notices** — the console reads the public release index on load and every six hours. When a newer stable tag exists it shows a banner with the version and a direct download link, dismissible per version. The check fetches only release metadata from GitCode (GitHub fallback) and sends no prompt, file, key or usage data; set `"updates": {"enabled": false}` in `config.json` to turn it off.
 - **Native control center** — a Win32 C++ app that starts the server, shows live readiness, and opens the console in an Edge app window.
 - **One web console everywhere** — the same responsive futuristic UI works on desktop browsers, Android WebView, and iOS WKWebView.
 - **Interruptible chat with a live reasoning trace** — every turn shows stage-by-stage execution (memory recall, workspace scan, live research, context assembly, generation), a live token counter with the measured decoding rate on the local runtime, a remaining-time estimate, and a progress bar. The send key becomes **INTERJECT** while the model is working: press it to stop the answer and send your correction immediately, or **STOP** to cancel with an empty box. Cancellation kills the core process on the server, frees the model, and does not write the aborted turn to memory.
@@ -230,15 +231,16 @@ The **Engines** tab detects the engines installed on this machine, finds game pr
 
 ## Offline model library
 
-<img src="docs/images/diagram-models.png" alt="Twelve offline models split between China and Global, with size, RAM, license, download pipeline and hardware tiers" width="100%">
+<img src="docs/images/diagram-models.png" alt="Thirteen offline models split between China and Global, with size, RAM, license, ModelScope-first download pipeline, capability checks and hardware tiers" width="100%">
 
 | Model | Origin | Params | Approx. size | Min RAM |
 |---|---|---|---|---|
+| Qwen3.6 35B A3B | China · Alibaba | 35B MoE (3B active) | 22.1 GB | 28 GB |
+| Qwen3.8 27B | China · Alibaba | 27B | 16.6 GB | 22 GB |
 | Qwen3-Coder 30B-A3B | China · Alibaba | 30B MoE (3B active) | 18.6 GB | 24 GB |
 | DeepSeek-Coder V2 Lite | China · DeepSeek | 16B MoE (2.4B active) | 10.4 GB | 14 GB |
 | DeepSeek R1 0528 Qwen3 8B | China · DeepSeek | 8B | 5.0 GB | 8 GB |
 | Qwen3 4B Instruct 2507 | China · Alibaba | 4B | 2.5 GB | 6 GB |
-| Yi-Coder 9B Chat | China · 01.AI | 9B | 5.3 GB | 8 GB |
 | CodeGeeX4 ALL 9B | China · Zhipu AI | 9B | 6.3 GB | 9 GB |
 | Seed-OSS 36B Instruct | China · ByteDance | 36B | 21.8 GB | 27 GB |
 | GPT-OSS 20B | Global · OpenAI | 20B MoE (3.6B active) | 12.1 GB | 16 GB |
@@ -249,7 +251,7 @@ The **Engines** tab detects the engines installed on this machine, finds game pr
 
 Full metadata, licenses, and upstream sources: [Model library](docs/MODELS.md).
 
-All 12 offline models resolve through the domestic `hf-mirror.com` source by default, with `huggingface.co` as an automatic fallback. Set `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR` to change the order; upstream repositories, filenames and SHA-256 hashes are unchanged.
+All 13 offline models resolve through ModelScope first, then the domestic `hf-mirror.com` source, with `huggingface.co` as the final automatic fallback. Set `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR` to change the fallback order; upstream repositories, filenames and SHA-256 hashes are unchanged.
 
 ## Platform packages
 
@@ -257,11 +259,11 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 
 | Platform | Release artifact | Route | Build and launch |
 |---|---|---|---|
-| Windows 10/11 x64 | `CodeForge-AI-1.2.0-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
-| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.2.0-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.2.0-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.2.0-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
-| iOS / iPadOS 15+ | `CodeForge-AI-1.2.0-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
+| Windows 10/11 x64 | `CodeForge-AI-1.2.1-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
+| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.2.1-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.2.1-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.2.1-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
+| iOS / iPadOS 15+ | `CodeForge-AI-1.2.1-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
 
 **Same-platform device coverage**
 
@@ -271,7 +273,7 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 - **Android** — ARM64 phones and tablets run the full stack in Termux and install the official `android-arm64` runtime. Other ABIs build llama.cpp locally, and every Android 8+ device can use the Kotlin APK as a client.
 - **iOS / iPadOS** — the Swift app and iSH console are clients/control hosts; inference can stay on a PC, Mac or phone over the LAN via `llm.openai_url`.
 
-Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.2.0.json` sit beside the archives.
+Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.2.1.json` sit beside the archives.
 
 ## Quick start
 
@@ -377,7 +379,7 @@ memory/          persistent memory and workspace index (generated)
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flow, threading, timeouts, design decisions |
 | [API reference](docs/API.md) | Every endpoint with request and response examples |
 | [Security](docs/SECURITY.md) | Local-first guarantees, LAN exposure, sandboxing limits, model licenses |
-| [Model library](docs/MODELS.md) | All 12 models, sizes, licenses, runtime requirements |
+| [Model library](docs/MODELS.md) | All 13 models, sizes, licenses, capability checks, runtime requirements |
 | [Release notes](CHANGELOG.md) | Changes and fixes in the current release |
 
 ## Build from source

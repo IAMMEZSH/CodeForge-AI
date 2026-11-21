@@ -30,6 +30,7 @@ const state = {
   lastLatency: 0,
   copy: [],
   pollDownloads: null,
+  pollProbe: null,
   modelFilter: 'all',
   native: null,
   chatAbort: null,
@@ -2151,6 +2152,7 @@ function renderModels() {
   renderModelFilters(registry);
   $('#model-count').textContent = registry.length + ' CURATED MODELS';
   const runtime = data.runtime || {};
+  const llmStatus = data.llm_runtime || {};
   const jobs = (data.downloads || []);
   const activeJobs = jobs.filter(job => ['queued', 'resolving', 'downloading', 'verifying', 'extracting'].includes(job.status));
   $('#dl-count').textContent = activeJobs.length + ' active';
@@ -2177,6 +2179,28 @@ function renderModels() {
       : active
         ? '<span class="model-state">' + escapeHtml(job.message || job.status) + '</span>'
         : '<button class="btn sm" data-download="' + escapeHtml(model.id) + '">Download</button>';
+    const cap = model.capability || {};
+    const capStatus = cap.status || 'untested';
+    const capLabels = {
+      pass: 'CAPABLE', weak: 'WEAK', error: 'PROBE ERROR',
+      running: 'TESTING…', untested: 'UNTESTED'
+    };
+    const capBadge = installed
+      ? '<span class="model-cap ' + escapeHtml(capStatus) + '" title="' +
+        escapeHtml(cap.reason || 'No capability probe has run yet') + '">' +
+        escapeHtml(capLabels[capStatus] || capStatus.toUpperCase()) + '</span>'
+      : '';
+    const canProbe = installed && llmStatus.running && llmStatus.healthy &&
+      llmStatus.model_id === model.id;
+    const probeButton = canProbe
+      ? '<button class="btn sm" data-probe="' + escapeHtml(model.id) + '"' +
+        (capStatus === 'running' ? ' disabled' : '') +
+        ' title="Ask this running model to return a real tool call and check it">Test</button>'
+      : '';
+    const capNote = installed && (capStatus === 'weak' || capStatus === 'error') && cap.reason
+      ? '<div class="model-cap-note ' + escapeHtml(capStatus) + '">' +
+        escapeHtml(cap.reason) + '</div>'
+      : '';
     return '<div class="panel model-card">' +
       (model.recommended ? '<div class="model-rec">Recommended</div>' : '') +
       '<div class="mc-top"><h3 class="model-name">' + escapeHtml(model.name) + '</h3>' +
@@ -2190,13 +2214,17 @@ function renderModels() {
       '<span>Quant <b>' + quantOf(model) + '</b></span>' +
       '<span>Size <b>' + escapeHtml(model.size_display || fmtBytes(job && job.total)) + '</b></span>' +
       '<span>Min RAM <b>' + escapeHtml(model.min_ram_gb) + ' GB</b></span></div></div>' +
+      capNote +
       '<div class="progress-wrap' + (active ? ' show' : '') + '"><div class="progress-label"><span>' +
       escapeHtml(job ? job.status : '') + '</span><span>' + (job ? progress + '%' : '') + '</span></div>' +
       '<div class="progress"><i style="width:' + progress + '%"></i></div></div>' +
       '<div class="model-foot"><span class="model-state' + (installed ? ' on' : '') + '">' +
       (installed ? 'READY FOR INFERENCE' : (active ? fmtSpeed(job.speed) : 'NOT DOWNLOADED')) +
-      '</span><span class="spacer"></span>' + button + '</div></div>';
+      '</span><span class="spacer"></span>' + capBadge + probeButton + button + '</div></div>';
   }).join('');
+  if (!state.pollProbe && registry.some(model => (model.capability || {}).status === 'running')) {
+    startProbePolling();
+  }
 
   $$('[data-download]').forEach(button => button.addEventListener('click', async () => {
     const id = button.dataset.download;
@@ -2206,6 +2234,20 @@ function renderModels() {
       if (!result.ok) throw new Error(result.error || 'Download rejected');
       toast('Download started — it resumes automatically if interrupted', 'ok');
       startDownloadPolling();
+      loadModels();
+    } catch (err) {
+      toast(err.message, 'err');
+      button.disabled = false;
+    }
+  }));
+  $$('[data-probe]').forEach(button => button.addEventListener('click', async () => {
+    const id = button.dataset.probe;
+    button.disabled = true;
+    try {
+      const result = await api('/api/models/probe', { method: 'POST', body: { id } });
+      if (!result.ok) throw new Error(result.error || 'Probe rejected');
+      toast(result.message || 'Capability probe started', 'ok');
+      startProbePolling();
       loadModels();
     } catch (err) {
       toast(err.message, 'err');
@@ -2302,6 +2344,26 @@ async function loadModels() {
   } catch (err) {
     toast(err.message, 'err');
   }
+}
+function startProbePolling() {
+  if (state.pollProbe) return;
+  state.pollProbe = setInterval(async () => {
+    try {
+      const data = await api('/api/models');
+      state.models = data;
+      renderModels();
+      const probing = (data.registry || []).some(model =>
+        (model.capability || {}).status === 'running');
+      if (!probing) {
+        clearInterval(state.pollProbe);
+        state.pollProbe = null;
+        loadModels();
+      }
+    } catch (err) {
+      clearInterval(state.pollProbe);
+      state.pollProbe = null;
+    }
+  }, 2000);
 }
 function startDownloadPolling() {
   if (state.pollDownloads) return;
@@ -2798,7 +2860,7 @@ $('#btn-agent-test').addEventListener('click', async () => {
   }
 });
 $('#btn-about').addEventListener('click', () => {
-  toast('CodeForge AI v1.2.0 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
+  toast('CodeForge AI v1.2.1 — local-first coding intelligence. C17 · C++17 · Java 17 · Python. Web console served from 127.0.0.1:8765.');
 });
 
 /* ---------------- key vault ---------------- */

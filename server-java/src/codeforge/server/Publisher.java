@@ -184,7 +184,7 @@ public final class Publisher {
             }
         } catch (IOException ignored) {
         }
-        return "1.2.0";
+        return "1.2.1";
     }
 
     public Map<String, Object> publish(Map<String, Object> request) {

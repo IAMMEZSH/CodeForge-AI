@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.2.0 · Java 17 HTTP server · C++ core bridge
+Version 1.2.1 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -92,6 +92,7 @@ python -c "import sys,json;print(json.dumps(json.load(sys.stdin),indent=2))"
 | GET | `/api/models` | Model registry, install state, runtime state, jobs |
 | POST | `/api/models/download` | Start a background model download |
 | GET | `/api/models/resolve` | Resolve mirror URL, size and SHA-256 |
+| POST | `/api/models/probe` | Verify the running model follows the build-tool protocol |
 | POST | `/api/runtime/install` | Download and extract llama.cpp runtime |
 | POST | `/api/runtime/start` | Start llama-server with an installed model |
 | POST | `/api/runtime/stop` | Stop the managed llama-server |
@@ -165,7 +166,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -214,7 +215,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -334,19 +335,19 @@ check. Only release metadata is fetched — no prompt, file, key or usage data.
 {
   "ok": true,
   "enabled": true,
-  "current": "1.2.0",
-  "latest": "1.2.0",
+  "current": "1.2.1",
+  "latest": "1.2.1",
   "update_available": true,
   "source": "gitcode",
-  "name": "CodeForge AI v1.2.0",
+  "name": "CodeForge AI v1.2.1",
   "published_at": "2026-12-01T10:00:00+08:00",
-  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.2.0",
+  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.2.1",
   "checked_at": "2026-12-01T02:10:00Z"
 }
 ```
 
 With `"updates": {"enabled": false}` in `config.json` the response is
-`{"ok": true, "enabled": false, "current": "1.2.0", "update_available": false}`.
+`{"ok": true, "enabled": false, "current": "1.2.1", "update_available": false}`.
 If both release indexes are unreachable, `ok` is `false` with an `error`
 string; the console shows no banner.
 
@@ -734,7 +735,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -754,8 +755,8 @@ Server timeout: 300 seconds.
 
 ### GET `/api/models`
 
-Merged view of the registry (12 curated GGUF models), install state, job
-list, and runtime information.
+Merged view of the registry (13 curated GGUF models), install state,
+capability state, job list, and runtime information.
 
 | Key | Shape |
 | --- | --- |
@@ -810,6 +811,14 @@ Model entry:
   "min_ram_gb": 6,
   "recommended": false,
   "description": "Fast lightweight generalist ...",
+  "capability": {
+    "status": "pass",
+    "score": 100,
+    "reason": "Valid <codeforge_build> JSON with runnable Python source",
+    "source": "probe",
+    "latency_ms": 1840,
+    "checked_at": "2026-11-21T08:00:00Z"
+  },
   "installed": true,
   "installed_info": {
     "id": "qwen3-4b-instruct-2507",
@@ -825,7 +834,10 @@ Model entry:
 ```
 
 `installed_info` appears only when `installed` is true. `installed` also
-requires the file to still exist on disk.
+requires the file to still exist on disk. `capability` is always present:
+models without a probe result return `{"status":"untested"}`, and a probe still
+in flight returns `running`. The full record is persisted in
+`models/capability.json`.
 
 ```bash
 curl -s http://127.0.0.1:8765/api/models | python -m json.tool
@@ -835,10 +847,11 @@ curl -s http://127.0.0.1:8765/api/models | jq '.registry[] | {id, size_display, 
 ### POST `/api/models/download`
 
 Starts a background download job. The downloader resolves the upstream file
-through the configured Hugging Face-compatible mirror (`hf-mirror.com` by
-default, `huggingface.co` fallback), validates the expected size and SHA-256,
-resumes with HTTP `Range` after connection drops (up to 12 attempts), and only
-then moves the `.part` file into `models/downloads/<id>/`.
+through ModelScope first, then the configured Hugging Face-compatible mirror
+(`hf-mirror.com` by default, `huggingface.co` final fallback), validates the
+expected size and SHA-256, resumes with HTTP `Range` after connection drops (up
+to 12 attempts), and only then moves the `.part` file into
+`models/downloads/<id>/`.
 
 Request:
 
@@ -870,10 +883,11 @@ Typical transfer is 2–20 GB — plan disk space accordingly.
 
 ### GET `/api/models/resolve?id=<id>`
 
-Resolves the live upstream metadata without downloading. The default source is
-the domestic `hf-mirror.com` mirror; `huggingface.co` is tried automatically if
-the mirror fails or returns incomplete metadata. Override the order with
-`llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
+Resolves the live upstream metadata without downloading. ModelScope is tried
+first; the domestic `hf-mirror.com` mirror is next, and `huggingface.co` is
+tried automatically if both fail or return incomplete metadata. Override the
+Hugging Face-compatible fallback order with `llm.model_mirror` or
+`CODEFORGE_MODEL_MIRROR`; ModelScope always remains first.
 
 ```bash
 curl -s "http://127.0.0.1:8765/api/models/resolve?id=deepseek-r1-0528-qwen3-8b"
@@ -885,17 +899,57 @@ curl -s "http://127.0.0.1:8765/api/models/resolve?id=deepseek-r1-0528-qwen3-8b"
   "id": "deepseek-r1-0528-qwen3-8b",
   "repo": "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
   "file": "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
-  "url": "https://hf-mirror.com/.../resolve/main/...gguf",
-  "source": "https://hf-mirror.com",
+  "url": "https://modelscope.cn/models/.../resolve/master/...gguf",
+  "source": "modelscope",
   "size": 5012345678,
   "sha256": "…",
   "installed": false
 }
 ```
 
-The `source` field reports which mirror answered. SHA-256 resolution accepts
-both the current `lfs.sha256` metadata field and the legacy `lfs.oid` pointer.
-If resolution fails: `{"ok": false, "error": "..."}`.
+The `source` field reports which source answered: `modelscope`, or the base
+URL of the Hugging Face-compatible mirror that responded. SHA-256 resolution
+accepts both the current `lfs.sha256` metadata field and the legacy `lfs.oid`
+pointer. If resolution fails: `{"ok": false, "error": "..."}`.
+
+### POST `/api/models/probe`
+
+Runs a real capability probe against the model that is currently serving
+inference. It asks for one `<codeforge_build>` call that generates a Python
+script named `capability_probe` printing exactly `PROBE_OK`, then validates the
+tag, JSON, language, code/source, placeholders, `print` call and marker. The
+verdict is stored in `models/capability.json`.
+
+Request:
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `id` | string | no; defaults to the running model. A different id is rejected |
+
+```bash
+curl -s -X POST http://127.0.0.1:8765/api/models/probe \
+  -H "Content-Type: application/json" -d '{"id":"qwen3-4b-instruct-2507"}'
+```
+
+Accepted:
+
+```json
+{ "ok": true, "status": "running", "model_id": "qwen3-4b-instruct-2507" }
+```
+
+Rejected:
+
+```json
+{ "ok": false, "error": "Start inference before running a capability probe." }
+{ "ok": false, "error": "Capability probes only work on the running model (<id>)." }
+{ "ok": false, "error": "Model is not installed: <id>" }
+```
+
+Poll `GET /api/models` and read `registry[].capability`. Statuses are
+`running`, `pass`, `weak` and `error`; `pass` carries `score: 100`, while a
+failure carries `score: 0`, a concrete `reason` and a reply `excerpt`. A probe
+that is already active returns `ok: true` with `status: "running"` instead of
+starting a second request.
 
 ---
 
@@ -1435,7 +1489,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.2.0", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.2.1", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1478,7 +1532,8 @@ echo '{"code":"print(1/0)","language":"python","iterations":1}' \
 | `config.json` → `llm` | Backend selection (`auto`, `openai`, `ollama`, `mock`), base URL, model name, timeouts |
 | `config.json` → `debug` | `compile_timeout_ms`, `run_timeout_ms`, `max_iterations`, output caps |
 | `--port` CLI flag | Port for the Java server (default 8765, passed by bootstrap) |
-| `models/models.json` | Installed-model index read by `ModelManager` |
+| `models/installed.json` | Installed-model index read by `ModelManager` |
+| `models/capability.json` | Per-model capability verdicts from probes and chat protocol failures |
 | `runtime/runtime.json` | Installed runtime metadata |
 
 Secrets: none required. CodeForge AI never asks for a Hugging Face token;
@@ -1906,8 +1961,8 @@ allow-forms allow-modals allow-popups allow-pointer-lock`, `nosniff`,
   not to execute page instructions, but no content filter can make third-party
   text trustworthy.
 - The server never reads environment secrets or sends telemetry. Downloads are
-  anonymous HTTPS requests to the configured model mirror (`hf-mirror.com` by
-  default, `huggingface.co` fallback) and GitHub.
+  anonymous HTTPS requests to ModelScope, then the configured model mirror
+  (`hf-mirror.com` by default, `huggingface.co` final fallback), and GitHub.
 - All model files stay under `models/downloads/`; all generated code stays
   under `workspace/`; logs stay under `logs/`.
 - Static inspection reads bytes only and never executes the inspected file.
@@ -2026,7 +2081,7 @@ from the release folder:
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/publish \
   -H "Content-Type: application/json" \
-  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.2.0","name":"CodeForge AI v1.2.0","body":"…","folder":"release","overwrite":true,"delete_older":true}'
+  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.2.1","name":"CodeForge AI v1.2.1","body":"…","folder":"release","overwrite":true,"delete_older":true}'
 ```
 
 | Field | Type | Default | Notes |

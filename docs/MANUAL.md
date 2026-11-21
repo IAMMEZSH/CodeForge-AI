@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.2.0 · 2026-11-21**
+**Version 1.2.1 · 2026-11-21**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -174,9 +174,9 @@ of the model: it works with a local GGUF model or the optional online brain.
 | Tier | RAM | CPU | Suitable models | Experience |
 |---|---|---|---|---|
 | Minimum | 8 GB | 4 logical cores, x64/arm64 | Qwen3 4B (Q4_K_M) | Chat and small debug loops; long answers are slow |
-| Comfortable | 16 GB | 6–8 cores | Qwen3 4B, DeepSeek R1 8B, Yi-Coder 9B, Phi-4, CodeGeeX4 9B | Daily driver for one project |
+| Comfortable | 16 GB | 6–8 cores | Qwen3 4B, DeepSeek R1 8B, Phi-4, CodeGeeX4 9B, GPT-OSS 20B | Daily driver for one project |
 | Recommended | 24–32 GB | 8–12 cores | GPT-OSS 20B, DeepSeek-Coder V2 Lite, Devstral 24B, Gemma 3 27B | Large files and multi-iteration repairs |
-| Workstation | 48 GB+ | 12+ cores | Qwen3-Coder 30B-A3B, Seed-OSS 36B, Codestral 22B | Flagship agentic work |
+| Workstation | 48 GB+ | 12+ cores | Qwen3.6 35B A3B, Qwen3.8 27B, Qwen3-Coder 30B-A3B, Seed-OSS 36B, Codestral 22B | Flagship agentic work |
 
 - The managed runtime runs on **CPU or CUDA**, selectable in the Models panel.
   CUDA requires an NVIDIA GPU with a driver matching the CUDA 13.5 build; CPU
@@ -226,10 +226,10 @@ size plus 512 MB. Keep at least 15 GB free for comfortable model rotation.
 
 - **Offline use** is fully supported once a runtime and at least one model are
   installed.
-- **First model download** resolves metadata through the domestic
-  `hf-mirror.com` mirror by default, with `huggingface.co` as an automatic
+- **First model download** resolves metadata through ModelScope first, then the
+  domestic `hf-mirror.com` mirror, with `huggingface.co` as the final automatic
   fallback, and streams the weights through the same source. Override the
-  order with `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
+  fallback order with `llm.model_mirror` or `CODEFORGE_MODEL_MIRROR`.
 - **Runtime install** resolves releases from `api.github.com` and downloads
   the archive from GitHub.
 - **JDK bootstrap** (only when no JDK 17+ is present) resolves Temurin assets
@@ -1039,7 +1039,7 @@ modified.
 The **Publish** rail item drives GitHub and GitCode releases through their REST
 APIs. It never prints or returns a token.
 
-![Publish view with GitHub and GitCode targets, tag v1.2.0 and the local asset folder](images/console-publish.png)
+![Publish view with GitHub and GitCode targets, tag v1.2.1 and the local asset folder](images/console-publish.png)
 
 | Field | Meaning |
 |---|---|
@@ -1280,23 +1280,24 @@ completed in a few seconds.
 
 ### 7.1 Curated catalog
 
-Twelve GGUF models are registered. China-origin and Global-origin models are
-balanced for coding, reasoning and agentic work.
+Thirteen GGUF models are registered: eight China-origin models and five
+Global-origin models, balanced for coding, reasoning and agentic work.
 
 | # | Model | Origin | Params | Context | License | Approx. size | Min RAM |
 |---|---|---|---|---|---|---|---|
-| 1 | Qwen3-Coder 30B-A3B | China · Alibaba | 30B MoE (3B active) | 256K | Apache-2.0 | 18.6 GB | 24 GB |
-| 2 | DeepSeek-Coder V2 Lite | China · DeepSeek | 16B MoE (2.4B active) | 128K | DeepSeek License | 10.4 GB | 14 GB |
-| 3 | DeepSeek R1 0528 Qwen3 8B | China · DeepSeek | 8B | 128K | MIT | 5.0 GB | 8 GB |
-| 4 | Qwen3 4B Instruct 2507 | China · Alibaba | 4B | 256K | Apache-2.0 | 2.5 GB | 6 GB |
-| 5 | Yi-Coder 9B Chat | China · 01.AI | 9B | 128K | Apache-2.0 | 5.3 GB | 8 GB |
-| 6 | CodeGeeX4 ALL 9B | China · Zhipu AI | 9B | 128K | CodeGeeX4 License | 6.3 GB | 9 GB |
-| 7 | Seed-OSS 36B Instruct | China · ByteDance | 36B | 512K | Apache-2.0 | 21.8 GB | 27 GB |
-| 8 | GPT-OSS 20B | Global · OpenAI | 20B MoE (3.6B active) | 128K | Apache-2.0 | 12.1 GB | 16 GB |
-| 9 | Devstral Small 2507 | Global · Mistral AI | 24B | 128K | Apache-2.0 | 14.3 GB | 20 GB |
-| 10 | Phi-4 | Global · Microsoft | 14B | 16K | MIT | 9.1 GB | 12 GB |
-| 11 | Gemma 3 27B IT | Global · Google | 27B | 128K | Gemma License | 16.6 GB | 22 GB |
-| 12 | Codestral 22B | Global · Mistral AI | 22B | 32K | Mistral Non-Production | 13.3 GB | 18 GB |
+| 1 | Qwen3.6 35B A3B | China · Alibaba | 35B MoE (3B active) | 262K | Apache-2.0 | 22.1 GB | 28 GB |
+| 2 | Qwen3.8 27B | China · Alibaba | 27B | 262K | Apache-2.0 | 16.6 GB | 22 GB |
+| 3 | Qwen3-Coder 30B-A3B | China · Alibaba | 30B MoE (3B active) | 256K | Apache-2.0 | 18.6 GB | 24 GB |
+| 4 | DeepSeek-Coder V2 Lite | China · DeepSeek | 16B MoE (2.4B active) | 128K | DeepSeek License | 10.4 GB | 14 GB |
+| 5 | DeepSeek R1 0528 Qwen3 8B | China · DeepSeek | 8B | 128K | MIT | 5.0 GB | 8 GB |
+| 6 | Qwen3 4B Instruct 2507 | China · Alibaba | 4B | 256K | Apache-2.0 | 2.5 GB | 6 GB |
+| 7 | CodeGeeX4 ALL 9B | China · Zhipu AI | 9B | 128K | CodeGeeX4 License | 6.3 GB | 9 GB |
+| 8 | Seed-OSS 36B Instruct | China · ByteDance | 36B | 512K | Apache-2.0 | 21.8 GB | 27 GB |
+| 9 | GPT-OSS 20B | Global · OpenAI | 20B MoE (3.6B active) | 128K | Apache-2.0 | 12.1 GB | 16 GB |
+| 10 | Devstral Small 2507 | Global · Mistral AI | 24B | 128K | Apache-2.0 | 14.3 GB | 20 GB |
+| 11 | Phi-4 | Global · Microsoft | 14B | 16K | MIT | 9.1 GB | 12 GB |
+| 12 | Gemma 3 27B IT | Global · Google | 27B | 128K | Gemma License | 16.6 GB | 22 GB |
+| 13 | Codestral 22B | Global · Mistral AI | 22B | 32K | Mistral Non-Production | 13.3 GB | 18 GB |
 
 The GGUF context window is much larger than the managed runtime's default
 16,384-token window. The default keeps CPU memory bounded for 8 GB machines.
@@ -1308,18 +1309,20 @@ The selected model's architecture limit always wins.
 
 The filter bar offers **All**, **China**, **Global**, **Light ≤12 GB RAM** and
 **Recommended**. Each card shows the vendor, parameter count, context, license,
-approximate download size, minimum RAM and a short description. The button
-changes to **Installed** when the file is present and verified.
+approximate download size, minimum RAM, a short description and a capability
+badge (`untested`, `running`, `pass`, `weak`, `error`). The primary button
+changes to **Installed** when the file is present and verified, and an installed
+model also gets a **Test** button that runs the capability probe.
 
 ### 7.3 Download lifecycle
 
 ![Download and runtime flow](images/diagram-models.png)
 
-1. **Resolve.** The server queries the configured Hugging Face-compatible
-   mirror (`hf-mirror.com` by default) for the exact file, expected size and
-   LFS SHA-256. If that source fails or omits the size/hash, it tries
-   `huggingface.co` next. Set `llm.model_mirror` to a comma-separated list to
-   choose your own order.
+1. **Resolve.** The server queries ModelScope first for the exact file,
+   expected size and SHA-256. If ModelScope fails or omits the size/hash, it
+   tries `hf-mirror.com`, then `huggingface.co`. Set `llm.model_mirror` to a
+   comma-separated list to choose your own Hugging Face-compatible fallback
+   order; ModelScope always comes first.
 2. **Disk check.** It requires the expected size plus 512 MB free.
 3. **Stream.** It writes to `<file>.gguf.part` with a 256 KB buffer, reporting
    progress and speed.
@@ -1446,15 +1449,42 @@ runtime/llama.cpp-cuda/llama-server.exe (CUDA)
 While the runtime panel shows `RUNNING / HEALTHY`, the LLM chip turns green and
 chat/debug become available.
 
-### 7.6 Choosing a model
+### 7.6 Capability verification
+
+The Models panel never assumes that a downloaded file equals a working agent.
+Press **Test** on an installed model, or call `POST /api/models/probe` with
+`{"id":"<model-id>"}`, while that model is running. The probe asks for one
+`<codeforge_build>` tool call containing `capability_probe`, a Python script
+that prints `PROBE_OK`, then validates the tag, JSON, language, source,
+placeholders, `print` call and marker.
+
+Results are stored per model in `models/capability.json` and shown as a badge:
+
+| Badge | Meaning |
+|---|---|
+| `untested` | No probe has run yet |
+| `running` | The probe is in flight; the card polls until it finishes |
+| `pass` | Valid tool call and runnable source (score 100) |
+| `weak` | The model replied but failed the protocol or source checks |
+| `error` | The inference endpoint was unreachable or returned an error |
+
+The running model is probed automatically the first time inference starts when
+its status is `untested`, `error`, or a stale `running` older than ten minutes.
+If a chat later produces a malformed tool call that cannot be repaired after
+the protocol retries, the server marks that model `weak` with source `chat`.
+A `weak` model can still be used for conversation; do not rely on it for
+unattended builds.
+
+### 7.7 Choosing a model
 
 | Goal | Recommendation |
 |---|---|
 | Fastest responses on 8 GB | Qwen3 4B Q4_K_M |
 | Best small debugger | DeepSeek R1 0528 Qwen3 8B |
-| Broad language coverage | Yi-Coder 9B, CodeGeeX4 9B |
+| Broad language coverage | CodeGeeX4 9B, Gemma 3 27B |
 | Strong agentic repairs | GPT-OSS 20B, Devstral Small 24B |
-| Best overall on a workstation | Qwen3-Coder 30B-A3B |
+| Best coding quality on a workstation | Qwen3.6 35B A3B, Qwen3.8 27B |
+| Best overall at 24 GB | Qwen3-Coder 30B-A3B |
 | Huge context | Seed-OSS 36B (512K architecture; select up to 524,288 in the runtime panel, with very large RAM) |
 | Fill-in-the-middle completion | Codestral 22B (non-production license) |
 
@@ -1823,7 +1853,7 @@ produces a `config_warning` in `status`, but startup continues with defaults.
 | `max_tokens` | `393216` | 64–393216 | Reply budget for online and offline replies; also selectable as **Reply limit** in the runtime panel and applied on the next reply without restarting inference. Offline models use the full value; online providers apply their own output cap (DeepSeek: 8,192). The context window minus the prompt still caps the actual reply |
 | `context_size` | `16384` | 2048–524288 | Managed llama-server context window (`-c`), in tokens; also selectable in the runtime panel |
 | `parallel` | `1` | 1–8 | Concurrent llama-server slots; the total context is divided across them |
-| `model_mirror` | `https://hf-mirror.com` | — | Hugging Face-compatible metadata/file mirror for every offline model; comma-separated sources are tried in order and `https://huggingface.co` is appended as fallback |
+| `model_mirror` | `https://hf-mirror.com` | — | Hugging Face-compatible metadata/file fallback mirror for every offline model; ModelScope is always tried first, then this comma-separated list in order, and `https://huggingface.co` is appended as the final fallback |
 | `request_timeout_ms` | `600000` | 5000–3600000 | LLM HTTP timeout inside the core; local chat requests are extended automatically to 120 s + 0.5 s per token so large reply limits are not cut off |
 
 ### 11.2 `debug` section
@@ -2025,11 +2055,11 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.2.0-source.zip`
-- `CodeForge-AI-1.2.0-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.2.0-docs.zip`
+- `CodeForge-AI-1.2.1-source.zip`
+- `CodeForge-AI-1.2.1-windows-x64.zip` (includes compiled binaries and jar)
+- `CodeForge-AI-1.2.1-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.2.0.json`
+- `manifest-1.2.1.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.
@@ -2285,7 +2315,7 @@ If you suspect the API was exposed:
 | `SHA-256 mismatch. The file was removed` | Corrupt or intercepted download | Retry on a stable connection |
 | `Incomplete download (x/y bytes). Partial file kept for resume.` | Stream ended early | Start the same download again |
 | `This model is already downloading or verifying.` | Duplicate request | Wait for the active job |
-| Download stuck at 0% | Mirror unreachable | Test `curl -I https://hf-mirror.com`; set `llm.model_mirror` if needed |
+| Download stuck at 0% | ModelScope and mirrors unreachable | Test `curl -I https://modelscope.cn` and `curl -I https://hf-mirror.com`; set `llm.model_mirror` if needed |
 | `Unknown model: <id>` | Typo or old registry | Use an id from `GET /api/models` |
 
 ### 17.3 Runtime and inference

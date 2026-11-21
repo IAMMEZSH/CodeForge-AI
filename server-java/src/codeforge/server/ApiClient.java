@@ -134,7 +134,7 @@ public final class ApiClient {
             headers.put("Accept", "application/json, text/plain, */*");
         }
         if (!containsHeader(headers, "user-agent")) {
-            headers.put("User-Agent", "CodeForge-AI/1.2.0");
+            headers.put("User-Agent", "CodeForge-AI/1.2.1");
         }
 
         try {

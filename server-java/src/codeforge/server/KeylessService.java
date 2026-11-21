@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public final class KeylessService {
     private static final String USER_AGENT =
-            "CodeForge-AI/1.2.0 (keyless public data gateway)";
+            "CodeForge-AI/1.2.1 (keyless public data gateway)";
     private static final String NOTICE =
             "Real live data from a keyless public source. No API key, account or "
                     + "registration is needed or accepted. Never ask the user to register "
