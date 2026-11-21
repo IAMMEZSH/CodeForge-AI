@@ -2259,9 +2259,9 @@ Never delete `models/installed.json` while a download is running.
 - **Same-user processes** can read `config.json`, logs, models and workspaces.
 - **Model licenses** are not enforced by the software; check them before
   commercial use.
-- **Supply chain.** Models resolve through the configured mirror
-  (`hf-mirror.com` by default, `huggingface.co` fallback), and the llama.cpp
-  runtime comes from GitHub. Model downloads require an upstream size and
+- **Supply chain.** Models resolve through ModelScope first, then the
+  configured mirrors (`hf-mirror.com` first, `huggingface.co` last by default),
+  and the llama.cpp runtime comes from GitHub. Model downloads require an upstream size and
   SHA-256; the C17 helper verifies the hash before registration. Provenance
   beyond that is your responsibility.
 

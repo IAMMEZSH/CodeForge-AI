@@ -730,7 +730,7 @@ assumes a **local trust boundary** and does not pretend to be a sandbox.
 - Office and PDF parsing runs in the JVM on documents the user opens. A
   malformed document can consume CPU or memory; parsing is not a sandbox.
 - No telemetry and no analytics. Outbound requests happen only for: model
-  downloads (domestic mirror with Hugging Face fallback), runtime downloads
+  downloads (ModelScope first, then hf-mirror and Hugging Face), runtime downloads
   (GitHub releases), the optional online LLM you configure, opt-in web
   research when `online.enabled` is true, explicit tool provisioning or agent
   web tools, download-center requests, configured SMTP, and the release-index

@@ -847,8 +847,8 @@ curl -s http://127.0.0.1:8765/api/models | jq '.registry[] | {id, size_display, 
 ### POST `/api/models/download`
 
 Starts a background download job. The downloader resolves the upstream file
-through ModelScope first, then the configured Hugging Face-compatible mirror
-(`hf-mirror.com` by default, `huggingface.co` final fallback), validates the
+through ModelScope first, then the configured Hugging Face-compatible fallbacks
+(`hf-mirror.com` first, `huggingface.co` last by default), validates the
 expected size and SHA-256, resumes with HTTP `Range` after connection drops (up
 to 12 attempts), and only then moves the `.part` file into
 `models/downloads/<id>/`.
@@ -1961,8 +1961,8 @@ allow-forms allow-modals allow-popups allow-pointer-lock`, `nosniff`,
   not to execute page instructions, but no content filter can make third-party
   text trustworthy.
 - The server never reads environment secrets or sends telemetry. Downloads are
-  anonymous HTTPS requests to ModelScope, then the configured model mirror
-  (`hf-mirror.com` by default, `huggingface.co` final fallback), and GitHub.
+  anonymous HTTPS requests to ModelScope, then the configured model fallbacks
+  (`hf-mirror.com` first, `huggingface.co` last by default), and GitHub.
 - All model files stay under `models/downloads/`; all generated code stays
   under `workspace/`; logs stay under `logs/`.
 - Static inspection reads bytes only and never executes the inspected file.

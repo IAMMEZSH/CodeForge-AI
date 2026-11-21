@@ -164,8 +164,8 @@ file. Keep llama.cpp current and prefer well-known repositories.
   (`api.gitcode.com`, preferred on Chinese systems) or GitHub
   (`api.github.com`, fallback), sends no prompt, file, key or usage data, and
   can be disabled with `"updates": {"enabled": false}` in `config.json`.
-- No other outbound request except: model downloads (domestic mirror with
-  Hugging Face fallback), runtime downloads (GitHub), the configured LLM
+- No other outbound request except: model downloads (ModelScope first, then
+  hf-mirror and Hugging Face), runtime downloads (GitHub), the configured LLM
   backend (loopback by default), the optional online LLM you configure,
   opt-in web research, download-center URL/search requests, configured SMTP,
   and the release-index update check.
