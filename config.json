@@ -61,7 +61,7 @@
     "max_steps": 64
   },
   "permissions": {
-    "full_filesystem": true
+    "full_filesystem": false
   },
   "secrets": {}
 }
