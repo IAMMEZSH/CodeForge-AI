@@ -1,1 +1,0 @@
-﻿$ProgressPreference='SilentlyContinue';$ErrorActionPreference='Continue';try{$null=chcp.com 65001}catch{};[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding $false;$OutputEncoding=[Console]::OutputEncoding;$Error.Clear();& { npm run test };$code=$LASTEXITCODE;if($null -eq $code){$code=0};if($code -eq 0 -and $Error.Count -gt 0){$code=1};exit $code

@@ -1,7 +1,0 @@
-[codeforge] root   : C:\Users\TENSAINT-73-936\Desktop\CodeForge-AI-1.0.7
-[codeforge] port   : 8765
-[codeforge] java   : 17.0.21.0.2 (Microsoft)
-[codeforge] os     : Windows 11 amd64
-[codeforge] web console : http://127.0.0.1:8765/console/
-[codeforge] api         : http://127.0.0.1:8765/api/status
-CODEFORGE_SERVER_READY http://127.0.0.1:8765
