@@ -2,7 +2,7 @@
 
 Every command you need, for every supported platform.
 
-Version 1.2.1
+Version 1.2.2
 
 ---
 
@@ -127,10 +127,12 @@ gcc -O2 -std=c17 -Wall -Wextra -o native\bin\cforge_native.exe `
     native-c\native_tool.c native-c\sha256.c -lshell32
 
 g++ -std=c++17 -O2 -Wall -Wextra -static -static-libgcc -static-libstdc++ `
+    -Icore -Inative-c `
     -o native\bin\CodeForgeCore.exe `
-    core\main.cpp core\config.cpp core\util.cpp core\process.cpp `
-    core\http.cpp core\llm.cpp core\runners.cpp core\debugger.cpp `
-    -lwinhttp -lshell32
+    core\main.cpp core\cli_tools.cpp core\config.cpp core\util.cpp `
+    core\process.cpp core\http.cpp core\llm.cpp core\runners.cpp `
+    core\debugger.cpp native-c\sha256.c `
+    -lwinhttp -lshell32 -ladvapi32 -luser32
 
 g++ -std=c++17 -O2 -Wall -Wextra -municode -Icore `
     -static -static-libgcc -static-libstdc++ `
@@ -138,11 +140,11 @@ g++ -std=c++17 -O2 -Wall -Wextra -municode -Icore `
     client\main.cpp core\http.cpp core\util.cpp `
     -lwinhttp -lshell32 -lgdi32 -luser32 -lcomctl32 -ldwmapi -lole32
 
-javac --add-modules jdk.httpserver -encoding UTF-8 -d server-java\build\classes `
+javac --add-modules jdk.httpserver -encoding UTF-8 `
+    -cp "server-java\lib\*" -d server-java\build\classes `
     server-java\src\codeforge\server\*.java
 
-jar --create --file server-java\build\CodeForgeServer.jar `
-    --main-class codeforge.server.ServerMain -C server-java\build\classes .
+python aux-python\build_jar.py
 ```
 
 CMake alternative (MinGW Makefiles):
@@ -306,7 +308,7 @@ curl.exe -s http://127.0.0.1:8765/api/status |
 
 A native ARM64 build of the C++ core requires an ARM64 C++17 toolchain and an
 ARM64 JDK 17; the runtime installer then prefers `win-cpu-arm64` and falls back
-to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.2.1;
+to `win-cpu-x64`. Prebuilt ARM64 Windows binaries are not shipped in 1.2.2;
 the emulated x64 bundle is the supported route.
 
 Native build with MSYS2 CLANGARM64:
@@ -390,18 +392,19 @@ mkdir -p native/bin
 gcc -O2 -std=c17 -Wall -Wextra -o native/bin/cforge_native \
     native-c/native_tool.c native-c/sha256.c -lm
 
-g++ -std=c++17 -O2 -Wall -Wextra -o native/bin/CodeForgeCore \
-    core/main.cpp core/config.cpp core/util.cpp core/process.cpp \
-    core/http.cpp core/llm.cpp core/runners.cpp core/debugger.cpp \
+g++ -std=c++17 -O2 -Wall -Wextra -Icore -Inative-c \
+    -o native/bin/CodeForgeCore \
+    core/main.cpp core/cli_tools.cpp core/config.cpp core/util.cpp \
+    core/process.cpp core/http.cpp core/llm.cpp core/runners.cpp \
+    core/debugger.cpp native-c/sha256.c \
     -lcurl -lpthread
 
 mkdir -p server-java/build/classes
 javac --add-modules jdk.httpserver -encoding UTF-8 \
-      -d server-java/build/classes \
+      -cp "server-java/lib/*" -d server-java/build/classes \
       server-java/src/codeforge/server/*.java
 
-jar --create --file server-java/build/CodeForgeServer.jar \
-    --main-class codeforge.server.ServerMain -C server-java/build/classes .
+python3 aux-python/build_jar.py
 ```
 
 CMake:
@@ -596,16 +599,18 @@ mkdir -p native/bin
 clang -O2 -std=c17 -Wall -Wextra -o native/bin/cforge_native \
       native-c/native_tool.c native-c/sha256.c
 
-clang++ -std=c++17 -O2 -Wall -Wextra -o native/bin/CodeForgeCore \
-      core/main.cpp core/config.cpp core/util.cpp core/process.cpp \
-      core/http.cpp core/llm.cpp core/runners.cpp core/debugger.cpp \
+clang++ -std=c++17 -O2 -Wall -Wextra -Icore -Inative-c \
+      -o native/bin/CodeForgeCore \
+      core/main.cpp core/cli_tools.cpp core/config.cpp core/util.cpp \
+      core/process.cpp core/http.cpp core/llm.cpp core/runners.cpp \
+      core/debugger.cpp native-c/sha256.c \
       -lcurl -lpthread
 
 mkdir -p server-java/build/classes
 javac --add-modules jdk.httpserver -encoding UTF-8 \
-      -d server-java/build/classes server-java/src/codeforge/server/*.java
-jar --create --file server-java/build/CodeForgeServer.jar \
-    --main-class codeforge.server.ServerMain -C server-java/build/classes .
+      -cp "server-java/lib/*" -d server-java/build/classes \
+      server-java/src/codeforge/server/*.java
+python3 aux-python/build_jar.py
 ```
 
 If `-lcurl` fails, use Homebrew's curl:
@@ -1127,6 +1132,13 @@ echo '{"messages":[{"role":"user","content":"hi"}]}' | native/bin/CodeForgeCore 
 echo '{"code":"print(1/0)","language":"python","iterations":1}' | native/bin/CodeForgeCore debug --root .
 echo '{"code":"print(42)","language":"python"}' | native/bin/CodeForgeCore run --root .
 native/bin/CodeForgeCore selftest --root .
+
+# download / install / PATH (1.2.2)
+native/bin/CodeForgeCore download --root . --url https://example.com/file.zip --out downloads/file.zip
+native/bin/CodeForgeCore download --root . --json '{"name":"model.gguf","url":"https://example.com/model.gguf"}'
+native/bin/CodeForgeCore install --root . --name Git --manager winget --scope machine
+native/bin/CodeForgeCore path --root . --action add --machine
+native/bin/CodeForgeCore help --root .
 ```
 
 Windows: `native\bin\CodeForgeCore.exe`.

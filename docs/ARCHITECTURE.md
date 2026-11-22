@@ -1,6 +1,6 @@
 # CodeForge AI — Architecture
 
-Version 1.2.1 · C17 · C++17 · Java 17 · Python 3.13
+Version 1.2.2 · C17 · C++17 · Java 17 · Python 3.13
 
 This document describes how the system is put together, why the work is split
 across four languages, and exactly what happens on disk and on the wire for
@@ -39,10 +39,12 @@ is the least risky choice.
 | Desktop shell | C++17 (Win32) | Tray icon, control center window, Edge app-mode launch | Native window with zero frameworks; launches the console like a product, not a dev server |
 | Web console | HTML/CSS/JS | Chat, debug, models, environment UI | No build step, works on desktop and mobile browsers unmodified |
 
-The C++ core never performs network downloads for models — that belongs to the
-Java server, which has reliable streaming and hash handling. The Java server
-never compiles or runs user code — that belongs to the C++ core, which can
-supervise and kill process trees.
+The C++ core never manages model downloads — the Java server owns the model
+registry, runtime installation and their hashes. The core's CLI `download`
+command transfers user-specified files through the server job or the bundled
+aria2c/curl and never writes a model into the registry. The Java server never
+compiles or runs user code — that belongs to the C++ core, which can supervise
+and kill process trees.
 
 ---
 
@@ -96,6 +98,7 @@ Directory-level layout:
 CodeForge-AI/
 ├── core/                 C++17 main core
 │   ├── main.cpp          CLI entry, JSON command dispatch, status/selftest
+│   ├── cli_tools.cpp     download/install/path, aria2c+curl fallback, UAC/PATH
 │   ├── llm.cpp/.hpp      backend detection, OpenAI/Ollama clients, prompts
 │   ├── debugger.cpp      repair loop, code-block extraction, report writing
 │   ├── runners.cpp       language detection, compiler invocation, execution
@@ -116,7 +119,7 @@ CodeForge-AI/
 │   ├── lib/              POI, PDFBox and Jakarta Mail jars (merged into the jar)
 │   └── web/console/
 ├── client/main.cpp       Win32 desktop shell
-├── aux-python/           bootstrap.py, mock_llm.py
+├── aux-python/           bootstrap.py, build_jar.py, package_release.py, mock_llm.py
 ├── mobile/android/       Kotlin WebView thin client (Gradle)
 ├── mobile/ios/           SwiftUI/WKWebView thin client (XcodeGen)
 ├── docs/                 manuals, API, images
@@ -448,8 +451,8 @@ GET /api/update[?refresh=1]
 
 The console calls this endpoint on load and every six hours, then shows a
 dismissible banner when `update_available` is true. No prompt, file, key or
-usage data is sent. Builds older than 1.2.1 do not contain this checker, so
-their first move to 1.2.1 is a manual download; from 1.2.1 onward the banner
+usage data is sent. Builds older than 1.2.2 do not contain this checker, so
+their first move to 1.2.2 is a manual download; from 1.2.2 onward the banner
 reaches installed copies without a manual check.
 
 ### 5.10 Game engine adapters
@@ -532,6 +535,40 @@ operations are gated by an explicit boolean and an audit trail; the office
 trash (`workspace/.trash/office`), filesystem trash (`workspace/.trash/fs`)
 and download folder (`downloads/`) are ordinary workspace data and
 are excluded from release packaging.
+
+### 5.12 Command-line download, install and PATH
+
+`core/cli_tools.cpp` reuses the existing process and HTTP layers instead of
+starting a second network stack:
+
+```
+CodeForgeCore download <url>
+  → engine auto: local server /api/downloader/start + polling
+                 (only when the server answers)
+  → aria2c -x16 -s16 -c --checksum=sha-256=... in native/bin/
+  → curl -fL --retry 5 -C -
+  → one JSON result: ok, path, bytes, sha256, engine, error
+
+CodeForgeCore download --query "..."
+  → requires the local server; search + rank happen in DownloadService
+  → polls /api/downloader/jobs/<id> until done, needs_choice or timeout
+
+CodeForgeCore install <pkg>
+  → detect winget/choco/brew/apt-get/dnf/zypper/pacman/apk
+  → non-interactive flags, machine/user scope, JSON result
+
+CodeForgeCore path show|add|remove [--machine|--user]
+  → Windows: HKLM/HKCU registry, REG_SZ/REG_EXPAND_SZ, cforge.cmd
+             machine writes relaunch elevated and confirm the change
+  → POSIX: /etc/profile.d/codeforge.sh or ~/.profile
+```
+
+The fallback order is deliberate: the server job already carries search,
+ranking, resume and job state, aria2c adds segmented transfers when no server
+is running, and curl is the last-resort implementation available on every
+host. A supplied SHA-256 is checked after the transfer, and the partial file is
+kept for inspection on mismatch. Machine-scope operations are the only ones
+that require elevation; nothing is installed or added to PATH implicitly.
 
 ---
 
@@ -631,7 +668,7 @@ vs `program`) and PATH lookup (strip `.exe`, split on `;` vs `:`).
 | Target | Source | Output |
 | --- | --- | --- |
 | `cforge_native` | `native-c/*.c` | `native/bin/cforge_native[.exe]` |
-| `CodeForgeCore` | `core/*.cpp` | `native/bin/CodeForgeCore[.exe]` |
+| `CodeForgeCore` | `core/*.cpp` + `native-c/sha256.c` | `native/bin/CodeForgeCore[.exe]` |
 | `CodeForge` (Win32 only) | `client/main.cpp` + core http/util | `native/bin/CodeForge.exe` |
 
 `aux-python/bootstrap.py` is the recommended entry point. It:

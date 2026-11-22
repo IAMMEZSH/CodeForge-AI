@@ -1,6 +1,6 @@
 # CodeForge AI — Security
 
-Version 1.2.1 · Last reviewed 2026-11-20
+Version 1.2.2 · Last reviewed 2026-11-20
 
 CodeForge AI is a local tool that **compiles and executes code on purpose**.
 Any honest security document for such a tool starts with the same sentence:
@@ -336,6 +336,28 @@ not attempt a silent install.
   folder; writing to arbitrary target folders uses the normal OS permissions
   and should be treated with the same care as any other file write.
 
+### 4.15 Command-line download, install and PATH
+
+- `CodeForgeCore download` transfers only URLs or search results the caller
+  supplies; it does not execute the downloaded file. A supplied `--sha256` is
+  verified, and a mismatch keeps the file for inspection rather than deleting
+  evidence.
+- `CodeForgeCore install` runs the host's own package manager with its normal
+  signature and repository checks. It does not bypass elevation: machine-scope
+  installs trigger the OS prompt, and Linux managers use `sudo -n` so a cached
+  authorization is required instead of an unattended password prompt.
+- `CodeForgeCore path add --machine` writes HKLM PATH only after a UAC
+  self-elevation and then reads the value back to confirm the change. A declined
+  UAC prompt returns `ok:false` and `error`, not a false success. The user-scope
+  alternative writes only HKCU.
+- On Linux and macOS the machine PATH change edits
+  `/etc/profile.d/codeforge.sh`; the user change edits `~/.profile`. Both are
+  ordinary shell startup files and remain auditable and removable with
+  `path remove`.
+- The transfer engines (server job, aria2c, curl) share the same trust limits as
+  the download center: TLS and an optional hash are the only integrity checks,
+  and ranking is not a malware verdict.
+
 ---
 
 ## 5. What is NOT defended
@@ -465,11 +487,11 @@ icacls workspace /inheritance:r /grant:r "<user>:(OI)(CI)(F)"
 | Configured `ollama_url` (default `127.0.0.1:11434`) | chat/debug | prompts and code |
 | Configured `llm.online.base_url` (DeepSeek by default) | chat/debug when an online key is set | prompts, code, injected memory, workspace context and tool/application inventory |
 | Google, Baidu, Baidu Zhidao, DuckDuckGo, Bing, 360, Wikipedia | web research, agent search/fetch/learn | the search query or requested URL only |
-| Native package managers and their mirrors | automatic tool provisioning | package names and downloads |
+| Native package managers and their mirrors | automatic tool provisioning or `CodeForgeCore install` | package names and downloads |
 | Any host passed to `/api/api-call` or `codeforge_api` | explicit API call | method, URL, headers, query and body supplied by the caller; the injected secret stays in the request only |
 | `api.github.com`, `uploads.github.com`, `api.gitcode.com` | Publish tab or approved publish action | repository, release metadata and uploaded asset bytes |
 | Any host the agent is explicitly asked to fetch or publish to | agent web tools or an approved publish action | the command or content the task requires |
-| Download-center URL or its search engines/results hosts | explicit download or resolve | the URL or search query, then file bytes |
+| Download-center or `CodeForgeCore download` URL, or its search engines/results hosts | explicit download or resolve | the URL or search query, then file bytes |
 | Configured SMTP server | explicit mail send/test | message, recipients, attachments and SMTP login |
 | `api.gitcode.com`, `api.github.com` (update check) | server start and every 6 hours when enabled | release metadata request only; no prompt, file or key |
 | Game engine vendors | never by CodeForge | no traffic: engines are user-installed and never downloaded or bundled |

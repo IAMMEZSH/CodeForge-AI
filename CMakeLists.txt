@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(CodeForgeAI VERSION 1.2.1 LANGUAGES C CXX)
+project(CodeForgeAI VERSION 1.2.2 LANGUAGES C CXX)
 
 # The Java server and the Win32 client both resolve native binaries under
 # native/bin, so every build route (CMake and bootstrap.py) must agree.
@@ -23,12 +23,13 @@ if(WIN32)
     target_compile_definitions(cforge_native PRIVATE WIN32_LEAN_AND_MEAN)
     target_link_libraries(cforge_native PRIVATE shell32)
     if(MINGW)
-        target_link_options(cforge_native PRIVATE -static-libgcc)
+        target_link_options(cforge_native PRIVATE -static -static-libgcc)
     endif()
 endif()
 
 set(CORE_SOURCES
     core/main.cpp
+    core/cli_tools.cpp
     core/config.cpp
     core/util.cpp
     core/process.cpp
@@ -39,11 +40,12 @@ set(CORE_SOURCES
 
 add_executable(CodeForgeCore ${CORE_SOURCES})
 target_include_directories(CodeForgeCore PRIVATE core)
+target_link_libraries(CodeForgeCore PRIVATE cforge_sha256)
 if(WIN32)
     target_compile_definitions(CodeForgeCore PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-    target_link_libraries(CodeForgeCore PRIVATE winhttp shell32)
+    target_link_libraries(CodeForgeCore PRIVATE winhttp shell32 advapi32 user32)
     if(MINGW)
-        target_link_options(CodeForgeCore PRIVATE -static-libgcc -static-libstdc++)
+        target_link_options(CodeForgeCore PRIVATE -static -static-libgcc -static-libstdc++)
     endif()
 else()
     find_package(CURL REQUIRED)
@@ -62,6 +64,6 @@ if(WIN32)
     target_link_libraries(CodeForge PRIVATE
         winhttp shell32 gdi32 user32 comctl32 dwmapi ole32)
     if(MINGW)
-        target_link_options(CodeForge PRIVATE -municode -static-libgcc -static-libstdc++)
+        target_link_options(CodeForge PRIVATE -municode -static -static-libgcc -static-libstdc++)
     endif()
 endif()

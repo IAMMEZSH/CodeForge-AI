@@ -33,7 +33,7 @@ JDK_ROOT = ROOT / "native" / "jdk"
 BUILD = ROOT / "server-java" / "build"
 CLASSES = BUILD / "classes"
 JAR = BUILD / "CodeForgeServer.jar"
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 C_SOURCES = [
     ROOT / "native-c" / "native_tool.c",
@@ -41,6 +41,7 @@ C_SOURCES = [
 ]
 CORE_SOURCES = [
     "core/main.cpp",
+    "core/cli_tools.cpp",
     "core/config.cpp",
     "core/util.cpp",
     "core/process.cpp",
@@ -48,6 +49,7 @@ CORE_SOURCES = [
     "core/llm.cpp",
     "core/runners.cpp",
     "core/debugger.cpp",
+    "native-c/sha256.c",
 ]
 JAVA_SOURCES = sorted(
     path.name for path in (ROOT / "server-java" / "src" / "codeforge" / "server").glob("*.java")
@@ -316,9 +318,10 @@ def build_native() -> None:
             + ["-lshell32"])
         run([gxx, "-std=c++17", "-O2", "-Wall", "-Wextra", "-static",
              "-static-libgcc", "-static-libstdc++", "-o",
-             str(NATIVE_BIN / "CodeForgeCore.exe")]
+             str(NATIVE_BIN / "CodeForgeCore.exe"),
+             "-I" + str(ROOT / "core"), "-I" + str(ROOT / "native-c")]
             + [str(ROOT / item) for item in CORE_SOURCES]
-            + ["-lwinhttp", "-lshell32"])
+            + ["-lwinhttp", "-lshell32", "-ladvapi32", "-luser32"])
         res_obj = []
         windres = find_tool("windres")
         if windres:
@@ -339,14 +342,14 @@ def build_native() -> None:
         run([gcc, "-O2", "-std=c17", "-Wall", "-Wextra", "-o",
              str(NATIVE_BIN / "cforge_native")] + [str(path) for path in C_SOURCES] + ["-lm"])
         run([gxx, "-std=c++17", "-O2", "-Wall", "-Wextra", "-o",
-             str(NATIVE_BIN / "CodeForgeCore")]
+             str(NATIVE_BIN / "CodeForgeCore"),
+             "-I" + str(ROOT / "core"), "-I" + str(ROOT / "native-c")]
             + [str(ROOT / item) for item in CORE_SOURCES] + ["-lcurl", "-lpthread"])
     log("native", "C and C++ build complete")
 
 
 def build_java(jdk: Path) -> None:
     javac = jdk / "bin" / f"javac{EXE}"
-    jar = jdk / "bin" / f"jar{EXE}"
     if not javac.is_file():
         raise RuntimeError(f"javac not found under {jdk}")
     if CLASSES.exists():
@@ -354,12 +357,14 @@ def build_java(jdk: Path) -> None:
     CLASSES.mkdir(parents=True)
     sources = [str(ROOT / "server-java" / "src" / "codeforge" / "server" / name)
                for name in JAVA_SOURCES]
+    libs = sorted((ROOT / "server-java" / "lib").glob("*.jar"))
+    if not libs:
+        raise RuntimeError("server-java/lib has no dependency jars")
+    classpath = os.pathsep.join(str(path) for path in libs)
     run([str(javac), "--add-modules", "jdk.httpserver", "-encoding", "UTF-8",
-         "-d", str(CLASSES)] + sources)
+         "-cp", classpath, "-d", str(CLASSES)] + sources)
     BUILD.mkdir(parents=True, exist_ok=True)
-    JAR.unlink(missing_ok=True)
-    run([str(jar), "--create", "--file", str(JAR),
-         "--main-class", "codeforge.server.ServerMain", "-C", str(CLASSES), "."])
+    run([sys.executable, str(ROOT / "aux-python" / "build_jar.py")])
     log("java", f"server packaged: {JAR}")
 
 

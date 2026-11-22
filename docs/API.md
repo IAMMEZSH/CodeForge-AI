@@ -1,6 +1,6 @@
 # CodeForge AI — API Reference
 
-Version 1.2.1 · Java 17 HTTP server · C++ core bridge
+Version 1.2.2 · Java 17 HTTP server · C++ core bridge
 
 CodeForge AI exposes a single local REST API on `http://127.0.0.1:8765`.
 There is no account and no telemetry. Every endpoint is served by the Java
@@ -166,7 +166,7 @@ curl -s http://127.0.0.1:8765/api/health
 {
   "ok": true,
   "service": "codeforge-java-server",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "uptime_seconds": 872,
   "platform": "Windows 11",
   "java": "17.0.21"
@@ -215,7 +215,7 @@ Top-level keys:
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "root": "C:\\Users\\you\\Desktop\\CodeForge-AI",
   "llm": {
     "available": true,
@@ -335,19 +335,19 @@ check. Only release metadata is fetched — no prompt, file, key or usage data.
 {
   "ok": true,
   "enabled": true,
-  "current": "1.2.1",
-  "latest": "1.2.1",
+  "current": "1.2.2",
+  "latest": "1.2.2",
   "update_available": true,
   "source": "gitcode",
-  "name": "CodeForge AI v1.2.1",
+  "name": "CodeForge AI v1.2.2",
   "published_at": "2026-12-01T10:00:00+08:00",
-  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.2.1",
+  "url": "https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/tag/v1.2.2",
   "checked_at": "2026-12-01T02:10:00Z"
 }
 ```
 
 With `"updates": {"enabled": false}` in `config.json` the response is
-`{"ok": true, "enabled": false, "current": "1.2.1", "update_available": false}`.
+`{"ok": true, "enabled": false, "current": "1.2.2", "update_available": false}`.
 If both release indexes are unreachable, `ok` is `false` with an `error`
 string; the console shows no banner.
 
@@ -735,7 +735,7 @@ curl -s -X POST http://127.0.0.1:8765/api/selftest \
 {
   "ok": true,
   "component": "main-core-cpp",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "checks": [
     { "name": "c", "ok": true, "detail": "c-ok", "duration_ms": 320 },
     { "name": "cpp", "ok": true, "detail": "cpp-ok", "duration_ms": 410 },
@@ -817,7 +817,7 @@ Model entry:
     "reason": "Valid <codeforge_build> JSON with runnable Python source",
     "source": "probe",
     "latency_ms": 1840,
-    "checked_at": "2026-11-21T08:00:00Z"
+    "checked_at": "2026-11-22T08:00:00Z"
   },
   "installed": true,
   "installed_info": {
@@ -1473,10 +1473,11 @@ Only `GET` is accepted for static assets.
 The Java server spawns the core per request:
 
 ```bash
-native/bin/CodeForgeCore <status|chat|debug|run|selftest|version> --root <project_root>
+native/bin/CodeForgeCore <status|chat|debug|run|selftest|version|download|install|path|help> --root <project_root>
 ```
 
-- Request JSON is written to `stdin` (UTF-8, one object).
+- For `status`, `chat`, `debug` and `run`, request JSON is written to `stdin`
+  (UTF-8, one object). `download`, `install`, `path` and `help` are flag-driven.
 - Response JSON is written to `stdout` (UTF-8, one object, single line).
 - Exit code `0` for logical success and for handled logical errors; `1` for
   internal exceptions.
@@ -1489,7 +1490,7 @@ native/bin/CodeForgeCore version --root .
 ```
 
 ```json
-{ "ok": true, "component": "main-core-cpp", "version": "1.2.1", "root": "C:\\...\\CodeForge-AI" }
+{ "ok": true, "component": "main-core-cpp", "version": "1.2.2", "root": "C:\\...\\CodeForge-AI" }
 ```
 
 ### `status`
@@ -1522,6 +1523,40 @@ layer:
 echo '{"code":"print(1/0)","language":"python","iterations":1}' \
   | native/bin/CodeForgeCore debug --root . | python -m json.tool
 ```
+
+### `download`
+
+```bash
+native/bin/CodeForgeCore download <url> --root . [--out <file>] [--dir <dir>]
+    [--sha256 <hex>] [--overwrite] [--engine auto|server|aria2|curl]
+native/bin/CodeForgeCore download --query "<keywords>" --root . [--kind ...]
+    [--platform windows|linux|macos] [--dir <dir>] [--wait <sec>]
+```
+
+`auto` tries the local server job, then aria2c, then curl. Search requires a
+running server. Response fields: `ok`, `path`, `bytes`, `sha256`, `engine`,
+`error`.
+
+### `install`
+
+```bash
+native/bin/CodeForgeCore install <package> --root . [--id] [--scope machine|user]
+    [--manager winget|choco|brew|apt-get|dnf|zypper|pacman|apk] [--interactive]
+```
+
+Detects the native package manager and runs it non-interactively. Machine
+scope is the default and may trigger the operating system's elevation prompt.
+
+### `path`
+
+```bash
+native/bin/CodeForgeCore path show|add|remove --root . [--machine|--user]
+```
+
+Windows writes HKLM (UAC self-elevation) or HKCU PATH and the `cforge`
+wrapper; Linux and macOS update `/etc/profile.d/codeforge.sh` or `~/.profile`.
+`show` reports `present`, scope membership, wrapper state and the exact
+directory. Full flag reference: `docs/MANUAL.md` section 12.1.
 
 ---
 
@@ -2081,7 +2116,7 @@ from the release folder:
 ```bash
 curl -s -X POST http://127.0.0.1:8765/api/publish \
   -H "Content-Type: application/json" \
-  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.2.1","name":"CodeForge AI v1.2.1","body":"…","folder":"release","overwrite":true,"delete_older":true}'
+  -d '{"platform":"github","owner":"IAMMEZSH/CodeForge-AI","tag":"v1.2.2","name":"CodeForge AI v1.2.2","body":"…","folder":"release","overwrite":true,"delete_older":true}'
 ```
 
 | Field | Type | Default | Notes |

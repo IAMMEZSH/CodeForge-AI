@@ -1,4 +1,4 @@
-CodeForge AI 1.2.1 — Windows quick start
+CodeForge AI 1.2.2 — Windows quick start
 =====================================================
 
 1. Install Java 17 or newer (winget install EclipseAdoptium.Temurin.17.JDK),
@@ -37,6 +37,17 @@ CodeForge AI 1.2.1 — Windows quick start
    missing, the tab shows the exact install hint. LOVE .love packaging works
    without an engine. The same actions are available as POST /api/engines and
    the codeforge_engine agent tool.
+
+5. Optional: command line.
+   The core exposes the same download, package-install and PATH engines:
+
+       native\bin\CodeForgeCore.exe download --url https://example.com/tool.zip --out downloads\tool.zip
+       native\bin\CodeForgeCore.exe install --name Git --manager winget --scope machine
+       native\bin\CodeForgeCore.exe path add --machine
+       cforge download --url https://example.com/a.bin --out downloads\a.bin
+
+   Machine scope writes the system PATH through one UAC prompt. See
+   docs/MANUAL.md section 12.1 for every flag.
 
 Offline inference runs on this machine; the optional online brain calls your configured provider. Models and the runtime are downloaded on
 demand and are not part of this archive.

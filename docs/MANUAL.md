@@ -1,6 +1,6 @@
 # CodeForge AI — User Manual
 
-**Version 1.2.1 · 2026-11-21**
+**Version 1.2.2 · 2026-11-22**
 **Applies to:** Windows 10/11, Linux, macOS, Android (Termux and thin client), iOS/iPadOS (iSH and thin client)
 
 This manual is the complete operator handbook for CodeForge AI. It explains
@@ -309,6 +309,17 @@ python aux-python\bootstrap.py --run --port 8765
 ```
 
 Open `http://127.0.0.1:8765/console/` manually.
+
+**Step 5 — command-line access (optional).**
+
+```bat
+native\bin\CodeForgeCore.exe path add --machine
+cforge download --url https://example.com/tool.zip --out downloads\tool.zip
+```
+
+Machine scope writes the system PATH and self-elevates through UAC once; use
+`path add --user` to avoid elevation. The wrapper `native\bin\cforge.cmd`
+invokes `CodeForgeCore`, and `path show` reports the current state.
 
 **Uninstall:** close the control center from the tray menu, then delete the
 project folder. Delete `%LOCALAPPDATA%\CodeForge` only if you created an Edge
@@ -1039,7 +1050,7 @@ modified.
 The **Publish** rail item drives GitHub and GitCode releases through their REST
 APIs. It never prints or returns a token.
 
-![Publish view with GitHub and GitCode targets, tag v1.2.1 and the local asset folder](images/console-publish.png)
+![Publish view with GitHub and GitCode targets, tag v1.2.2 and the local asset folder](images/console-publish.png)
 
 | Field | Meaning |
 |---|---|
@@ -1767,6 +1778,12 @@ read watchdog and retried on the same URL before the job fails. The agent uses
 candidate list and SHA-256 in the tool result; `wait_sec` controls how long it
 waits before returning an in-progress job.
 
+The same download, package-install and PATH operations are available without
+the console through `CodeForgeCore download`, `CodeForgeCore install` and
+`CodeForgeCore path`; when a local server is running, `download --query`
+reuses the search-and-rank service, while direct URLs use aria2c or curl
+locally. See [12.1](#121-codeforgecore-c-main-core).
+
 ### 9.5 Operational notes
 
 - All four tools are local: the server does the work, and the console or agent
@@ -1961,15 +1978,17 @@ console asks for confirmation before enabling it. The setting is stored in
 ### 12.1 `CodeForgeCore` (C++ main core)
 
 ```text
-CodeForgeCore <status|chat|debug|run|selftest|version> [--root <project_root>]
+CodeForgeCore <status|chat|debug|run|selftest|version|download|install|path|help> [--root <project_root>]
 ```
 
-- Reads a JSON request from stdin (except `version` and `selftest`, which ignore
-  it) and writes one JSON object to stdout.
+- `status`, `chat`, `debug` and `run` read a JSON request from stdin (except
+  `version` and `selftest`, which ignore it) and write one JSON object to
+  stdout. `download`, `install`, `path` and `help` are flag-driven.
 - `--root` sets the project root; without it the core walks up from the
   executable looking for `config.json` and `server-java/`.
-- Exit code is 0 for logical results (even `"ok": false`) and 1 for internal
-  exceptions; `selftest` returns 1 when any check fails.
+- Exit code is 0 for logical results (even `"ok": false` and a declined UAC
+  prompt) and 1 for internal exceptions; `selftest` returns 1 when any check
+  fails.
 
 Examples:
 
@@ -1994,6 +2013,72 @@ Chat request fields: `messages` (required array), `model` (optional override).
 Debug request fields: `code` (required, ≤200 KB), `filename` (default `main`),
 `language` (default `auto`), `iterations` (default from config), `model`.
 Run request fields: `code`, `filename`, `language`.
+
+**`download`**
+
+```text
+CodeForgeCore download <url> [--out <file>] [--dir <dir>] [--name <name>]
+    [--sha256 <hex>] [--overwrite] [--engine auto|server|aria2|curl]
+    [--wait <sec>] [--timeout <sec>]
+
+CodeForgeCore download --query "<keywords>" [--kind software|game|file|page|document]
+    [--platform windows|linux|macos] [--dir <dir>] [--wait <sec>]
+    [--server <url>] [--timeout <sec>]
+```
+
+| Flag | Meaning |
+|---|---|
+| URL (positional) | Direct HTTP/HTTPS file to fetch; cannot be combined with `--query` |
+| `--query`, `-q` | Search and rank candidates through a running local server |
+| `--kind` | Search category: `software`, `game`, `file`, `page` or `document` |
+| `--platform` | Search platform hint: `windows`, `linux` or `macos` |
+| `--dir` | Destination directory (default `downloads/` under the project root) |
+| `--name` | File name used by search jobs |
+| `--out`, `-o` | Exact output path; overrides `--dir` and `--name` |
+| `--sha256` | Expected 64-hex digest; a mismatch is reported and the file kept |
+| `--overwrite` | Replace an existing file instead of failing |
+| `--engine` | `auto` (default), `server`, `aria2` or `curl`; search needs the server |
+| `--wait` | Search job wait in seconds (default 600) |
+| `--timeout` | Transfer timeout in seconds (default 3600) |
+| `--server` | Local server base URL for search jobs |
+
+With `auto`, a direct URL first goes through the local server job when it is
+running, then falls back to `aria2c`, then `curl`. aria2c uses 16 connections,
+resumes `.part` files and verifies `--sha256`; curl uses `-C -` resume and
+retries. Every result is one JSON object with `ok`, `path`, `bytes`, `sha256`,
+`engine` and `error`.
+
+**`install`**
+
+```text
+CodeForgeCore install <package-id-or-name> [--id]
+    [--scope machine|user] [--manager winget|choco|brew|apt-get|dnf|zypper|pacman|apk]
+    [--interactive] [--timeout <sec>]
+```
+
+Detects the native package manager, prefers an exact package id when `--id` is
+set, and runs non-interactively: winget accepts package/source agreements and
+uses silent mode, Chocolatey uses `-y --no-progress`, and Linux managers use
+`sudo -n`. `--scope machine` is the default on Windows; if an elevated package
+needs a user-scope fallback the result says so.
+
+**`path`**
+
+```text
+CodeForgeCore path [show|add|remove] [--machine|--user]
+```
+
+| Action | Effect |
+|---|---|
+| `show` | Reports the target `native/bin`, machine/user membership and wrapper state |
+| `add` | Appends `native/bin` to the machine PATH (HKLM, UAC self-elevation) or user PATH (HKCU with `--user`) and writes `cforge.cmd` / `cforge` |
+| `remove` | Removes the entry and wrapper from the selected scope |
+
+The machine write relaunches the core elevated, waits for completion and
+returns `elevated: true` with `elevation_exit`; a declined UAC prompt is reported
+instead of silently succeeding. On Linux and macOS the same commands update
+`/etc/profile.d/codeforge.sh` (machine) or `~/.profile` (user). Open a new
+terminal after `add` so the PATH is re-read.
 
 ### 12.2 `cforge_native` (C17 helper)
 
@@ -2055,11 +2140,14 @@ python aux-python/package_release.py --skip-windows
 
 Produces in `release/`:
 
-- `CodeForge-AI-1.2.1-source.zip`
-- `CodeForge-AI-1.2.1-windows-x64.zip` (includes compiled binaries and jar)
-- `CodeForge-AI-1.2.1-docs.zip`
+- `CodeForge-AI-1.2.2-source.zip`
+- `CodeForge-AI-1.2.2-windows-x64.zip` (includes compiled binaries, aria2c and jar)
+- `CodeForge-AI-1.2.2-linux-source.tar.gz`
+- `CodeForge-AI-1.2.2-macos-source.tar.gz`
+- `CodeForge-AI-1.2.2-mobile-source.zip`
+- `CodeForge-AI-1.2.2-docs.zip`
 - `SHA256SUMS.txt`
-- `manifest-1.2.1.json`
+- `manifest-1.2.2.json`
 
 Every ZIP is reopened and CRC-tested before the script reports success. Models,
 runtime, workspaces, logs and the portable JDK are never packaged.

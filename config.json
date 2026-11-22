@@ -21,16 +21,16 @@
     },
     "keys": [
       {
-        "id": "deepseek-a287f0",
+        "id": "deepseek-56ed3d",
         "name": "DeepSeek",
         "base_url": "https://api.deepseek.com",
         "model": "deepseek-chat",
         "api_key": "",
-        "created_at": "2026-11-20T23:08:07.059739600Z",
-        "updated_at": "2026-11-20T23:08:07.059739600Z"
+        "created_at": "2026-11-22T11:58:33.404584600Z",
+        "updated_at": "2026-11-22T11:58:33.404584600Z"
       }
     ],
-    "active_key": "deepseek-a287f0"
+    "active_key": "deepseek-56ed3d"
   },
   "debug": {
     "max_iterations": 3,
@@ -58,7 +58,7 @@
   },
   "agent": {
     "auto_compile": true,
-    "max_steps": 64
+    "max_steps": 512
   },
   "permissions": {
     "full_filesystem": false

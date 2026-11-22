@@ -3,40 +3,48 @@
 All notable changes to CodeForge AI are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
-## 1.2.1 — 2026-11-21
+## 1.2.2 — 2026-11-22
 
 ### Added
 
-- **Thirteen-model offline catalog.** Qwen3.6 35B A3B and Qwen3.8 27B join the
-  registry alongside Qwen3-Coder 30B-A3B, DeepSeek, Seed-OSS, GPT-OSS, Devstral,
-  Gemma, Phi and Codestral. The catalog is now eight China-origin and five
-  Global-origin models; Qwen3.6 and GPT-OSS are marked Recommended.
-- **Capability verification.** Every installed model can be tested with one
-  real `<codeforge_build>` request from the Models panel or
-  `POST /api/models/probe`. The server validates the tool tag, JSON, language,
-  code, placeholders, `print` call and `PROBE_OK` marker, then stores a
-  `pass`, `weak` or `error` verdict in `models/capability.json`. Chat protocol
-  failures that survive repair retries also mark the running model `weak`.
-- **Automatic first-start probe.** When inference starts on a model whose
-  verdict is `untested`, `error` or a stale `running`, the probe launches in the
-  background and the card updates through polling.
-- **ModelScope-first downloads.** Model resolution now asks ModelScope first,
-  then the `hf-mirror.com` mirror, then `huggingface.co`. Size and SHA-256 are
-  still resolved before transfer and verified after it.
-- **Model badges in the console.** Model cards show capability state, reason
-  and check time, with a **Test** button and a live pulse while a probe runs.
+- **Command-line downloader.** `CodeForgeCore download` fetches a direct URL or
+  searches and ranks candidates through a running local server. Direct
+  transfers use aria2c with 16 connections, `.part` resume and SHA-256
+  verification, then fall back to curl (`-C -`, five retries). Every result is
+  a single JSON object with path, byte count, hash, engine and error state.
+- **Bundle and install packages from the terminal.** `CodeForgeCore install`
+  detects winget, Chocolatey, Homebrew, apt-get, dnf, zypper, pacman or apk,
+  runs non-interactively, and supports `--scope machine|user`, `--manager`,
+  `--id` and `--interactive`.
+- **PATH registration and wrapper.** `CodeForgeCore path show|add|remove`
+  writes the machine PATH (HKLM, UAC self-elevation) or user PATH (HKCU),
+  creates the `cforge` wrapper, verifies the change and reports the outcome.
+  Linux and macOS update `/etc/profile.d/codeforge.sh` or `~/.profile`.
+- **Bundled aria2c.** The Windows package ships aria2c 1.37.0 in
+  `native/bin/`, so segmented resume works without a separate install.
+- **New help surface.** `CodeForgeCore help` prints every command and its
+  common flags, and the manual documents all download, install and PATH
+  options with examples.
 
 ### Changed
 
-- The download panel and documentation describe the three-stage resolution
-  path and the separate `models/installed.json` and `models/capability.json`
-  state files.
-- Model diagrams, the README catalog, the manual and the platform guide now
-  describe thirteen models and the probe workflow.
+- Windows builds are fully static (`-static -static-libgcc -static-libstdc++`)
+  for both the core and the control center, removing the MinGW runtime DLL
+  dependency.
+- `bootstrap.py` now passes `-Icore -Inative-c` when compiling the core, and
+  the Windows, Linux and macOS manual build commands match the CMake source
+  list, including `core/cli_tools.cpp`, `native-c/sha256.c` and the Windows
+  `advapi32`/`user32` libraries.
+- Release packaging emits six platform archives plus `SHA256SUMS.txt` and
+  `manifest-1.2.2.json`; every archive is reopened and CRC-tested, and the
+  Windows archive includes the CLI binaries and aria2c.
+- README, user manual, platform guide, architecture notes, screenshots and
+  the demo document describe the current release only.
 
 ### Notes
 
-- Local commits and builds remain unrestricted; remote publishing still needs
-  **Allow publishing**.
-- A `weak` model can still be used for conversation, but should not be trusted
-  for unattended builds.
+- Local downloads and installs need no cloud account. Machine-scope PATH and
+  package installs require the operating system's elevation prompt.
+- The console Downloads view, the `codeforge_download` agent tool and the new
+  command-line downloader share the same server job service for search and
+  ranking.

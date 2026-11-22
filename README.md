@@ -6,7 +6,7 @@
 
 C/C++ core · Java server · Python automation · Windows · Linux · macOS · Android · iOS
 
-**Version 1.2.1 · 2026-11-21**
+**Version 1.2.2 · 2026-11-22**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
 [![Core](https://img.shields.io/badge/core-C%2B%2B17%20%2F%20C17-7c5cff.svg)](#architecture)
@@ -16,24 +16,24 @@ C/C++ core · Java server · Python automation · Windows · Linux · macOS · A
 
 </div>
 
-> **Upgrading from an earlier build?** v1.2.1 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.2.1 bundle on this page. The console checks the public release index and shows an in-app banner when a newer build exists; update notices apply from this release onward.
+> **Upgrading from an earlier build?** v1.2.2 is the only supported release. Older packages and tags have been removed from both platforms, so replace your program files with the v1.2.2 bundle on this page. The console checks the public release index and shows an in-app banner when a newer build exists; update notices apply from this release onward.
 >
-> **旧版用户请注意：** v1.2.1 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.2.1 安装包覆盖升级。控制台会在启动时检查公开发布页，有新版本时显示升级横幅；升级提醒从本版本开始生效。
+> **旧版用户请注意：** v1.2.2 是唯一受支持的版本，更早的安装包和标签已从两个平台删除。请用本页的 v1.2.2 安装包覆盖升级。控制台会在启动时检查公开发布页，有新版本时显示升级横幅；升级提醒从本版本开始生效。
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.2.1-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.2.1-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip).
+**Windows 10/11 (x64), one click:** [`CodeForge-AI-1.2.2-windows-x64.zip`](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-windows-x64.zip) — prebuilt `CodeForge.exe`, core binaries, server JAR and JDK bootstrap. GitCode mirror: [`CodeForge-AI-1.2.2-windows-x64.zip`](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-windows-x64.zip).
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.2.1-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-windows-x64.zip) |
-| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.2.1-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-linux-source.tar.gz) |
-| macOS Apple silicon / Intel, source | `CodeForge-AI-1.2.1-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-macos-source.tar.gz) |
-| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.2.1-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-mobile-source.zip) |
-| All platforms, source only | `CodeForge-AI-1.2.1-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-source.zip) |
-| Documentation set | `CodeForge-AI-1.2.1-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.1/CodeForge-AI-1.2.1-docs.zip) |
+| Windows 10/11 x64, prebuilt | `CodeForge-AI-1.2.2-windows-x64.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-windows-x64.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-windows-x64.zip) |
+| Linux x64 / ARM64 / s390x / 32-bit, source | `CodeForge-AI-1.2.2-linux-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-linux-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-linux-source.tar.gz) |
+| macOS Apple silicon / Intel, source | `CodeForge-AI-1.2.2-macos-source.tar.gz` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-macos-source.tar.gz) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-macos-source.tar.gz) |
+| Android / iOS / Termux / iSH, source | `CodeForge-AI-1.2.2-mobile-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-mobile-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-mobile-source.zip) |
+| All platforms, source only | `CodeForge-AI-1.2.2-source.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-source.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-source.zip) |
+| Documentation set | `CodeForge-AI-1.2.2-docs.zip` | [Download](https://github.com/IAMMEZSH/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-docs.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/download/v1.2.2/CodeForge-AI-1.2.2-docs.zip) |
 
-Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.2.1.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.2.1) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.2.1). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
+Both mirrors carry the same eight uploaded release assets: the six archives above, `SHA256SUMS.txt` and `manifest-1.2.2.json` (each platform also auto-generates its own source archives). Names and SHA-256 hashes are identical on [GitHub](https://github.com/IAMMEZSH/CodeForge-AI/releases/tag/v1.2.2) and [GitCode](https://gitcode.com/gcw_So3EkhfR/CodeForge-AI/releases/v1.2.2). Every platform archive contains the full source and the English manual in `docs/MANUAL.md`; the documentation archive carries the complete manual set with all four quick starts.
 
 <div align="center">
 
@@ -66,6 +66,7 @@ Local inference stays on the machine. When you configure an **online brain** (an
 - **Agent file, test and research tools** — `codeforge_read`, `codeforge_list`, `codeforge_write`, `codeforge_edit`, `codeforge_test`, `codeforge_crawl`, `codeforge_deep_search` and `codeforge_corpus` let the model open real files, walk project trees, apply exact replacements, run the detected test command, crawl same-domain pages, run multi-query research over fetched pages and query the local research corpus. Tool results come back to the model before its next step.
 - **Office documents and PDF, directly** — the **Office** view and `codeforge_office` create, preview, edit, search and delete DOCX/DOC, XLSX/XLS/XLSM, PPTX/PPT, PDF, ODT/ODS/ODP, RTF, CSV/TSV and text files. Preview returns real document structure — paragraphs, sheet grids, slide shapes, PDF page counts — and PDF pages render page images in the console. Editing covers text, table cells, workbook cells/rows/sheets, slide text and lifecycle, PDF metadata and pages, and text files; deletions move to `workspace/.trash/office` unless permanent deletion is explicitly requested.
 - **Download center for software, games and web files** — the **Downloads** view and `codeforge_download` either fetch a URL you supply, or search for a named file and rank candidates by official domain, exact filename, platform and requested size. Transfers resume with `.part` files, a stalled-body watchdog, same-URL retries, live speed/ETA, SHA-256 reporting and optional hash verification; the agent sees the job state, saved path and hash.
+- **Command-line downloads, installs and PATH** — `CodeForgeCore download`, `install` and `path` bring the same engines to scripts and terminals: direct URLs through 16-connection aria2c with resume and SHA-256, package installation through winget, Chocolatey, Homebrew, apt-get, dnf, zypper, pacman or apk, and machine/user PATH registration with UAC self-elevation plus a `cforge` wrapper. Every command prints JSON.
 - **Whole-disk file access, gated by permission** — the **Files** view and `codeforge_fs` enumerate drives, browse folders, search by path/name/content across disks, and create, rename, copy, move, trash or delete files and folders. Nothing outside the workspace runs until **Settings → Full filesystem access** is enabled (`permissions.full_filesystem`); deletions require explicit confirmation, go to `workspace/.trash/fs`, sensitive system directories are guarded, and every operation is appended to `logs/file-access.jsonl`.
 - **Email sending** — the **Mail** view and `codeforge_mail` send plain-text or HTML mail through any SMTP account with To/Cc/Bcc, attachments up to 25 MB, SSL/STARTTLS/none and a connection test. The SMTP password lives in the local encrypted KeyStore, never in `config.json` or API responses.
 - **HTML/CSS live preview** — generated pages render in a sandboxed iframe served from a per-run session folder with a strict CSP.
@@ -259,11 +260,11 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 
 | Platform | Release artifact | Route | Build and launch |
 |---|---|---|---|
-| Windows 10/11 x64 | `CodeForge-AI-1.2.1-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
-| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.2.1-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.2.1-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
-| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.2.1-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
-| iOS / iPadOS 15+ | `CodeForge-AI-1.2.1-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
+| Windows 10/11 x64 | `CodeForge-AI-1.2.2-windows-x64.zip` | Full host, prebuilt `CodeForge.exe`, `CodeForgeCore.exe`, `cforge_native.exe`, server JAR | `native\bin\CodeForge.exe` |
+| Linux (x64, ARM64, s390x, 32-bit) | `CodeForge-AI-1.2.2-linux-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| macOS 12+ (Apple silicon / Intel) | `CodeForge-AI-1.2.2-macos-source.tar.gz` | Full host, native build | `python3 aux-python/bootstrap.py --all` then `--run` |
+| Android (ARM64, ARMv7, x86_64) | `CodeForge-AI-1.2.2-mobile-source.zip` | Termux host, or Kotlin thin client to a LAN host | `pkg install ...` in Termux; `cd mobile/android && ./gradlew assembleDebug` |
+| iOS / iPadOS 15+ | `CodeForge-AI-1.2.2-mobile-source.zip` | iSH host (experimental), or Swift thin client to a LAN host | `cd mobile/ios && xcodegen generate` |
 
 **Same-platform device coverage**
 
@@ -273,7 +274,7 @@ CodeForge is delivered for five platform targets. Only Windows ships prebuilt bi
 - **Android** — ARM64 phones and tablets run the full stack in Termux and install the official `android-arm64` runtime. Other ABIs build llama.cpp locally, and every Android 8+ device can use the Kotlin APK as a client.
 - **iOS / iPadOS** — the Swift app and iSH console are clients/control hosts; inference can stay on a PC, Mac or phone over the LAN via `llm.openai_url`.
 
-Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.2.1.json` sit beside the archives.
+Each platform-specific bundle (Windows, Linux, macOS, mobile) carries a quick start written for that target, next to the distro-specific package lists and device commands in the [Platform guide](docs/PLATFORMS.md). `SHA256SUMS.txt` and `manifest-1.2.2.json` sit beside the archives.
 
 ## Quick start
 
@@ -317,6 +318,29 @@ Two documented paths exist for each mobile platform:
 
 Every command, package list, and limitation is documented in [Platform guide](docs/PLATFORMS.md).
 
+## Command-line downloads, installs and PATH
+
+`CodeForgeCore` exposes the download, package and PATH engines without the console. All commands accept `--root .` and print one JSON result.
+
+```bat
+:: Direct URL: aria2c with 16 connections, resume and SHA-256 verification
+native\bin\CodeForgeCore.exe download --root . --url https://example.com/tool.zip --out downloads/tool.zip --sha256 <64-hex>
+
+:: Search and rank through the local server (start CodeForge.exe first)
+native\bin\CodeForgeCore.exe download --root . --query "OBS Studio Windows installer" --kind software --dir D:\downloads --wait 180
+
+:: Install with the native package manager; machine scope prompts for UAC
+native\bin\CodeForgeCore.exe install --root . --name Git --manager winget --scope machine
+
+:: Register native\bin on the machine PATH, then use the cforge wrapper
+native\bin\CodeForgeCore.exe path add --machine
+cforge download --url https://example.com/a.bin --out downloads/a.bin
+```
+
+- **Download engines** — `auto` tries the local server job, then `aria2c`, then `curl`. Search (`--query`) needs the local server; direct URLs work with any engine. `.part` files resume, `--overwrite` replaces, `--engine auto|server|aria2|curl` forces a route, `--timeout` bounds the transfer, and a supplied `--sha256` must match.
+- **Package install** — winget on Windows, Chocolatey when installed, Homebrew on macOS, and apt-get, dnf, zypper, pacman or apk on Linux. winget runs non-interactively with agreements accepted; `--scope machine|user` selects the install scope, and `--manager` overrides detection.
+- **PATH** — `path show` reports machine/user membership and wrapper state; `path add` writes the registry (HKLM with UAC self-elevation, or HKCU with `--user`) and creates `cforge.cmd`; `path remove` reverses it. On Linux and macOS the same commands update `/etc/profile.d/codeforge.sh` or `~/.profile`.
+
 ## Using the console
 
 <table>
@@ -354,7 +378,7 @@ Step-by-step walkthrough: [User manual](docs/MANUAL.md).
 ## Repository layout
 
 ```text
-core/            C++17 main core (LLM client, runners, debugger, HTTP, process supervisor)
+core/            C++17 main core (LLM client, runners, debugger, HTTP, CLI download/install/PATH)
 native-c/        C17 helper (SHA-256, sysinfo) and portable hashing
 client/          Win32 control center and console launcher
 server-java/     Java 17 REST server, model manager, runtime manager, web console

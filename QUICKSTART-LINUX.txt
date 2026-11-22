@@ -1,4 +1,4 @@
-CodeForge AI 1.2.1 — Linux quick start
+CodeForge AI 1.2.2 — Linux quick start
 ======================================
 
 This package is a source bundle. It builds a native C17 helper, the C++17
@@ -31,7 +31,7 @@ Alpine:
 2. Build and test
 -----------------
 
-    cd CodeForge-AI-1.2.1
+    cd CodeForge-AI-1.2.2
     python3 aux-python/bootstrap.py --all
 
 This checks or provisions JDK 17, compiles native/bin/cforge_native and
@@ -97,6 +97,20 @@ For a headless machine, keep the server on loopback and forward it:
 
     ssh -L 8765:127.0.0.1:8765 user@server
     # then open http://127.0.0.1:8765/console/ on your laptop
+
+7. Command line (optional)
+--------------------------
+
+The built core downloads files, installs packages and registers PATH without
+the console:
+
+    native/bin/CodeForgeCore download --url https://example.com/tool.zip --out downloads/tool.zip
+    native/bin/CodeForgeCore install --name git --manager apt-get --scope machine
+    native/bin/CodeForgeCore path add --machine
+    cforge download --url https://example.com/a.bin --out downloads/a.bin
+
+`download --query` uses a running local server for search and ranking; direct
+URLs use aria2c or curl. See docs/MANUAL.md section 12.1 for every flag.
 
 Documentation: docs/MANUAL.md, docs/PLATFORMS.md, docs/API.md
 License: MIT (see LICENSE). Model weights keep their own licenses.

@@ -225,7 +225,7 @@ Stored result after completion:
   "source": "probe",
   "latency_ms": 1840,
   "id": "qwen3-4b-instruct-2507",
-  "checked_at": "2026-11-21T08:00:00Z"
+  "checked_at": "2026-11-22T08:00:00Z"
 }
 ```
 

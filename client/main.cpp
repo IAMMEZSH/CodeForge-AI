@@ -69,7 +69,7 @@ struct UiStatus {
     int installed_models = 0;
     std::wstring model = L"—";
     std::wstring endpoint = L"http://127.0.0.1:8765";
-    std::wstring version = L"1.2.1";
+    std::wstring version = L"1.2.2";
     std::wstring message = L"Booting local stack…";
 };
 
@@ -197,7 +197,7 @@ UiStatus FetchStatus() {
     const Json* core = doc.find("core");
     if (core != nullptr) {
         status.core = core->get_bool("ok", false);
-        status.version = JsonW(*core, "version", L"1.2.1");
+        status.version = JsonW(*core, "version", L"1.2.2");
         const Json* llm = core->find("llm");
         if (llm != nullptr) {
             status.llm = llm->get_bool("available", false);

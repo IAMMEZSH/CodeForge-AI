@@ -1,4 +1,4 @@
-CodeForge AI 1.2.1 — macOS quick start
+CodeForge AI 1.2.2 — macOS quick start
 ======================================
 
 This package is a source bundle for Intel and Apple Silicon Macs. It builds
@@ -27,7 +27,7 @@ Verify:
 2. Build and test
 -----------------
 
-    cd CodeForge-AI-1.2.1
+    cd CodeForge-AI-1.2.2
     python3 aux-python/bootstrap.py --all
 
 Outputs:
@@ -62,7 +62,7 @@ Server only, without Python:
 
 If macOS quarantines a downloaded archive or binary:
 
-    xattr -dr com.apple.quarantine CodeForge-AI-1.2.1
+    xattr -dr com.apple.quarantine CodeForge-AI-1.2.2
 
 5. First model
 --------------
@@ -84,6 +84,20 @@ bundles an engine; a missing engine reports the exact install hint.
 ------------------------------
 
 A launchd user agent template is in docs/PLATFORMS.md section 5.3.
+
+8. Command line (optional)
+--------------------------
+
+The built core downloads files, installs packages and registers PATH without
+the console:
+
+    native/bin/CodeForgeCore download --url https://example.com/tool.zip --out downloads/tool.zip
+    native/bin/CodeForgeCore install --name git --manager brew --scope machine
+    native/bin/CodeForgeCore path add --machine
+    cforge download --url https://example.com/a.bin --out downloads/a.bin
+
+`download --query` uses a running local server for search and ranking; direct
+URLs use aria2c or curl. See docs/MANUAL.md section 12.1 for every flag.
 
 Documentation: docs/MANUAL.md, docs/PLATFORMS.md, docs/API.md
 License: MIT (see LICENSE). Model weights keep their own licenses.

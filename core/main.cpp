@@ -17,6 +17,7 @@
 #endif
 #endif
 
+#include "cli_tools.hpp"
 #include "config.hpp"
 #include "debugger.hpp"
 #include "json.hpp"
@@ -27,7 +28,7 @@
 
 namespace {
 
-const char* kVersion = "1.2.1";
+const char* kVersion = "1.2.2";
 
 std::string arg_utf8(wchar_t* value) {
     if (value == nullptr) {
@@ -471,8 +472,8 @@ int main(int argc, char** argv) {
 #endif
 
     if (args.size() < 2) {
-        fail("usage: CodeForgeCore <status|chat|debug|run|selftest|version> "
-             "[--root <project_root>]");
+        fail("usage: CodeForgeCore <status|chat|debug|run|selftest|version|"
+             "download|install|path|help> [--root <project_root>]");
         return 0;
     }
 
@@ -509,11 +510,42 @@ int main(int argc, char** argv) {
             emit(result);
             return 0;
         }
+        if (command == "help" || command == "--help" || command == "-h") {
+            Json result = Json::make_object();
+            result["ok"] = true;
+            result["component"] = "main-core-cpp";
+            result["version"] = kVersion;
+            result["root"] = cf::path_utf8(root);
+            result["commands"] = "status, chat, debug, run, selftest, version, "
+                                 "download, install, path, help";
+            result["usage"] =
+                    "CodeForgeCore download <url> | --query \"<keywords>\" [--dir] [--name] "
+                    "[--out] [--sha256] [--overwrite] [--engine auto|server|aria2|curl]\n"
+                    "CodeForgeCore install <package> [--id] [--scope machine|user] "
+                    "[--manager winget|choco|brew|apt-get|dnf|pacman|zypper|apk]\n"
+                    "CodeForgeCore path [show|add|remove] [--machine|--user]\n"
+                    "CodeForgeCore status|chat|debug|run|selftest|version [--root <root>]";
+            emit(result);
+            return 0;
+        }
         if (command == "status") return command_status(root);
         if (command == "chat") return command_chat(root);
         if (command == "debug") return command_debug(root);
         if (command == "run") return command_run(root);
         if (command == "selftest") return command_selftest(root);
+        std::vector<std::string> rest(args.begin() + 2, args.end());
+        if (command == "download") {
+            emit(cf::cli_download(root, executable_path(), rest));
+            return 0;
+        }
+        if (command == "install") {
+            emit(cf::cli_install(root, executable_path(), rest));
+            return 0;
+        }
+        if (command == "path") {
+            emit(cf::cli_path(root, executable_path(), rest));
+            return 0;
+        }
         fail("unknown command: " + command);
         return 0;
     } catch (const std::exception& ex) {

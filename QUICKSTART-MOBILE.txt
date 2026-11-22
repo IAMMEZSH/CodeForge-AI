@@ -1,4 +1,4 @@
-CodeForge AI 1.2.1 — Android and iOS quick start
+CodeForge AI 1.2.2 — Android and iOS quick start
 =================================================
 
 Two routes are supported on each mobile platform:
@@ -24,8 +24,8 @@ Prepare:
     pkg install -y python clang make cmake git curl libcurl openjdk-17 \
         zip unzip
     termux-setup-storage
-    cp -r ~/storage/downloads/CodeForge-AI-1.2.1 ~/
-    cd ~/CodeForge-AI-1.2.1
+    cp -r ~/storage/downloads/CodeForge-AI-1.2.2 ~/
+    cd ~/CodeForge-AI-1.2.2
     termux-wake-lock
 
 Build and test:
@@ -54,7 +54,7 @@ on the device and point the server at it:
     cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
     cmake --build build -j"$(nproc)" --target llama-server
     export CODEFORGE_LLAMA_SERVER="$HOME/llama.cpp/build/bin/llama-server"
-    cd ~/CodeForge-AI-1.2.1
+    cd ~/CodeForge-AI-1.2.2
     python aux-python/bootstrap.py --run --port 8765
 
 You can persist the same path as llm.llama_server in config.json instead of
@@ -92,7 +92,7 @@ Install iSH from the App Store.
 
 Host role:
 
-    cd ~/CodeForge-AI-1.2.1
+    cd ~/CodeForge-AI-1.2.2
     python3 aux-python/bootstrap.py --all
     python3 aux-python/bootstrap.py --run --port 8765
     curl -s http://127.0.0.1:8765/api/health
@@ -103,7 +103,7 @@ bootstrap intentionally refuses to download the glibc Temurin JDK on Alpine.
 The recommended role is a client. Keep the CodeForge server in iSH and point
 inference at a PC, Mac or phone on the LAN:
 
-    cd ~/CodeForge-AI-1.2.1
+    cd ~/CodeForge-AI-1.2.2
     export CODEFORGE_LLM_BACKEND=openai
     export CODEFORGE_OPENAI_URL=http://192.168.1.10:8080
     python3 aux-python/bootstrap.py --run --port 8765
@@ -144,6 +144,11 @@ Notes
   Cocos Creator, LOVE) installed on the host. Use the phone as a client to a
   desktop CodeForge server; nothing is downloaded or bundled automatically.
 - Mobile inference is CPU-only; 4B Q4 models are the practical phone limit.
+- The built core can download files directly from a terminal:
+  `native/bin/CodeForgeCore download --url <url> --out downloads/<file>`.
+  Search (`--query`) needs the local server. PATH registration is available
+  with `path add --user` in Termux; package installs depend on the host's
+  package manager.
 - Full commands, service units and limitations: docs/PLATFORMS.md.
 - Documentation: docs/MANUAL.md, docs/API.md, docs/SECURITY.md
 - License: MIT (see LICENSE). Model weights keep their own licenses.

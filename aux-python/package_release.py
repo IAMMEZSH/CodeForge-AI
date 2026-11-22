@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 STAMP = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 EXCLUDE_DIRS = {
@@ -67,6 +67,7 @@ WINDOWS_BINARIES = [
     "native/bin/CodeForge.exe",
     "native/bin/CodeForgeCore.exe",
     "native/bin/cforge_native.exe",
+    "native/bin/aria2c.exe",
     "server-java/build/CodeForgeServer.jar",
 ]
 
@@ -185,9 +186,7 @@ def collect(mode: str) -> list[Path]:
 
 
 def quickstart_payload(mode: str) -> bytes:
-    if mode == "windows":
-        return QUICKSTART_WINDOWS.format(version=VERSION).encode("utf-8")
-    source, _ = PLATFORM_QUICKSTARTS[mode]
+    source = "QUICKSTART-WINDOWS.txt" if mode == "windows" else PLATFORM_QUICKSTARTS[mode][0]
     return (ROOT / source).read_text(encoding="utf-8").encode("utf-8")
 
 
