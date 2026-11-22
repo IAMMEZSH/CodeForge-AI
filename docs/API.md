@@ -1222,7 +1222,7 @@ rejected. Web content is untrusted data and is never executed.
 
 Memory, online research and online-brain routing are controlled by `memory`,
 `online` and `llm.online` in `config.json`; environment overrides are listed in
-[MANUAL.md](MANUAL.md#107-environment-variables).
+[MANUAL.md](MANUAL.md#117-environment-variables).
 
 ### GET `/api/agent`
 

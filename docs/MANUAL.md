@@ -442,7 +442,7 @@ termux-wake-lock
 ```
 
 Detailed Termux commands, wake locks and storage notes are in
-[PLATFORMS.md](PLATFORMS.md#android-termux).
+[PLATFORMS.md](PLATFORMS.md#7-android--termux-route).
 
 ### 3.5 iOS/iPadOS via iSH
 
